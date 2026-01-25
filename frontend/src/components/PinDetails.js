@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 import './PinDetails.css';
 
 const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
@@ -29,7 +30,10 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
 
   const fetchVoteStatus = async () => {
     try {
-      const response = await axios.get(`/api/votes/${pin._id}/${userId}`);
+      const deviceFingerprint = getDeviceFingerprint();
+      const response = await axios.get(`/api/votes/${pin._id}/${userId}`, {
+        params: { deviceFingerprint }
+      });
       setVoteStatus(response.data);
     } catch (error) {
       console.error('Error fetching vote status:', error);
@@ -45,15 +49,20 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
 
   const handleVote = async (voteType) => {
     try {
+      const deviceFingerprint = getDeviceFingerprint();
       await axios.post('/api/votes', {
         pinId: pin._id,
         userId,
-        voteType
+        voteType,
+        deviceFingerprint
       });
       fetchVoteStatus();
       onUpdate();
     } catch (error) {
       console.error('Error voting:', error);
+      if (error.response?.data?.error) {
+        alert(error.response.data.error);
+      }
     }
   };
 

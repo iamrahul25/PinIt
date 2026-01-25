@@ -50,6 +50,8 @@ const pinSchema = new mongoose.Schema({
   },
   votes: [{
     userId: String,
+    deviceFingerprint: String, // Device fingerprint to prevent multiple votes from same device
+    ipAddress: String, // IP address for additional tracking
     voteType: {
       type: String,
       enum: ['upvote', 'downvote']

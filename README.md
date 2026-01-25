@@ -1,6 +1,6 @@
 # Pin-It - Civic Issue Reporting System
 
-A React-based web application that allows users to report and track civic issues like potholes, trash piles, broken pipes, and street light problems on an interactive map.
+A React-based web application that allows users to report and track civic issues like potholes, trash piles, broken pipes, and street light problems, etc on an interactive map.
 
 ## Features
 

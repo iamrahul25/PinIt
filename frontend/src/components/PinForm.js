@@ -1,6 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
 import './PinForm.css';
+
+const PROBLEM_TYPES = [
+  { value: 'Trash Pile', label: '🗑️ Trash Pile' },
+  { value: 'Pothole', label: '🕳️ Pothole' },
+  { value: 'Broken Pipe', label: '🚰 Broken Pipe' },
+  { value: 'Fuse Street Light', label: '💡 Fuse Street Light' },
+  { value: 'Other', label: '📋 Other' }
+];
+
+const getSeverityClass = (value) => {
+  const v = parseInt(value, 10);
+  if (v <= 3) return 'severity-low';
+  if (v <= 6) return 'severity-medium';
+  if (v <= 8) return 'severity-high';
+  return 'severity-critical';
+};
+
+const HeaderIcon = () => (
+  <span className="header-icon" aria-hidden="true">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+  </span>
+);
+
+const UploadIcon = () => (
+  <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+    <polyline points="17 8 12 3 7 8" />
+    <line x1="12" y1="3" x2="12" y2="15" />
+  </svg>
+);
 
 const PinForm = ({ location, onClose, onSubmit, userId }) => {
   const [formData, setFormData] = useState({
@@ -14,46 +48,48 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const problemTypes = ['Trash Pile', 'Pothole', 'Broken Pipe', 'Fuse Street Light', 'Other'];
+  const fileInputRef = useRef(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'severity' ? parseInt(value, 10) : value
     }));
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + imageFiles.length > 5) {
-      setError('Maximum 5 images allowed');
-      return;
-    }
+  const handleImageChange = useCallback((e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = 5 - imageFiles.length;
+    const toAdd = files.slice(0, remaining);
+    if (toAdd.length === 0) return;
+    setError(toAdd.length < files.length ? 'Maximum 5 images allowed. Only the first allowed slots were added.' : '');
 
-    const newFiles = [...imageFiles, ...files];
+    const newFiles = [...imageFiles, ...toAdd];
     setImageFiles(newFiles);
 
-    // Create previews
-    const newPreviews = [];
-    newFiles.forEach(file => {
+    const newPreviews = new Array(newFiles.length);
+    let loaded = 0;
+    newFiles.forEach((file, i) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        newPreviews.push(reader.result);
-        if (newPreviews.length === newFiles.length) {
+        newPreviews[i] = reader.result;
+        loaded += 1;
+        if (loaded === newFiles.length) {
           setImagePreviews([...newPreviews]);
         }
       };
       reader.readAsDataURL(file);
     });
-  };
+    if (e.target) e.target.value = '';
+  }, [imageFiles]);
 
   const removeImage = (index) => {
     const newFiles = imageFiles.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
     setImageFiles(newFiles);
     setImagePreviews(newPreviews);
+    setError('');
   };
 
   const handleSubmit = async (e) => {
@@ -62,66 +98,73 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
     setError('');
 
     try {
-      // Upload images first
       const imageIds = [];
       for (const file of imageFiles) {
-        const formData = new FormData();
-        formData.append('image', file);
-        const uploadResponse = await axios.post('/api/images/upload', formData, {
+        const multipart = new FormData();
+        multipart.append('image', file);
+        const uploadResponse = await axios.post('/api/images/upload', multipart, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         imageIds.push(uploadResponse.data.fileId);
       }
 
-      // Create pin
       const pinData = {
         problemType: formData.problemType,
-        severity: parseInt(formData.severity),
+        severity: parseInt(formData.severity, 10),
         location: {
           latitude: location.lat,
           longitude: location.lng,
           address: location.address || ''
         },
         images: imageIds,
-        name: formData.name,
-        description: formData.description
+        name: formData.name || '',
+        description: formData.description || ''
       };
 
       await axios.post('/api/pins', pinData);
       onSubmit();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create pin. Please try again.');
+      setError(err.response?.data?.error || 'Failed to create report. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
+
+  const severityClass = getSeverityClass(formData.severity);
+  const uploadDisabled = imageFiles.length >= 5;
 
   return (
     <div className="pin-form-overlay" onClick={onClose}>
       <div className="pin-form-container" onClick={(e) => e.stopPropagation()}>
         <div className="pin-form-header">
-          <h2>Report a Problem</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>
+            <HeaderIcon />
+            Report a Problem
+          </h2>
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
+            ×
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="pin-form">
-          {error && <div className="error-message">{error}</div>}
+          {error && <div className="error-message" role="alert">{error}</div>}
 
           <div className="form-group">
-            <label>Problem Type *</label>
+            <label>Problem Type <span className="required">*</span></label>
             <select
               name="problemType"
               value={formData.problemType}
               onChange={handleInputChange}
               required
             >
-              {problemTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
+              {PROBLEM_TYPES.map(({ value, label }) => (
+                <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </div>
 
           <div className="form-group">
-            <label>Severity (1-10) *</label>
+            <label>Severity (1–10) <span className="required">*</span></label>
             <input
               type="range"
               name="severity"
@@ -131,11 +174,15 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
               onChange={handleInputChange}
               required
             />
-            <div className="severity-value">{formData.severity}/10</div>
+            <div className="severity-display">
+              <span>Low</span>
+              <div className={`severity-value ${severityClass}`}>{formData.severity}/10</div>
+              <span>High</span>
+            </div>
           </div>
 
           <div className="form-group">
-            <label>Your Name (Optional)</label>
+            <label>Your Name <span className="optional">(Optional)</span></label>
             <input
               type="text"
               name="name"
@@ -146,24 +193,43 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
           </div>
 
           <div className="form-group">
-            <label>Description (Optional)</label>
+            <label>Description <span className="optional">(Optional)</span></label>
             <textarea
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              placeholder="Describe the problem..."
+              placeholder="Describe the problem in detail..."
               rows="4"
             />
           </div>
 
           <div className="form-group">
-            <label>Attach Images (Max 5)</label>
+            <label>Attach Images <span className="optional">(Max 5)</span></label>
+            <div
+              role="button"
+              tabIndex={0}
+              className={`upload-area ${uploadDisabled ? 'disabled' : ''}`}
+              onClick={() => !uploadDisabled && fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !uploadDisabled) {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              aria-label="Click to upload images"
+            >
+              <UploadIcon />
+              <p>Click to upload images</p>
+              <p className="upload-count">{imageFiles.length}/5 images uploaded</p>
+            </div>
             <input
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               multiple
               onChange={handleImageChange}
-              disabled={imageFiles.length >= 5}
+              className="file-input-hidden"
+              aria-hidden="true"
             />
             {imagePreviews.length > 0 && (
               <div className="image-previews">
@@ -174,6 +240,7 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
                       type="button"
                       className="remove-image"
                       onClick={() => removeImage(index)}
+                      aria-label={`Remove image ${index + 1}`}
                     >
                       ×
                     </button>
@@ -188,7 +255,7 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
               Cancel
             </button>
             <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit'}
+              {loading ? 'Submitting...' : 'Submit Report'}
             </button>
           </div>
         </form>

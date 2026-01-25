@@ -51,27 +51,6 @@
   font-weight: bold;
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  color: #666;
-  font-size: 2rem;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background 0.2s;
-  flex-shrink: 0;
-}
-
-.close-btn:hover {
-  background: rgba(0, 0, 0, 0.1);
-}
-
 .pin-details-content {
   padding: 20px;
 }

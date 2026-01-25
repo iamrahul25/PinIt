@@ -17,9 +17,8 @@
   border-radius: 10px;
   width: 100%;
   max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  overflow: visible;
 }
 
 .pin-form-header {
@@ -39,9 +38,9 @@
 }
 
 .close-btn {
-  background: none;
   border: none;
   color: white;
+  background: #c0392b;
   font-size: 2rem;
   cursor: pointer;
   padding: 0;
@@ -51,11 +50,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  transition: background 0.2s;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
 }
 
 .pin-form {

@@ -10,6 +10,7 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     fetchComments();
@@ -77,30 +78,40 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
     }
   };
 
-  const getProblemIconColor = (problemType) => {
-    const colors = {
-      'Trash Pile': '#ff6b6b',
-      'Pothole': '#4ecdc4',
-      'Broken Pipe': '#45b7d1',
-      'Fuse Street Light': '#f9ca24',
-      'Other': '#95a5a6'
-    };
-    return colors[problemType] || colors['Other'];
+  const openImageModal = (imageSrc) => {
+    setSelectedImage(imageSrc);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return date.toLocaleDateString();
   };
 
   return (
-    <div className="pin-details-overlay" onClick={onClose}>
-      <div className="pin-details-container" onClick={(e) => e.stopPropagation()}>
-        <div className="pin-details-header" style={{ borderLeft: `5px solid ${getProblemIconColor(pin.problemType)}` }}>
-          <div>
-            <h2>{pin.problemType}</h2>
-            <p className="pin-meta">
-              Severity: <span className="severity-badge">{pin.severity}/10</span>
-              {pin.name && <span> • Reported by: {pin.name}</span>}
-            </p>
+    <>
+      <div className="pin-details-overlay" onClick={onClose}>
+        <div className="pin-details-container" onClick={(e) => e.stopPropagation()}>
+          <div className="pin-details-header">
+            <div>
+              <h2>{pin.problemType}</h2>
+              <p className="pin-meta">
+                Severity: <span className="severity-badge">{pin.severity}/10</span>
+                {pin.name && <span> • Reported by: {pin.name}</span>}
+              </p>
+            </div>
+            <button className="close-btn" onClick={onClose}>×</button>
           </div>
-          <button className="close-btn" onClick={onClose}>×</button>
-        </div>
 
         <div className="pin-details-content">
           {pin.description && (
@@ -122,7 +133,12 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
               <h3>Images</h3>
               <div className="images-grid">
                 {images.map((url, index) => (
-                  <img key={index} src={url} alt={`Problem ${index + 1}`} />
+                  <img 
+                    key={index} 
+                    src={url} 
+                    alt={`Problem ${index + 1}`}
+                    onClick={() => openImageModal(url)}
+                  />
                 ))}
               </div>
             </div>
@@ -154,13 +170,11 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
               ) : (
                 comments.map(comment => (
                   <div key={comment._id} className="comment-item">
-                    <div className="comment-header">
-                      <strong>{comment.author}</strong>
-                      <span className="comment-date">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
+                    <div className="comment-author">{comment.author}</div>
+                    <div className="comment-text">{comment.text}</div>
+                    <div className="comment-date">
+                      {formatDate(comment.createdAt)}
                     </div>
-                    <p className="comment-text">{comment.text}</p>
                   </div>
                 ))
               )}
@@ -190,7 +204,23 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+
+      {/* Image Modal */}
+      <div 
+        className={`image-modal ${selectedImage ? 'active' : ''}`}
+        onClick={closeImageModal}
+      >
+        <button className="image-modal-close" onClick={closeImageModal}>×</button>
+        {selectedImage && (
+          <img 
+            src={selectedImage} 
+            alt="Full size" 
+            onClick={(e) => e.stopPropagation()}
+          />
+        )}
+      </div>
+    </>
   );
 };
 

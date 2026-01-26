@@ -23,11 +23,31 @@ function MapClickHandler({ onMapClick, isAddPinMode }) {
   return null;
 }
 
-function MapUpdater({ center, zoom }) {
+function MapUpdater({ center, zoom, onMapMove }) {
   const map = useMap();
   useEffect(() => {
     map.setView(center, zoom);
   }, [center, zoom, map]);
+
+  // Sync map movements back to parent
+  useEffect(() => {
+    if (!onMapMove) return;
+    
+    const handleMoveEnd = () => {
+      const mapCenter = map.getCenter();
+      const mapZoom = map.getZoom();
+      onMapMove([mapCenter.lat, mapCenter.lng], mapZoom);
+    };
+
+    map.on('moveend', handleMoveEnd);
+    map.on('zoomend', handleMoveEnd);
+
+    return () => {
+      map.off('moveend', handleMoveEnd);
+      map.off('zoomend', handleMoveEnd);
+    };
+  }, [map, onMapMove]);
+
   return null;
 }
 
@@ -269,6 +289,8 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
+  const [googleMapInstance, setGoogleMapInstance] = useState(null);
+  const [leafletMapInstance, setLeafletMapInstance] = useState(null);
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
   useEffect(() => {
@@ -287,6 +309,59 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     }
   }, []);
 
+  // Sync center and zoom to Google Maps when state changes
+  useEffect(() => {
+    if (googleMapInstance) {
+      const currentCenter = googleMapInstance.getCenter();
+      const currentZoom = googleMapInstance.getZoom();
+      const newCenter = { lat: center[0], lng: center[1] };
+      
+      // Only update if there's a significant difference to avoid infinite loops
+      if (currentCenter && (
+        Math.abs(currentCenter.lat() - newCenter.lat) > 0.0001 ||
+        Math.abs(currentCenter.lng() - newCenter.lng) > 0.0001 ||
+        Math.abs(currentZoom - zoom) > 0.5
+      )) {
+        googleMapInstance.setCenter(newCenter);
+        googleMapInstance.setZoom(zoom);
+      }
+    }
+  }, [center, zoom, googleMapInstance]);
+
+  // Trigger resize when switching to Google Maps
+  useEffect(() => {
+    if (mapType === 'google' && googleMapInstance && window.google) {
+      // Small delay to ensure the map container is visible
+      const timer = setTimeout(() => {
+        window.google.maps.event.trigger(googleMapInstance, 'resize');
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [mapType, googleMapInstance]);
+
+  // Handle map movement from Leaflet
+  const handleLeafletMapMove = (newCenter, newZoom) => {
+    setCenter(newCenter);
+    setZoom(newZoom);
+  };
+
+  // Handle Google Maps drag/zoom events
+  const handleGoogleMapDragEnd = () => {
+    if (googleMapInstance) {
+      const mapCenter = googleMapInstance.getCenter();
+      const mapZoom = googleMapInstance.getZoom();
+      setCenter([mapCenter.lat(), mapCenter.lng()]);
+      setZoom(mapZoom);
+    }
+  };
+
+  const handleGoogleMapZoomChanged = () => {
+    if (googleMapInstance) {
+      const mapZoom = googleMapInstance.getZoom();
+      setZoom(mapZoom);
+    }
+  };
+
   const handleLocationFound = (location) => {
     setCenter([location.lat, location.lng]);
     setZoom(15);
@@ -304,7 +379,16 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
   };
 
   const toggleMapType = () => {
-    setMapType(prev => prev === 'osm' ? 'google' : 'osm');
+    setMapType(prev => {
+      const newType = prev === 'osm' ? 'google' : 'osm';
+      // Trigger resize for Google Maps when switching to it
+      if (newType === 'google' && googleMapInstance && window.google) {
+        setTimeout(() => {
+          window.google.maps.event.trigger(googleMapInstance, 'resize');
+        }, 100);
+      }
+      return newType;
+    });
   };
 
   const handleGoogleMapClick = (e) => {
@@ -314,105 +398,12 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     }
   };
 
-  // Google Maps component with search
-  const GoogleMapComponent = () => {
-    const [map, setMap] = useState(null);
-    const [googleMapCenter, setGoogleMapCenter] = useState({ lat: center[0], lng: center[1] });
-    const [googleMapZoom, setGoogleMapZoom] = useState(zoom);
+  const handleGoogleMapLoad = (mapInstance) => {
+    setGoogleMapInstance(mapInstance);
+  };
 
-    useEffect(() => {
-      setGoogleMapCenter({ lat: center[0], lng: center[1] });
-      setGoogleMapZoom(zoom);
-      if (map) {
-        map.setCenter({ lat: center[0], lng: center[1] });
-        map.setZoom(zoom);
-      }
-    }, [center, zoom, map]);
-
-    const onLoad = (mapInstance) => {
-      setMap(mapInstance);
-    };
-
-    const onUnmount = () => {
-      setMap(null);
-    };
-
-    if (!googleMapsApiKey) {
-      return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          background: '#f5f5f5',
-          color: '#666',
-          flexDirection: 'column',
-          gap: '10px'
-        }}>
-          <div>Google Maps API key not configured</div>
-          <div style={{ fontSize: '12px' }}>
-            Please set REACT_APP_GOOGLE_MAPS_API_KEY in your .env file
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-        <LoadScript 
-          googleMapsApiKey={googleMapsApiKey}
-          libraries={['places']}
-        >
-          <GoogleMap
-            mapContainerStyle={{ width: '100%', height: '100%' }}
-            center={googleMapCenter}
-            zoom={googleMapZoom}
-            onLoad={onLoad}
-            onUnmount={onUnmount}
-            onClick={handleGoogleMapClick}
-            options={{
-              disableDefaultUI: false,
-              zoomControl: true,
-              streetViewControl: false,
-              mapTypeControl: true,
-              fullscreenControl: true,
-            }}
-          >
-            {tempPinLocation && window.google && (
-              <GoogleMarker
-                position={{ lat: tempPinLocation.lat, lng: tempPinLocation.lng }}
-                icon={{
-                  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                    <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="15" cy="15" r="12" fill="#667eea" stroke="white" stroke-width="2"/>
-                    </svg>
-                  `),
-                  scaledSize: new window.google.maps.Size(30, 30),
-                  anchor: new window.google.maps.Point(15, 15),
-                }}
-              />
-            )}
-            {pins.map((pin) => (
-              <GoogleMarker
-                key={pin._id}
-                position={{ lat: pin.location.latitude, lng: pin.location.longitude }}
-                icon={window.google ? {
-                  url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                    <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M15 0 L30 30 L0 30 Z" fill="${getProblemIcon(pin.problemType)}" stroke="white" stroke-width="2"/>
-                    </svg>
-                  `),
-                  scaledSize: new window.google.maps.Size(30, 30),
-                  anchor: new window.google.maps.Point(15, 30),
-                } : undefined}
-                onClick={() => onPinClick(pin)}
-              />
-            ))}
-          </GoogleMap>
-        </LoadScript>
-        <GoogleMapSearch map={map} onLocationFound={handleLocationFound} />
-      </div>
-    );
+  const handleGoogleMapUnmount = () => {
+    setGoogleMapInstance(null);
   };
 
   // Google Maps Search Component
@@ -572,6 +563,15 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     return null;
   };
 
+  // Component to capture Leaflet map instance
+  const LeafletMapCapture = () => {
+    const map = useMap();
+    useEffect(() => {
+      setLeafletMapInstance(map);
+    }, [map]);
+    return null;
+  };
+
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       {/* Map Type Toggle Button */}
@@ -638,7 +638,17 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
           Click on the map to place a pin
         </div>
       )}
-      {mapType === 'osm' ? (
+      
+      {/* OpenStreetMap - Always mounted, shown/hidden via CSS */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        display: mapType === 'osm' ? 'block' : 'none',
+        zIndex: mapType === 'osm' ? 1 : 0
+      }}>
         <MapContainer
           center={center}
           zoom={zoom}
@@ -652,7 +662,8 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <MapUpdater center={center} zoom={zoom} />
+          <LeafletMapCapture />
+          <MapUpdater center={center} zoom={zoom} onMapMove={handleLeafletMapMove} />
           <MapClickHandler onMapClick={onMapClick} isAddPinMode={isAddPinMode} />
           <LocationSearch onLocationFound={handleLocationFound} />
           {tempPinLocation && (
@@ -698,8 +709,95 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
             </Marker>
           ))}
         </MapContainer>
+      </div>
+
+      {/* Google Maps - Always mounted, shown/hidden via CSS */}
+      {googleMapsApiKey ? (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: mapType === 'google' ? 'block' : 'none',
+          zIndex: mapType === 'google' ? 1 : 0
+        }}>
+          <LoadScript 
+            googleMapsApiKey={googleMapsApiKey}
+            libraries={['places']}
+          >
+            <GoogleMap
+              mapContainerStyle={{ width: '100%', height: '100%' }}
+              center={{ lat: center[0], lng: center[1] }}
+              zoom={zoom}
+              onLoad={handleGoogleMapLoad}
+              onUnmount={handleGoogleMapUnmount}
+              onClick={handleGoogleMapClick}
+              onDragEnd={handleGoogleMapDragEnd}
+              onZoomChanged={handleGoogleMapZoomChanged}
+              options={{
+                disableDefaultUI: false,
+                zoomControl: true,
+                streetViewControl: false,
+                mapTypeControl: true,
+                fullscreenControl: true,
+              }}
+            >
+              {tempPinLocation && window.google && (
+                <GoogleMarker
+                  position={{ lat: tempPinLocation.lat, lng: tempPinLocation.lng }}
+                  icon={{
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                      <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="15" cy="15" r="12" fill="#667eea" stroke="white" stroke-width="2"/>
+                      </svg>
+                    `),
+                    scaledSize: new window.google.maps.Size(30, 30),
+                    anchor: new window.google.maps.Point(15, 15),
+                  }}
+                />
+              )}
+              {pins.map((pin) => (
+                <GoogleMarker
+                  key={pin._id}
+                  position={{ lat: pin.location.latitude, lng: pin.location.longitude }}
+                  icon={window.google ? {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+                      <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 0 L30 30 L0 30 Z" fill="${getProblemIcon(pin.problemType)}" stroke="white" stroke-width="2"/>
+                      </svg>
+                    `),
+                    scaledSize: new window.google.maps.Size(30, 30),
+                    anchor: new window.google.maps.Point(15, 30),
+                  } : undefined}
+                  onClick={() => onPinClick(pin)}
+                />
+              ))}
+            </GoogleMap>
+            <GoogleMapSearch map={googleMapInstance} onLocationFound={handleLocationFound} />
+          </LoadScript>
+        </div>
       ) : (
-        <GoogleMapComponent />
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          display: mapType === 'google' ? 'flex' : 'none',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#f5f5f5',
+          color: '#666',
+          flexDirection: 'column',
+          gap: '10px',
+          zIndex: mapType === 'google' ? 1 : 0
+        }}>
+          <div>Google Maps API key not configured</div>
+          <div style={{ fontSize: '12px' }}>
+            Please set REACT_APP_GOOGLE_MAPS_API_KEY in your .env file
+          </div>
+        </div>
       )}
     </div>
   );

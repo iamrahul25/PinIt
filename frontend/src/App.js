@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
+import PinListPanel from './components/PinListPanel';
 import './App.css';
 
 function App() {
@@ -11,6 +12,7 @@ function App() {
   const [formLocation, setFormLocation] = useState(null);
   const [isAddPinMode, setIsAddPinMode] = useState(false);
   const [tempPinLocation, setTempPinLocation] = useState(null);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [userId] = useState(() => {
     // Generate or retrieve user ID (in production, use proper auth)
     let id = localStorage.getItem('userId');
@@ -79,6 +81,10 @@ function App() {
     setIsAddPinMode(false);
   };
 
+  const handleTogglePanel = () => {
+    setIsPanelOpen(prev => !prev);
+  };
+
   return (
     <div className="App">
       <header className="app-header">
@@ -117,6 +123,12 @@ function App() {
             onUpdate={fetchPins}
           />
         )}
+        <PinListPanel
+          pins={pins}
+          onPinClick={handlePinClick}
+          isOpen={isPanelOpen}
+          onToggle={handleTogglePanel}
+        />
       </div>
     </div>
   );

@@ -26,10 +26,10 @@ export const generateDeviceFingerprint = () => {
   components.push(navigator.userAgent || 'unknown');
 
   // Screen properties
-  components.push(`${screen.width}x${screen.height}`);
-  components.push(`${screen.availWidth}x${screen.availHeight}`);
-  components.push(screen.colorDepth || 'unknown');
-  components.push(screen.pixelDepth || 'unknown');
+  components.push(`${window.screen.width}x${window.screen.height}`);
+  components.push(`${window.screen.availWidth}x${window.screen.availHeight}`);
+  components.push(window.screen.colorDepth || 'unknown');
+  components.push(window.screen.pixelDepth || 'unknown');
 
   // Timezone
   components.push(Intl.DateTimeFormat().resolvedOptions().timeZone || 'unknown');

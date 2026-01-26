@@ -5,6 +5,7 @@ A React-based web application that allows users to report and track civic issues
 ## Features
 
 - 🗺️ **Interactive Map**: Click anywhere on the map to report a problem
+- 🔄 **Map Toggle**: Switch between OpenStreetMap and Google Maps
 - 📍 **Location Services**: Search for locations or use your current location
 - 📸 **Image Upload**: Attach up to 5 images per report
 - ⭐ **Voting System**: Upvote or downvote reported issues
@@ -45,6 +46,13 @@ A React-based web application that allows users to report and track civic issues
    - Copy `backend/.env.example` to `backend/.env`
    - Update `MONGODB_URI` with your MongoDB connection string
    - Default: `mongodb://localhost:27017/pinit`
+   - Create `frontend/.env` file and add your Google Maps API key (optional, for Google Maps toggle):
+     ```
+     REACT_APP_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+     ```
+     - Get your API key from: https://console.cloud.google.com/google/maps-apis
+     - Enable the following APIs: Maps JavaScript API and Places API
+     - Note: OpenStreetMap works without any API key
 
 4. **Start MongoDB** (if running locally):
    ```bash
@@ -148,8 +156,10 @@ PinIt/
 - Images are stored in MongoDB using GridFS
 - User identification is handled via localStorage (for demo purposes)
 - In production, implement proper authentication
-- The map uses OpenStreetMap tiles (free, no API key required)
-- Location search uses Nominatim geocoding service
+- The map uses OpenStreetMap tiles by default (free, no API key required)
+- Google Maps option available (requires API key - see setup instructions)
+- Location search uses Nominatim geocoding service for OpenStreetMap
+- Google Maps uses Google Places API for search (when API key is configured)
 
 ## License
 

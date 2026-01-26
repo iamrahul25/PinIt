@@ -34,47 +34,172 @@ function LocationSearch({ onLocationFound }) {
   const map = useMap();
 
   useEffect(() => {
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search location...';
-    searchInput.style.cssText = `
+    const searchContainer = document.createElement('div');
+    searchContainer.style.cssText = `
       position: absolute;
       top: 10px;
       left: 50px;
       z-index: 1000;
-      padding: 10px 15px;
       width: 300px;
+    `;
+
+    const inputWrapper = document.createElement('div');
+    inputWrapper.style.cssText = `
+      position: relative;
+      width: 100%;
+    `;
+
+    const searchInput = document.createElement('input');
+    searchInput.type = 'text';
+    searchInput.placeholder = 'Search location...';
+    searchInput.style.cssText = `
+      width: 100%;
+      padding: 10px 40px 10px 15px;
       border: none;
       border-radius: 5px;
       box-shadow: 0 2px 10px rgba(0,0,0,0.2);
       font-size: 14px;
+      box-sizing: border-box;
+    `;
+
+    const clearButton = document.createElement('button');
+    clearButton.innerHTML = '×';
+    clearButton.style.cssText = `
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: #999;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: color 0.2s;
+      z-index: 1002;
+    `;
+    clearButton.addEventListener('mouseenter', () => {
+      clearButton.style.color = '#333';
+    });
+    clearButton.addEventListener('mouseleave', () => {
+      clearButton.style.color = '#999';
+    });
+    clearButton.addEventListener('click', (e) => {
+      e.stopPropagation();
+      searchInput.value = '';
+      searchInput.focus();
+      suggestionsList.innerHTML = '';
+      suggestionsList.style.display = 'none';
+      clearButton.style.display = 'none';
+    });
+
+    const suggestionsList = document.createElement('div');
+    suggestionsList.id = 'location-suggestions';
+    suggestionsList.style.cssText = `
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 5px;
+      background: white;
+      border-radius: 5px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      max-height: 300px;
+      overflow-y: auto;
+      display: none;
+      z-index: 1001;
     `;
 
     // Simple geocoding using Nominatim (OpenStreetMap)
     let timeout;
-    searchInput.addEventListener('input', (e) => {
+    const handleInput = async (e) => {
       clearTimeout(timeout);
-      const query = e.target.value;
-      if (query.length > 3) {
+      const query = e.target.value.trim();
+      
+      // Show/hide clear button based on input
+      if (e.target.value.length > 0) {
+        clearButton.style.display = 'flex';
+      } else {
+        clearButton.style.display = 'none';
+      }
+      
+      if (query.length > 2) {
         timeout = setTimeout(async () => {
           try {
             const response = await fetch(
               `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
             );
             const data = await response.json();
+            
+            // Clear previous suggestions
+            suggestionsList.innerHTML = '';
+            
             if (data.length > 0) {
-              const result = data[0];
-              const lat = parseFloat(result.lat);
-              const lon = parseFloat(result.lon);
-              map.setView([lat, lon], 15);
-              onLocationFound({ lat, lng: lon, address: result.display_name });
+              data.forEach((result, index) => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.style.cssText = `
+                  padding: 12px 15px;
+                  cursor: pointer;
+                  border-bottom: 1px solid #f0f0f0;
+                  transition: background-color 0.2s;
+                `;
+                suggestionItem.textContent = result.display_name;
+                
+                // Hover effect
+                suggestionItem.addEventListener('mouseenter', () => {
+                  suggestionItem.style.backgroundColor = '#f5f5f5';
+                });
+                suggestionItem.addEventListener('mouseleave', () => {
+                  suggestionItem.style.backgroundColor = 'white';
+                });
+                
+                // Click handler
+                suggestionItem.addEventListener('click', () => {
+                  const lat = parseFloat(result.lat);
+                  const lon = parseFloat(result.lon);
+                  map.setView([lat, lon], 15);
+                  onLocationFound({ lat, lng: lon, address: result.display_name });
+                  searchInput.value = result.display_name;
+                  suggestionsList.style.display = 'none';
+                  clearButton.style.display = 'flex';
+                });
+                
+                suggestionsList.appendChild(suggestionItem);
+              });
+              suggestionsList.style.display = 'block';
+            } else {
+              suggestionsList.style.display = 'none';
             }
           } catch (error) {
             console.error('Geocoding error:', error);
+            suggestionsList.style.display = 'none';
           }
         }, 500);
+      } else {
+        suggestionsList.style.display = 'none';
       }
-    });
+    };
+
+    searchInput.addEventListener('input', handleInput);
+    
+    // Hide suggestions when clicking outside
+    const handleClickOutside = (e) => {
+      if (!searchContainer.contains(e.target)) {
+        suggestionsList.style.display = 'none';
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+
+    inputWrapper.appendChild(searchInput);
+    inputWrapper.appendChild(clearButton);
+    searchContainer.appendChild(inputWrapper);
+    searchContainer.appendChild(suggestionsList);
 
     const currentLocationBtn = document.createElement('button');
     currentLocationBtn.textContent = '📍 My Location';
@@ -107,12 +232,13 @@ function LocationSearch({ onLocationFound }) {
     };
 
     const container = map.getContainer();
-    container.appendChild(searchInput);
+    container.appendChild(searchContainer);
     container.appendChild(currentLocationBtn);
 
     return () => {
-      if (searchInput.parentNode) {
-        searchInput.parentNode.removeChild(searchInput);
+      document.removeEventListener('click', handleClickOutside);
+      if (searchContainer.parentNode) {
+        searchContainer.parentNode.removeChild(searchContainer);
       }
       if (currentLocationBtn.parentNode) {
         currentLocationBtn.parentNode.removeChild(currentLocationBtn);

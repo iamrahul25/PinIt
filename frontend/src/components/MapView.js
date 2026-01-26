@@ -1,8 +1,78 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
-import { GoogleMap, LoadScript, Marker as GoogleMarker, InfoWindow } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// Static libraries array for Google Maps LoadScript to prevent unnecessary reloads
+const GOOGLE_MAPS_LIBRARIES = ['places', 'marker'];
+
+// Default map ID for AdvancedMarkerElement (can be customized in Google Cloud Console)
+const DEFAULT_MAP_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
+
+// Custom AdvancedMarker component to replace deprecated Marker
+const AdvancedMarker = ({ position, map, content, onClick }) => {
+  const markerRef = useRef(null);
+  const [markerLibrary, setMarkerLibrary] = useState(null);
+
+  useEffect(() => {
+    if (!map || !window.google) return;
+
+    // Dynamically import the marker library
+    const loadMarkerLibrary = async () => {
+      try {
+        const { AdvancedMarkerElement } = await window.google.maps.importLibrary('marker');
+        setMarkerLibrary({ AdvancedMarkerElement });
+      } catch (error) {
+        console.error('Error loading marker library:', error);
+      }
+    };
+
+    loadMarkerLibrary();
+  }, [map]);
+
+  useEffect(() => {
+    if (!map || !markerLibrary || !position) return;
+
+    // Create marker element
+    const markerElement = document.createElement('div');
+    markerElement.style.cssText = 'display: flex; align-items: center; justify-content: center;';
+    
+    if (content) {
+      if (typeof content === 'string') {
+        markerElement.innerHTML = content;
+      } else if (content instanceof HTMLElement) {
+        markerElement.appendChild(content);
+      } else {
+        markerElement.appendChild(content);
+      }
+    }
+
+    // Create AdvancedMarkerElement
+    const advancedMarker = new markerLibrary.AdvancedMarkerElement({
+      map,
+      position,
+      content: markerElement,
+    });
+
+    // Add click event listener
+    if (onClick) {
+      advancedMarker.addListener('click', onClick);
+    }
+
+    markerRef.current = advancedMarker;
+
+    // Cleanup
+    return () => {
+      if (markerRef.current) {
+        markerRef.current.map = null;
+        markerRef.current = null;
+      }
+    };
+  }, [map, markerLibrary, position, content, onClick]);
+
+  return null;
+};
 
 // Fix for default marker icons in React Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -724,7 +794,7 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
         }}>
           <LoadScript 
             googleMapsApiKey={googleMapsApiKey}
-            libraries={['places']}
+            libraries={GOOGLE_MAPS_LIBRARIES}
           >
             <GoogleMap
               mapContainerStyle={{ width: '100%', height: '100%' }}
@@ -736,6 +806,7 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
               onDragEnd={handleGoogleMapDragEnd}
               onZoomChanged={handleGoogleMapZoomChanged}
               options={{
+                mapId: DEFAULT_MAP_ID,
                 disableDefaultUI: false,
                 zoomControl: true,
                 streetViewControl: false,
@@ -743,33 +814,38 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
                 fullscreenControl: true,
               }}
             >
-              {tempPinLocation && window.google && (
-                <GoogleMarker
+              {tempPinLocation && googleMapInstance && (
+                <AdvancedMarker
+                  map={googleMapInstance}
                   position={{ lat: tempPinLocation.lat, lng: tempPinLocation.lng }}
-                  icon={{
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                      <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="15" cy="15" r="12" fill="#667eea" stroke="white" stroke-width="2"/>
-                      </svg>
-                    `),
-                    scaledSize: new window.google.maps.Size(30, 30),
-                    anchor: new window.google.maps.Point(15, 15),
-                  }}
+                  content={`
+                    <div style="
+                      width: 30px;
+                      height: 30px;
+                      border-radius: 50%;
+                      background-color: #667eea;
+                      border: 3px solid white;
+                      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                    "></div>
+                  `}
                 />
               )}
               {pins.map((pin) => (
-                <GoogleMarker
+                <AdvancedMarker
                   key={pin._id}
+                  map={googleMapInstance}
                   position={{ lat: pin.location.latitude, lng: pin.location.longitude }}
-                  icon={window.google ? {
-                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-                      <svg width="30" height="30" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M15 0 L30 30 L0 30 Z" fill="${getProblemIcon(pin.problemType)}" stroke="white" stroke-width="2"/>
-                      </svg>
-                    `),
-                    scaledSize: new window.google.maps.Size(30, 30),
-                    anchor: new window.google.maps.Point(15, 30),
-                  } : undefined}
+                  content={`
+                    <div style="
+                      background-color: ${getProblemIcon(pin.problemType)};
+                      width: 30px;
+                      height: 30px;
+                      border-radius: 50% 50% 50% 0;
+                      transform: rotate(-45deg);
+                      border: 3px solid white;
+                      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                    "></div>
+                  `}
                   onClick={() => onPinClick(pin)}
                 />
               ))}

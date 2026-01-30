@@ -29,7 +29,7 @@ const pinSchema = new mongoose.Schema({
     }
   },
   images: [{
-    type: String, // GridFS file IDs
+    type: String, // Cloudinary URLs (or legacy GridFS file IDs for backward compat)
     default: []
   }],
   name: {

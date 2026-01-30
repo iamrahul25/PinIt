@@ -40,10 +40,13 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
     }
   };
 
-  const fetchImages = async () => {
+  const fetchImages = () => {
     if (pin.images && pin.images.length > 0) {
-      const imageUrls = pin.images.map(id => `/api/images/${id}`);
-      setImages(imageUrls);
+      // New pins: images are Cloudinary URLs; legacy pins: GridFS IDs → /api/images/:id
+      const urls = pin.images.map(entry =>
+        entry.startsWith('http') ? entry : `/api/images/${entry}`
+      );
+      setImages(urls);
     }
   };
 

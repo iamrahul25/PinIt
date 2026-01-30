@@ -24,8 +24,9 @@ A React-based web application that allows users to report and track civic issues
 ### Backend
 - Node.js
 - Express.js
-- MongoDB (with GridFS for image storage)
-- Multer (File upload handling)
+- MongoDB
+- Cloudinary (image storage; images compressed to ~1080px / 200–300KB)
+- Multer (file upload handling)
 
 ## Installation
 
@@ -43,9 +44,12 @@ A React-based web application that allows users to report and track civic issues
    ```
 
 3. **Set up environment variables:**
-   - Copy `backend/.env.example` to `backend/.env`
-   - Update `MONGODB_URI` with your MongoDB connection string
-   - Default: `mongodb://localhost:27017/pinit`
+   - Create `backend/.env` with:
+     - `MONGODB_URI` – MongoDB connection string (default: `mongodb://localhost:27017/pinit`)
+     - **Cloudinary** (required for image uploads): get from https://cloudinary.com/console
+       - `CLOUDINARY_CLOUD_NAME`
+       - `CLOUDINARY_API_KEY`
+       - `CLOUDINARY_API_SECRET`
    - Create `frontend/.env` file and add your Google Maps API key (optional, for Google Maps toggle):
      ```
      REACT_APP_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
@@ -120,8 +124,8 @@ A React-based web application that allows users to report and track civic issues
 - `GET /api/votes/:pinId/:userId` - Get vote status for a user
 
 ### Images
-- `POST /api/images/upload` - Upload an image
-- `GET /api/images/:id` - Get image by ID
+- `POST /api/images/upload` - Upload an image (stored on Cloudinary, compressed; returns URL)
+- `GET /api/images/:id` - Get image by ID (legacy GridFS only; new pins use Cloudinary URLs)
 
 ## Project Structure
 
@@ -153,7 +157,7 @@ PinIt/
 
 ## Notes
 
-- Images are stored in MongoDB using GridFS
+- Images are uploaded to **Cloudinary** and only the URL is stored in MongoDB. Images are compressed to max 1080px and ~200–300KB. Old pins may still reference GridFS image IDs; those are served via `GET /api/images/:id`.
 - User identification is handled via localStorage (for demo purposes)
 - In production, implement proper authentication
 - The map uses OpenStreetMap tiles by default (free, no API key required)

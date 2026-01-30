@@ -98,14 +98,14 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
     setError('');
 
     try {
-      const imageIds = [];
+      const imageUrls = [];
       for (const file of imageFiles) {
         const multipart = new FormData();
         multipart.append('image', file);
         const uploadResponse = await axios.post('/api/images/upload', multipart, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        imageIds.push(uploadResponse.data.fileId);
+        imageUrls.push(uploadResponse.data.url);
       }
 
       const pinData = {
@@ -116,7 +116,7 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
           longitude: location.lng,
           address: location.address || ''
         },
-        images: imageIds,
+        images: imageUrls,
         name: formData.name || '',
         description: formData.description || ''
       };

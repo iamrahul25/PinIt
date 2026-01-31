@@ -56,9 +56,9 @@ const AdvancedMarker = ({ position, map, content, onClick }) => {
       content: markerElement,
     });
 
-    // Add click event listener
+    // Add click event listener (use gmp-click for AdvancedMarkerElement)
     if (onClick) {
-      advancedMarker.addListener('click', onClick);
+      advancedMarker.addListener('gmp-click', onClick);
     }
 
     markerRef.current = advancedMarker;

@@ -1,33 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinListPanel.css';
 
 const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
-  const [displayedPins, setDisplayedPins] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const pinsPerPage = 10;
-
-  useEffect(() => {
-    // Reset to first page when pins change or panel opens
-    setCurrentPage(1);
-    const startIndex = 0;
-    const endIndex = 1 * pinsPerPage;
-    const newPins = pins.slice(startIndex, endIndex);
-    setDisplayedPins(newPins);
-  }, [pins, isOpen]);
-
-  const handleLoadMore = () => {
-    const nextPage = currentPage + 1;
-    const startIndex = 0;
-    const endIndex = nextPage * pinsPerPage;
-    const newPins = pins.slice(startIndex, endIndex);
-    setDisplayedPins(newPins);
-    setCurrentPage(nextPage);
-  };
-
-  const hasMorePins = displayedPins.length < pins.length;
-
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -67,7 +43,7 @@ const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
           ) : (
             <>
               <div className="pins-list">
-                {displayedPins.map((pin) => (
+                {pins.map((pin) => (
                   <div 
                     key={pin._id} 
                     className="pin-box"
@@ -125,23 +101,6 @@ const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
                   </div>
                 ))}
               </div>
-
-              {hasMorePins && (
-                <div className="load-more-container">
-                  <button 
-                    className="load-more-btn"
-                    onClick={handleLoadMore}
-                  >
-                    Load More ({pins.length - displayedPins.length} remaining)
-                  </button>
-                </div>
-              )}
-
-              {!hasMorePins && displayedPins.length > 0 && (
-                <div className="all-pins-loaded">
-                  <p>All pins loaded</p>
-                </div>
-              )}
             </>
           )}
         </div>

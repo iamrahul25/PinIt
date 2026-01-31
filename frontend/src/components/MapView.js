@@ -11,6 +11,20 @@ const GOOGLE_MAPS_LIBRARIES = ['places', 'marker'];
 // Default map ID for AdvancedMarkerElement (can be customized in Google Cloud Console)
 const DEFAULT_MAP_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
 
+// 20x20 SVG pin for cursor-following placement (tip at bottom center)
+const PinIconSvg = () => (
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M10 0C6.134 0 3 3.134 3 7c0 4.5 7 13 7 13s7-8.5 7-13c0-3.866-3.134-7-7-7z"
+      fill="black"
+      stroke="white"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+    />
+    <circle cx="10" cy="7" r="2.5" fill="white" />
+  </svg>
+);
+
 // Stable HTML for temp pin so marker isn't updated on every parent re-render
 const TEMP_PIN_MARKER_HTML = `
   <div style="
@@ -412,6 +426,8 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
   const [googleMapInstance, setGoogleMapInstance] = useState(null);
   const [leafletMapInstance, setLeafletMapInstance] = useState(null);
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, accuracy } - accuracy in meters
+  const [pointerPosition, setPointerPosition] = useState(null); // { x, y } for following pin when placing
+  const mapWrapperRef = useRef(null);
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
   useEffect(() => {
@@ -521,6 +537,14 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
   const handleGoogleMapUnmount = () => {
     setGoogleMapInstance(null);
   };
+
+  // Pointer position for following pin when in add-pin mode
+  const handlePointerMove = (e) => {
+    if (!mapWrapperRef.current) return;
+    const rect = mapWrapperRef.current.getBoundingClientRect();
+    setPointerPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+  const handlePointerLeave = () => setPointerPosition(null);
 
   // Google Maps Search Component
   const GoogleMapSearch = ({ map, onLocationFound }) => {
@@ -701,8 +725,18 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     return null;
   };
 
+  // Clear following pin position when leaving add-pin mode
+  useEffect(() => {
+    if (!isAddPinMode) setPointerPosition(null);
+  }, [isAddPinMode]);
+
   return (
-    <div style={{ position: 'relative', height: '100%', width: '100%' }}>
+    <div
+      ref={mapWrapperRef}
+      style={{ position: 'relative', height: '100%', width: '100%' }}
+      onMouseMove={isAddPinMode ? handlePointerMove : undefined}
+      onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
+    >
       {/* Map Type Toggle Button */}
       <div style={{
         position: 'absolute',
@@ -748,24 +782,43 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
         </button>
       </div>
       {isAddPinMode && (
-        <div style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 1000,
-          pointerEvents: 'none',
-          background: 'rgba(102, 126, 234, 0.9)',
-          color: 'white',
-          padding: '10px 20px',
-          borderRadius: '5px',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-          whiteSpace: 'nowrap'
-        }}>
-          Click on the map to place a pin
-        </div>
+        <>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000,
+            pointerEvents: 'none',
+            background: 'rgba(102, 126, 234, 0.9)',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: '5px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+            whiteSpace: 'nowrap'
+          }}>
+            Click on the map to place a pin
+          </div>
+          {pointerPosition != null && (
+            <div
+              style={{
+                position: 'absolute',
+                left: pointerPosition.x - 10,
+                top: pointerPosition.y - 20,
+                width: 20,
+                height: 20,
+                zIndex: 1001,
+                pointerEvents: 'none',
+                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+              }}
+              aria-hidden
+            >
+              <PinIconSvg />
+            </div>
+          )}
+        </>
       )}
       
       {/* OpenStreetMap - Always mounted, shown/hidden via CSS */}

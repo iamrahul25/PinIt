@@ -38,9 +38,15 @@ function App() {
   };
 
   const handleAddButtonClick = () => {
-    setIsAddPinMode(true);
-    setSelectedPin(null);
-    setShowForm(false);
+    if (isAddPinMode) {
+      // Clicking X cancels add-pin mode
+      setIsAddPinMode(false);
+      setTempPinLocation(null);
+    } else {
+      setIsAddPinMode(true);
+      setSelectedPin(null);
+      setShowForm(false);
+    }
   };
 
   const handleMapClick = (e) => {

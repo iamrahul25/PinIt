@@ -144,3 +144,24 @@
 .custom-pin-icon > div {
   cursor: pointer;
 }
+
+/* Highlighted pin on map (when selected from All Pins panel or details open) */
+.pin-marker-highlighted,
+.custom-pin-icon.pin-marker-highlighted {
+  z-index: 1000 !important;
+  transform: scale(1.25);
+}
+.custom-pin-icon.pin-marker-highlighted > div {
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.8);
+}
+
+/* Bold black border when hovering over pin in All Pins side panel */
+.pin-marker-hover,
+.custom-pin-icon.pin-marker-hover {
+  z-index: 1001 !important;
+}
+.custom-pin-icon.pin-marker-hover > div {
+  box-shadow: none;
+  border: 3px solid #000 !important;
+  box-sizing: border-box;
+}

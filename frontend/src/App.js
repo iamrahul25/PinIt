@@ -9,6 +9,8 @@ import './App.css';
 function App() {
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
+  const [focusedPinId, setFocusedPinId] = useState(null); // which pin is highlighted on map (panel click = focus + fly)
+  const [hoveredPinId, setHoveredPinId] = useState(null); // which pin card is hovered in panel (highlight on map only, no fly)
   const [showForm, setShowForm] = useState(false);
   const [formLocation, setFormLocation] = useState(null);
   const [isAddPinMode, setIsAddPinMode] = useState(false);
@@ -64,12 +66,31 @@ function App() {
     }
   };
 
+  // When user clicks a pin on the map: show full details popup and highlight on map
   const handlePinClick = (pin) => {
     setSelectedPin(pin);
+    setFocusedPinId(pin._id);
     setShowForm(false);
     setIsAddPinMode(false);
     setTempPinLocation(null);
   };
+
+  // When user clicks a pin card in All Pins panel: only highlight pin and move map (no popup)
+  const handlePinFocus = (pin) => {
+    setFocusedPinId(pin._id);
+    setShowForm(false);
+    setIsAddPinMode(false);
+  };
+
+  // When user clicks "Full details" in panel: show full details popup (and focus map on that pin)
+  const handleShowDetails = (pin) => {
+    setSelectedPin(pin);
+    setFocusedPinId(pin._id);
+  };
+
+  // When user hovers a pin card in panel: highlight that pin on map (no fly)
+  const handlePinHover = (pin) => setHoveredPinId(pin?._id ?? null);
+  const handlePinHoverEnd = () => setHoveredPinId(null);
 
   const handleFormClose = () => {
     setShowForm(false);
@@ -89,6 +110,7 @@ function App() {
   const handleDetailsClose = () => {
     setSelectedPin(null);
     setIsAddPinMode(false);
+    setFocusedPinId(null);
   };
 
   const handleTogglePanel = () => {
@@ -106,6 +128,9 @@ function App() {
           pins={pins}
           onMapClick={handleMapClick}
           onPinClick={handlePinClick}
+          highlightedPinId={focusedPinId || hoveredPinId}
+          hoveredPinId={hoveredPinId}
+          flyToPinId={focusedPinId}
           userId={userId}
           isAddPinMode={isAddPinMode}
           tempPinLocation={tempPinLocation}
@@ -135,7 +160,12 @@ function App() {
         )}
         <PinListPanel
           pins={pins}
-          onPinClick={handlePinClick}
+          focusedPinId={focusedPinId}
+          hoveredPinId={hoveredPinId}
+          onPinFocus={handlePinFocus}
+          onShowDetails={handleShowDetails}
+          onPinHover={handlePinHover}
+          onPinHoverEnd={handlePinHoverEnd}
           isOpen={isPanelOpen}
           onToggle={handleTogglePanel}
         />

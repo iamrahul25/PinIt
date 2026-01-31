@@ -3,7 +3,7 @@ import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, Fa
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinListPanel.css';
 
-const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
+const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDetails, onPinHover, onPinHoverEnd, isOpen, onToggle }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -46,8 +46,10 @@ const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
                 {pins.map((pin) => (
                   <div 
                     key={pin._id} 
-                    className="pin-box"
-                    onClick={() => onPinClick(pin)}
+                    className={`pin-box ${(focusedPinId === pin._id || hoveredPinId === pin._id) ? 'pin-box-focused' : ''}`}
+                    onClick={() => onPinFocus(pin)}
+                    onMouseEnter={() => onPinHover?.(pin)}
+                    onMouseLeave={() => onPinHoverEnd?.()}
                   >
                     <div className="pin-box-header">
                       <div
@@ -98,6 +100,17 @@ const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
                       {pin.name && <span className="pin-author">By {pin.name}</span>}
                       <span className="pin-date">{formatDate(pin.createdAt)}</span>
                     </div>
+
+                    <button
+                      type="button"
+                      className="pin-full-details-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onShowDetails(pin);
+                      }}
+                    >
+                      Full details
+                    </button>
                   </div>
                 ))}
               </div>

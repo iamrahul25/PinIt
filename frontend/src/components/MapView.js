@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle as LeafletCircle, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle as LeafletCircle, useMapEvents, useMap } from 'react-leaflet';
 import { GoogleMap, LoadScript, InfoWindow, Circle as GoogleCircle } from '@react-google-maps/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -419,7 +419,7 @@ function LocationSearch({ onLocationFound }) {
   return null;
 }
 
-const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLocation }) => {
+const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, userId, isAddPinMode, tempPinLocation }) => {
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
@@ -730,6 +730,26 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     if (!isAddPinMode) setPointerPosition(null);
   }, [isAddPinMode]);
 
+  // When flyToPinId changes (click in All Pins panel or map pin), fly/pan map to that pin (not on hover)
+  useEffect(() => {
+    if (!flyToPinId || !pins.length) return;
+    const pin = pins.find((p) => p._id === flyToPinId);
+    if (!pin || pin.location.latitude == null || pin.location.longitude == null) return;
+    const lat = pin.location.latitude;
+    const lng = pin.location.longitude;
+    const zoomTo = 16;
+    if (mapType === 'osm' && leafletMapInstance) {
+      leafletMapInstance.flyTo([lat, lng], zoomTo, { duration: 0.5 });
+      // moveend will update center/zoom state
+    }
+    if (mapType === 'google' && googleMapInstance) {
+      googleMapInstance.panTo({ lat, lng });
+      googleMapInstance.setZoom(zoomTo);
+      setCenter([lat, lng]);
+      setZoom(zoomTo);
+    }
+  }, [flyToPinId, pins, mapType, leafletMapInstance, googleMapInstance]);
+
   return (
     <div
       ref={mapWrapperRef}
@@ -871,29 +891,26 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
               })}
             />
           )}
-          {pins.map((pin) => (
-            <Marker
-              key={pin._id}
-              position={[pin.location.latitude, pin.location.longitude]}
-              icon={L.divIcon({
-                className: 'custom-pin-icon',
-                html: getProblemTypeMarkerHtml(pin.problemType),
-                iconSize: [26, 26],
-                iconAnchor: [13, 26],
-              })}
-              eventHandlers={{
-                click: () => onPinClick(pin),
-              }}
-            >
-              <Popup>
-                <div style={{ textAlign: 'center' }}>
-                  <strong>{pin.problemType}</strong>
-                  <br />
-                  Severity: {pin.severity}/10
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          {pins.map((pin) => {
+            const isHovered = pin._id === hoveredPinId;
+            const isHighlighted = pin._id === highlightedPinId && !isHovered;
+            const highlightClass = isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : '');
+            return (
+              <Marker
+                key={pin._id}
+                position={[pin.location.latitude, pin.location.longitude]}
+                icon={L.divIcon({
+                  className: `custom-pin-icon ${highlightClass}`.trim(),
+                  html: getProblemTypeMarkerHtml(pin.problemType),
+                  iconSize: [26, 26],
+                  iconAnchor: [13, 26],
+                })}
+                eventHandlers={{
+                  click: () => onPinClick(pin),
+                }}
+              />
+            );
+          })}
         </MapContainer>
       </div>
 
@@ -949,15 +966,26 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
                   content={TEMP_PIN_MARKER_HTML}
                 />
               )}
-              {pins.map((pin) => (
-                <AdvancedMarker
-                  key={pin._id}
-                  map={googleMapInstance}
-                  position={{ lat: pin.location.latitude, lng: pin.location.longitude }}
-                  content={getProblemTypeMarkerHtml(pin.problemType)}
-                  onClick={() => onPinClick(pin)}
-                />
-              ))}
+              {pins.map((pin) => {
+                const isHovered = pin._id === hoveredPinId;
+                const isHighlighted = pin._id === highlightedPinId && !isHovered;
+                const baseHtml = getProblemTypeMarkerHtml(pin.problemType);
+                let content = baseHtml;
+                if (isHovered) {
+                  content = `<div class="pin-marker-hover" style="display:inline-flex;align-items:center;justify-content:center;padding:3px;border-radius:50%;border:3px solid #000;box-sizing:border-box;">${baseHtml}</div>`;
+                } else if (isHighlighted) {
+                  content = `<div class="pin-marker-highlighted" style="display:inline-flex;align-items:center;justify-content:center;padding:4px;border-radius:50%;box-shadow:0 0 0 4px rgba(102,126,234,0.8);">${baseHtml}</div>`;
+                }
+                return (
+                  <AdvancedMarker
+                    key={pin._id}
+                    map={googleMapInstance}
+                    position={{ lat: pin.location.latitude, lng: pin.location.longitude }}
+                    content={content}
+                    onClick={() => onPinClick(pin)}
+                  />
+                );
+              })}
             </GoogleMap>
             <GoogleMapSearch map={googleMapInstance} onLocationFound={handleLocationFound} />
           </LoadScript>

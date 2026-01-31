@@ -11,10 +11,29 @@ const GOOGLE_MAPS_LIBRARIES = ['places', 'marker'];
 // Default map ID for AdvancedMarkerElement (can be customized in Google Cloud Console)
 const DEFAULT_MAP_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
 
+// Stable HTML for temp pin so marker isn't updated on every parent re-render
+const TEMP_PIN_MARKER_HTML = `
+  <div style="
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #667eea;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  "></div>
+`;
+
 // Custom AdvancedMarker component to replace deprecated Marker
+// Uses refs for content/onClick so we only create/destroy when map or position changes,
+// avoiding marker flicker when parent re-renders (e.g. on pan/zoom).
 const AdvancedMarker = ({ position, map, content, onClick }) => {
   const markerRef = useRef(null);
+  const contentRef = useRef(content);
+  const onClickRef = useRef(onClick);
   const [markerLibrary, setMarkerLibrary] = useState(null);
+
+  contentRef.current = content;
+  onClickRef.current = onClick;
 
   useEffect(() => {
     if (!map || !window.google) return;
@@ -32,34 +51,42 @@ const AdvancedMarker = ({ position, map, content, onClick }) => {
     loadMarkerLibrary();
   }, [map]);
 
+  // Depend on position by value (lat/lng), not object reference, so pan/zoom
+  // doesn't retrigger this effect and recreate markers (which caused flicker).
+  const lat = position?.lat ?? position?.latitude;
+  const lng = position?.lng ?? position?.longitude;
+
   useEffect(() => {
-    if (!map || !markerLibrary || !position) return;
+    if (!map || !markerLibrary || position == null || lat == null || lng == null) return;
+
+    const pos = { lat: Number(lat), lng: Number(lng) };
+    const currentContent = contentRef.current;
 
     // Create marker element
     const markerElement = document.createElement('div');
     markerElement.style.cssText = 'display: flex; align-items: center; justify-content: center;';
     
-    if (content) {
-      if (typeof content === 'string') {
-        markerElement.innerHTML = content;
-      } else if (content instanceof HTMLElement) {
-        markerElement.appendChild(content);
+    if (currentContent) {
+      if (typeof currentContent === 'string') {
+        markerElement.innerHTML = currentContent;
+      } else if (currentContent instanceof HTMLElement) {
+        markerElement.appendChild(currentContent);
       } else {
-        markerElement.appendChild(content);
+        markerElement.appendChild(currentContent);
       }
     }
 
     // Create AdvancedMarkerElement
     const advancedMarker = new markerLibrary.AdvancedMarkerElement({
       map,
-      position,
+      position: pos,
       content: markerElement,
     });
 
-    // Add click event listener (use gmp-click for AdvancedMarkerElement)
-    if (onClick) {
-      advancedMarker.addListener('gmp-click', onClick);
-    }
+    // Use ref so listener always calls latest callback without recreating marker
+    advancedMarker.addListener('gmp-click', () => {
+      if (onClickRef.current) onClickRef.current();
+    });
 
     markerRef.current = advancedMarker;
 
@@ -70,7 +97,16 @@ const AdvancedMarker = ({ position, map, content, onClick }) => {
         markerRef.current = null;
       }
     };
-  }, [map, markerLibrary, position, content, onClick]);
+  }, [map, markerLibrary, lat, lng]);
+
+  // Update marker content in place when content prop changes (e.g. pin problemType edit)
+  useEffect(() => {
+    if (!markerRef.current || !content) return;
+    const el = markerRef.current.content;
+    if (el && typeof content === 'string') {
+      el.innerHTML = content;
+    }
+  }, [content]);
 
   return null;
 };
@@ -801,16 +837,7 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
                 <AdvancedMarker
                   map={googleMapInstance}
                   position={{ lat: tempPinLocation.lat, lng: tempPinLocation.lng }}
-                  content={`
-                    <div style="
-                      width: 30px;
-                      height: 30px;
-                      border-radius: 50%;
-                      background-color: #667eea;
-                      border: 3px solid white;
-                      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                    "></div>
-                  `}
+                  content={TEMP_PIN_MARKER_HTML}
                 />
               )}
               {pins.map((pin) => (

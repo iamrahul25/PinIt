@@ -3,6 +3,7 @@ import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
 import PinListPanel from './components/PinListPanel';
+import { reverseGeocode } from './utils/geocode';
 import './App.css';
 
 function App() {
@@ -57,6 +58,9 @@ function App() {
       setShowForm(true);
       setIsAddPinMode(false);
       setSelectedPin(null);
+      reverseGeocode(location.lat, location.lng).then((address) => {
+        setFormLocation((prev) => (prev ? { ...prev, address } : prev));
+      });
     }
   };
 

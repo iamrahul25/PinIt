@@ -150,6 +150,15 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
           {error && <div className="error-message" role="alert">{error}</div>}
 
           <div className="form-group">
+            <label>Address <span className="optional">(from pin location)</span></label>
+            <div className="address-display" aria-readonly="true">
+              {location.address !== undefined
+                ? (location.address || 'Address not found')
+                : 'Loading address...'}
+            </div>
+          </div>
+
+          <div className="form-group">
             <label>Problem Type <span className="required">*</span></label>
             <select
               name="problemType"

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
-import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup, Circle as LeafletCircle, useMapEvents, useMap } from 'react-leaflet';
+import { GoogleMap, LoadScript, InfoWindow, Circle as GoogleCircle } from '@react-google-maps/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
@@ -362,14 +362,27 @@ function LocationSearch({ onLocationFound }) {
     `;
     currentLocationBtn.onclick = () => {
       if (navigator.geolocation) {
+        const originalText = currentLocationBtn.textContent;
+        currentLocationBtn.textContent = '⏳ Locating...';
+        currentLocationBtn.disabled = true;
+        currentLocationBtn.style.cursor = 'wait';
+        currentLocationBtn.style.opacity = '0.8';
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            const { latitude, longitude } = position.coords;
+            const { latitude, longitude, accuracy } = position.coords;
             map.setView([latitude, longitude], 15);
-            onLocationFound({ lat: latitude, lng: longitude });
+            onLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
+            currentLocationBtn.textContent = originalText;
+            currentLocationBtn.disabled = false;
+            currentLocationBtn.style.cursor = 'pointer';
+            currentLocationBtn.style.opacity = '1';
           },
           (error) => {
             alert('Unable to get your location. Please enable location services.');
+            currentLocationBtn.textContent = originalText;
+            currentLocationBtn.disabled = false;
+            currentLocationBtn.style.cursor = 'pointer';
+            currentLocationBtn.style.opacity = '1';
           }
         );
       }
@@ -398,6 +411,7 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
   const [googleMapInstance, setGoogleMapInstance] = useState(null);
   const [leafletMapInstance, setLeafletMapInstance] = useState(null);
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng, accuracy } - accuracy in meters
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
   useEffect(() => {
@@ -405,9 +419,10 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude } = position.coords;
+          const { latitude, longitude, accuracy } = position.coords;
           setCenter([latitude, longitude]);
           setZoom(13);
+          setUserLocation({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
         },
         () => {
           // Use default location if geolocation fails
@@ -472,6 +487,10 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
   const handleLocationFound = (location) => {
     setCenter([location.lat, location.lng]);
     setZoom(15);
+    // Only set userLocation circle when accuracy is provided (from geolocation, not search)
+    if (location.accuracy != null) {
+      setUserLocation({ lat: location.lat, lng: location.lng, accuracy: location.accuracy });
+    }
   };
 
 
@@ -626,15 +645,28 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
       `;
       currentLocationBtn.onclick = () => {
         if (navigator.geolocation) {
+          const originalText = currentLocationBtn.textContent;
+          currentLocationBtn.textContent = '⏳ Locating...';
+          currentLocationBtn.disabled = true;
+          currentLocationBtn.style.cursor = 'wait';
+          currentLocationBtn.style.opacity = '0.8';
           navigator.geolocation.getCurrentPosition(
             (position) => {
-              const { latitude, longitude } = position.coords;
+              const { latitude, longitude, accuracy } = position.coords;
               map.setCenter({ lat: latitude, lng: longitude });
               map.setZoom(15);
-              onLocationFound({ lat: latitude, lng: longitude });
+              onLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
+              currentLocationBtn.textContent = originalText;
+              currentLocationBtn.disabled = false;
+              currentLocationBtn.style.cursor = 'pointer';
+              currentLocationBtn.style.opacity = '1';
             },
             (error) => {
               alert('Unable to get your location. Please enable location services.');
+              currentLocationBtn.textContent = originalText;
+              currentLocationBtn.disabled = false;
+              currentLocationBtn.style.cursor = 'pointer';
+              currentLocationBtn.style.opacity = '1';
             }
           );
         }
@@ -763,6 +795,18 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
           <MapUpdater center={center} zoom={zoom} onMapMove={handleLeafletMapMove} />
           <MapClickHandler onMapClick={onMapClick} isAddPinMode={isAddPinMode} />
           <LocationSearch onLocationFound={handleLocationFound} />
+          {userLocation && (
+            <LeafletCircle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={userLocation.accuracy}
+              pathOptions={{
+                color: '#2196F3',
+                fillColor: '#2196F3',
+                fillOpacity: 0.25,
+                weight: 2,
+              }}
+            />
+          )}
           {tempPinLocation && (
             <Marker
               position={[tempPinLocation.lat, tempPinLocation.lng]}
@@ -833,6 +877,18 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
                 fullscreenControl: true,
               }}
             >
+              {userLocation && (
+                <GoogleCircle
+                  center={{ lat: userLocation.lat, lng: userLocation.lng }}
+                  radius={userLocation.accuracy}
+                  options={{
+                    fillColor: '#2196F3',
+                    fillOpacity: 0.25,
+                    strokeColor: '#2196F3',
+                    strokeWeight: 2,
+                  }}
+                />
+              )}
               {tempPinLocation && googleMapInstance && (
                 <AdvancedMarker
                   map={googleMapInstance}

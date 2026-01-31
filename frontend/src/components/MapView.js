@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 're
 import { GoogleMap, LoadScript, InfoWindow } from '@react-google-maps/api';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 
 // Static libraries array for Google Maps LoadScript to prevent unnecessary reloads
 const GOOGLE_MAPS_LIBRARIES = ['places', 'marker'];
@@ -437,16 +438,6 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
     setZoom(15);
   };
 
-  const getProblemIcon = (problemType) => {
-    const colors = {
-      'Trash Pile': '#ff6b6b',
-      'Pothole': '#4ecdc4',
-      'Broken Pipe': '#45b7d1',
-      'Fuse Street Light': '#f9ca24',
-      'Other': '#95a5a6'
-    };
-    return colors[problemType] || colors['Other'];
-  };
 
   const toggleMapType = () => {
     setMapType(prev => {
@@ -753,17 +744,9 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
               position={[pin.location.latitude, pin.location.longitude]}
               icon={L.divIcon({
                 className: 'custom-pin-icon',
-                html: `<div style="
-                  background-color: ${getProblemIcon(pin.problemType)};
-                  width: 30px;
-                  height: 30px;
-                  border-radius: 50% 50% 50% 0;
-                  transform: rotate(-45deg);
-                  border: 3px solid white;
-                  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                "></div>`,
-                iconSize: [30, 30],
-                iconAnchor: [15, 30],
+                html: getProblemTypeMarkerHtml(pin.problemType),
+                iconSize: [26, 26],
+                iconAnchor: [13, 26],
               })}
               eventHandlers={{
                 click: () => onPinClick(pin),
@@ -835,17 +818,7 @@ const MapView = ({ pins, onMapClick, onPinClick, userId, isAddPinMode, tempPinLo
                   key={pin._id}
                   map={googleMapInstance}
                   position={{ lat: pin.location.latitude, lng: pin.location.longitude }}
-                  content={`
-                    <div style="
-                      background-color: ${getProblemIcon(pin.problemType)};
-                      width: 30px;
-                      height: 30px;
-                      border-radius: 50% 50% 50% 0;
-                      transform: rotate(-45deg);
-                      border: 3px solid white;
-                      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-                    "></div>
-                  `}
+                  content={getProblemTypeMarkerHtml(pin.problemType)}
                   onClick={() => onPinClick(pin)}
                 />
               ))}

@@ -135,3 +135,12 @@
     opacity: 1;
   }
 }
+
+/* Map pin icons (small squircle icons per problem type) */
+.custom-pin-icon {
+  background: transparent !important;
+  border: none !important;
+}
+.custom-pin-icon > div {
+  cursor: pointer;
+}

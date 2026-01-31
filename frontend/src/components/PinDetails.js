@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
 import { getDeviceFingerprint } from '../utils/deviceFingerprint';
+import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinDetails.css';
 
 const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
@@ -115,12 +116,18 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
       <div className="pin-details-overlay" onClick={onClose}>
         <div className="pin-details-container" onClick={(e) => e.stopPropagation()}>
           <div className="pin-details-header">
-            <div>
-              <h2>{pin.problemType}</h2>
-              <p className="pin-meta">
-                Severity: <span className="severity-badge">{pin.severity}/10</span>
-                {pin.name && <span> • Reported by: {pin.name}</span>}
-              </p>
+            <div className="pin-details-header-content">
+              <div
+                className="pin-type-icon-detail"
+                dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 40) }}
+              />
+              <div>
+                <h2>{pin.problemType}</h2>
+                <p className="pin-meta">
+                  Severity: <span className="severity-badge">{pin.severity}/10</span>
+                  {pin.name && <span> • Reported by: {pin.name}</span>}
+                </p>
+              </div>
             </div>
             <button className="close-btn" onClick={onClose}>×</button>
           </div>

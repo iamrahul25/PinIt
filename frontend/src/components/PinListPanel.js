@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
+import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinListPanel.css';
 
 const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
@@ -26,17 +27,6 @@ const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
   };
 
   const hasMorePins = displayedPins.length < pins.length;
-
-  const getProblemIconColor = (problemType) => {
-    const colors = {
-      'Trash Pile': '#ff6b6b',
-      'Pothole': '#4ecdc4',
-      'Broken Pipe': '#45b7d1',
-      'Fuse Street Light': '#f9ca24',
-      'Other': '#95a5a6'
-    };
-    return colors[problemType] || colors['Other'];
-  };
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -84,9 +74,9 @@ const PinListPanel = ({ pins, onPinClick, isOpen, onToggle }) => {
                     onClick={() => onPinClick(pin)}
                   >
                     <div className="pin-box-header">
-                      <div 
-                        className="pin-type-indicator"
-                        style={{ backgroundColor: getProblemIconColor(pin.problemType) }}
+                      <div
+                        className="pin-type-icon-panel"
+                        dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 32) }}
                       />
                       <div className="pin-type-info">
                         <h3 className="pin-problem-type">{pin.problemType}</h3>

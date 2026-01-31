@@ -65,6 +65,27 @@
   z-index: 2;
 }
 
+.pin-details-header-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.pin-type-icon-detail {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-type-icon-detail > div {
+  flex-shrink: 0;
+}
+
 .pin-details-header h2 {
   color: white;
   font-size: 1.5rem;

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt } from 'react-icons/fa';
+import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt, FaBookmark, FaRegBookmark } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinDetails.css';
 
-const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
+const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, onUnsave }) => {
   const userId = user?.uid ?? null;
   const displayName = user?.displayName || user?.email || 'Anonymous';
   const [comments, setComments] = useState([]);
@@ -15,6 +15,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchComments();
@@ -132,6 +133,28 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
     }
   };
 
+  const handleSaveToggle = async () => {
+    if (!userId) {
+      alert('Please log in to save pins.');
+      return;
+    }
+    setSaving(true);
+    try {
+      if (isSaved) {
+        await axios.delete(`${API_BASE_URL}/api/pins/${pin._id}/save/${userId}`);
+        onUnsave?.(pin);
+      } else {
+        await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/save`, { userId });
+        onSave?.(pin);
+      }
+      onUpdate?.();
+    } catch (error) {
+      console.error('Error toggling save:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const copyToClipboard = (url) => {
     navigator.clipboard.writeText(url).then(() => {
       setShareCopied(true);
@@ -175,10 +198,28 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
                 <p className="pin-meta">
                   Severity: <span className="severity-badge">{pin.severity}/10</span>
                   {pin.name && <span> • Reported by: {pin.name}</span>}
+                  {user && (
+                    <span className={`saved-badge ${isSaved ? 'saved' : ''}`}>
+                      {isSaved ? <FaBookmark /> : <FaRegBookmark />}
+                      {isSaved ? ' Saved' : ' Not saved'}
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
             <div className="pin-details-header-actions">
+              {user && (
+                <button
+                  type="button"
+                  className={`save-pin-btn ${isSaved ? 'saved' : ''}`}
+                  onClick={handleSaveToggle}
+                  disabled={saving}
+                  title={isSaved ? 'Unsave this pin' : 'Save this pin'}
+                >
+                  {isSaved ? <FaBookmark /> : <FaRegBookmark />}
+                  {saving ? '...' : isSaved ? 'Saved' : 'Save'}
+                </button>
+              )}
               <button
                 type="button"
                 className={`share-btn ${shareCopied ? 'copied' : ''}`}

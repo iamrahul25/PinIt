@@ -22,9 +22,13 @@ function App() {
   const [isAddPinMode, setIsAddPinMode] = useState(false);
   const [tempPinLocation, setTempPinLocation] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [savedPinIds, setSavedPinIds] = useState([]);
 
   useEffect(() => {
-    if (user) fetchPins();
+    if (user) {
+      fetchPins();
+      fetchSavedPinIds();
+    }
   }, [user]);
 
   useEffect(() => {
@@ -65,6 +69,17 @@ function App() {
       setPins(data);
     } catch (error) {
       console.error('Error fetching pins:', error);
+    }
+  };
+
+  const fetchSavedPinIds = async () => {
+    if (!user?.uid) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/pins/saved/${user.uid}`);
+      const data = await response.json();
+      setSavedPinIds(data.pinIds || []);
+    } catch (error) {
+      console.error('Error fetching saved pins:', error);
     }
   };
 
@@ -151,6 +166,14 @@ function App() {
     setIsPanelOpen(prev => !prev);
   };
 
+  const handleSavePin = (pin) => {
+    setSavedPinIds((prev) => (prev.includes(pin._id) ? prev : [...prev, pin._id]));
+  };
+
+  const handleUnsavePin = (pin) => {
+    setSavedPinIds((prev) => prev.filter((id) => id !== pin._id));
+  };
+
   const handleSharePin = async (pin) => {
     const url = `${window.location.origin}/pin/${pin._id}`;
     const title = `Pin-It: ${pin.problemType}`;
@@ -225,10 +248,13 @@ function App() {
             user={user}
             onUpdate={fetchPins}
             shareUrl={`${window.location.origin}/pin/${selectedPin._id}`}
+            isSaved={savedPinIds.includes(selectedPin._id)}
+            onSave={handleSavePin}
+            onUnsave={handleUnsavePin}
           />
         )}
         <PinListPanel
-          pins={pins}
+          pins={pins.map((p) => ({ ...p, saved: savedPinIds.includes(p._id) }))}
           focusedPinId={focusedPinId}
           hoveredPinId={hoveredPinId}
           onPinFocus={handlePinFocus}

@@ -134,6 +134,41 @@ A React-based web application that allows users to report and track civic issues
 - `POST /api/images/upload` - Upload an image (stored on Cloudinary, compressed; returns URL)
 - `GET /api/images/:id` - Get image by ID (legacy GridFS only; new pins use Cloudinary URLs)
 
+### Saved pins (UserData)
+- `GET /api/pins/saved/:userId` - Get saved pin IDs for a user
+- `POST /api/pins/:id/save` - Save a pin for a user (body: `{ userId }`)
+- `DELETE /api/pins/:id/save/:userId` - Unsave a pin for a user
+
+## Schema
+
+**Pin** (problem reports on the map)
+| Field | Type |
+|-------|------|
+| problemType | String (enum: Trash Pile, Pothole, Broken Pipe, Fuse Street Light, Other) |
+| severity | Number (1–10) |
+| location | { latitude, longitude, address } |
+| images | [String] (Cloudinary URLs) |
+| name, description | String |
+| upvotes, downvotes | Number |
+| votes | [{ userId, voteType }] |
+| comments | [ObjectId] ref Comment |
+| createdAt, updatedAt | Date |
+
+**Comment**
+| Field | Type |
+|-------|------|
+| pinId | ObjectId ref Pin |
+| author | String |
+| text | String |
+| createdAt | Date |
+
+**UserData** (per-user; one document per user)
+| Field | Type |
+|-------|------|
+| userId | String (unique) |
+| pinIds | [String] (saved pin IDs) |
+| updatedAt | Date |
+
 ## Project Structure
 
 ```
@@ -141,7 +176,8 @@ PinIt/
 ├── backend/
 │   ├── models/
 │   │   ├── Pin.js
-│   │   └── Comment.js
+│   │   ├── Comment.js
+│   │   └── UserData.js
 │   ├── routes/
 │   │   ├── pins.js
 │   │   ├── comments.js

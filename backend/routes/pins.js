@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
+const UserData = require('../models/UserData');
 
 // Get all pins
 router.get('/', async (req, res) => {
@@ -10,6 +11,61 @@ router.get('/', async (req, res) => {
     res.json(pins);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Get saved pin IDs for a user (from UserData – personal data per user, not on Pin)
+router.get('/saved/:userId', async (req, res) => {
+  try {
+    const doc = await UserData.findOne({ userId: req.params.userId }).lean();
+    res.json({ pinIds: doc ? (doc.pinIds || []) : [] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Save a pin for a user (store in UserData only; Pin DB unchanged)
+router.post('/:id/save', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+    const pinId = req.params.id;
+    const pin = await Pin.findById(pinId);
+    if (!pin) {
+      return res.status(404).json({ error: 'Pin not found' });
+    }
+    let doc = await UserData.findOne({ userId });
+    if (!doc) {
+      doc = new UserData({ userId, pinIds: [] });
+    }
+    const pinIds = doc.pinIds || [];
+    if (pinIds.includes(pinId)) {
+      return res.json({ ok: true, pinIds: doc.pinIds });
+    }
+    doc.pinIds = [...pinIds, pinId];
+    doc.updatedAt = new Date();
+    await doc.save();
+    res.json({ ok: true, pinIds: doc.pinIds });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Unsave a pin for a user (remove from UserData only)
+router.delete('/:id/save/:userId', async (req, res) => {
+  try {
+    const doc = await UserData.findOne({ userId: req.params.userId });
+    if (!doc) {
+      return res.json({ ok: true, pinIds: [] });
+    }
+    doc.pinIds = (doc.pinIds || []).filter((id) => id !== req.params.id);
+    doc.updatedAt = new Date();
+    await doc.save();
+    res.json({ ok: true, pinIds: doc.pinIds });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
   }
 });
 

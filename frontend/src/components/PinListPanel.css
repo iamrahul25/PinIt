@@ -110,6 +110,24 @@
   accent-color: #667eea;
 }
 
+.filter-saved-label {
+  margin-bottom: 0.5rem;
+}
+
+.filter-saved-icon {
+  color: #f59e0b;
+  font-size: 0.9rem;
+}
+
+.pin-saved-indicator {
+  flex-shrink: 0;
+  color: #f59e0b;
+  font-size: 1rem;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+
 .sort-buttons {
   display: flex;
   flex-wrap: wrap;

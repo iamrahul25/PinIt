@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark } from 'react-icons/fa';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinListPanel.css';
 
@@ -15,11 +15,14 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [filterSavedOnly, setFilterSavedOnly] = useState(false);
 
   const filteredPins = useMemo(() => {
-    if (selectedTypes.length === 0) return pins;
-    return pins.filter((p) => selectedTypes.includes(p.problemType));
-  }, [pins, selectedTypes]);
+    let list = pins;
+    if (filterSavedOnly) list = list.filter((p) => p.saved);
+    if (selectedTypes.length > 0) list = list.filter((p) => selectedTypes.includes(p.problemType));
+    return list;
+  }, [pins, selectedTypes, filterSavedOnly]);
 
   const sortedPins = useMemo(() => {
     const list = [...filteredPins];
@@ -81,6 +84,17 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
         </div>
 
         <div className="panel-filters">
+          <div className="filter-section">
+            <label className="filter-checkbox-label filter-saved-label">
+              <input
+                type="checkbox"
+                checked={filterSavedOnly}
+                onChange={(e) => setFilterSavedOnly(e.target.checked)}
+              />
+              <FaBookmark className="filter-saved-icon" />
+              <span>Saved pins only</span>
+            </label>
+          </div>
           <div className="filter-section">
             <span className="filter-label">Filter by type</span>
             <div className="filter-checkboxes">
@@ -144,7 +158,7 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
             <div className="no-pins-message">
               <p>{pins.length === 0 ? 'No pins available' : 'No pins match the selected filter'}</p>
               <p className="subtext">
-                {pins.length === 0 ? 'Click the + button to add a new pin' : 'Check one or more types above to see pins'}
+                {pins.length === 0 ? 'Click the + button to add a new pin' : filterSavedOnly ? 'Save pins from their full details view to see them here' : 'Check one or more types above to see pins'}
               </p>
             </div>
           ) : (
@@ -167,6 +181,11 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
                         <h3 className="pin-problem-type">{pin.problemType}</h3>
                         <span className="pin-severity">Severity: {pin.severity}/10</span>
                       </div>
+                      {pin.saved && (
+                        <span className="pin-saved-indicator" title="Saved">
+                          <FaBookmark />
+                        </span>
+                      )}
                     </div>
 
                     {pin.description && (

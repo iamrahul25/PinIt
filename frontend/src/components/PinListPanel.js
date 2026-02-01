@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark } from 'react-icons/fa';
+import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
+import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './PinListPanel.css';
 
 const PROBLEM_TYPES = [
@@ -172,6 +174,19 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
                     onMouseEnter={() => onPinHover?.(pin)}
                     onMouseLeave={() => onPinHoverEnd?.()}
                   >
+                    {pin.images && pin.images.length > 0 && (
+                      <div className="pin-box-thumbnails">
+                        {pin.images.slice(0, 5).map((imgUrl, idx) => (
+                          <div key={idx} className="pin-box-thumbnail">
+                            <img
+                              src={imgUrl.startsWith('http') ? getThumbnailUrl(imgUrl) : `${API_BASE_URL}/api/images/${imgUrl}`}
+                              alt=""
+                              onError={(e) => { e.target.style.display = 'none'; }}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="pin-box-header">
                       <div
                         className="pin-type-icon-panel"

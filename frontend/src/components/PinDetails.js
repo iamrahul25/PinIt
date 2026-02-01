@@ -3,6 +3,7 @@ import axios from 'axios';
 import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt, FaBookmark, FaRegBookmark } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
+import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import './PinDetails.css';
 
 const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, onUnsave }) => {
@@ -50,9 +51,11 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
 
   const fetchImages = () => {
     if (pin.images && pin.images.length > 0) {
-      // New pins: images are Cloudinary URLs; legacy pins: GridFS IDs → /api/images/:id
+      // New pins: Cloudinary base URLs → apply full-size transformation; legacy: GridFS IDs → /api/images/:id
       const urls = pin.images.map(entry =>
-        entry.startsWith('http') ? entry : `${API_BASE_URL}/api/images/${entry}`
+        entry.startsWith('http')
+          ? getFullImageUrl(entry)
+          : `${API_BASE_URL}/api/images/${entry}`
       );
       setImages(urls);
     }

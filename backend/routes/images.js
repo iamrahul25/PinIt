@@ -28,16 +28,20 @@ conn.once('open', () => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Eager transformation: max dimension 1080px, quality ~200–300KB
-const COMPRESS_EAGER = [
-  {
-    width: 1080,
-    height: 1080,
-    crop: 'limit',
-    quality: 'auto:good',
-    fetch_format: 'auto'
-  }
-];
+// Eager transformations: full (1080px height) and thumbnail (120px height), width auto
+const EAGER_FULL = {
+  height: 1080,
+  crop: 'limit',
+  quality: 'auto:good',
+  fetch_format: 'auto'
+};
+const EAGER_THUMB = {
+  height: 120,
+  crop: 'limit',
+  quality: 'auto:good',
+  fetch_format: 'auto'
+};
+const COMPRESS_EAGER = [EAGER_FULL, EAGER_THUMB];
 
 // Upload image to Cloudinary (compressed), return URL only
 router.post('/upload', upload.single('image'), async (req, res) => {
@@ -58,13 +62,11 @@ router.post('/upload', upload.single('image'), async (req, res) => {
       eager_async: false
     });
 
-    // Use eager (compressed) URL if available, otherwise default secure_url
-    const imageUrl = result.eager && result.eager[0] && result.eager[0].secure_url
-      ? result.eager[0].secure_url
-      : result.secure_url;
+    // Return base URL (no transformation) for DB storage; frontend applies transformations when loading
+    const baseUrl = result.secure_url;
 
     res.json({
-      url: imageUrl,
+      url: baseUrl,
       fileId: result.public_id
     });
   } catch (error) {

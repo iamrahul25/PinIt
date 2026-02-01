@@ -1,0 +1,111 @@
+.login-signup-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  padding: 1rem;
+}
+
+.login-signup-card {
+  width: 100%;
+  max-width: 380px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 2rem;
+}
+
+.login-signup-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+  text-align: center;
+}
+
+.login-signup-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1.5rem 0;
+  text-align: center;
+}
+
+.login-signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-signup-error {
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.login-signup-form .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.login-signup-form .form-field label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.login-signup-form .form-field input {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.login-signup-form .form-field input:focus {
+  border-color: #6366f1;
+}
+
+.login-signup-submit {
+  margin-top: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #334155;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.login-signup-submit:hover:not(:disabled) {
+  background: #1e293b;
+}
+
+.login-signup-submit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.login-signup-toggle {
+  display: block;
+  width: 100%;
+  margin-top: 1.25rem;
+  padding: 0.5rem;
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.login-signup-toggle:hover {
+  color: #4f46e5;
+}

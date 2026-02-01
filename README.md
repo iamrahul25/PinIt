@@ -8,8 +8,9 @@ A React-based web application that allows users to report and track civic issues
 - 🔄 **Map Toggle**: Switch between OpenStreetMap and Google Maps
 - 📍 **Location Services**: Search for locations or use your current location
 - 📸 **Image Upload**: Attach up to 5 images per report
-- ⭐ **Voting System**: Upvote or downvote reported issues
-- 💬 **Comments**: Add comments to discuss issues
+- 🔐 **Login / Signup**: Firebase Authentication (email/password)
+- ⭐ **Voting System**: Upvote or downvote (one vote per logged-in user)
+- 💬 **Comments**: Add comments (name auto from account)
 - 🎨 **Color-Coded Pins**: Different colors for different problem types
 - 📊 **Severity Rating**: Rate problems from 1-10
 
@@ -18,6 +19,7 @@ A React-based web application that allows users to report and track civic issues
 ### Frontend
 - React 18
 - React Leaflet (Map integration)
+- Firebase (Authentication)
 - Axios (HTTP client)
 - React Icons
 
@@ -50,12 +52,16 @@ A React-based web application that allows users to report and track civic issues
        - `CLOUDINARY_CLOUD_NAME`
        - `CLOUDINARY_API_KEY`
        - `CLOUDINARY_API_SECRET`
-   - Create `frontend/.env` file and add your Google Maps API key (optional, for Google Maps toggle):
-     ```
-     REACT_APP_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
-     ```
-     - Get your API key from: https://console.cloud.google.com/google/maps-apis
-     - Enable the following APIs: Maps JavaScript API and Places API
+   - Create `frontend/.env` with:
+     - **Firebase** (required for login/signup): get from Firebase Console → Project settings → General → Your apps
+       - `REACT_APP_FIREBASE_API_KEY`
+       - `REACT_APP_FIREBASE_AUTH_DOMAIN`
+       - `REACT_APP_FIREBASE_PROJECT_ID`
+       - `REACT_APP_FIREBASE_STORAGE_BUCKET`
+       - `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`
+       - `REACT_APP_FIREBASE_APP_ID`
+     - **Google Maps** (optional, for Google Maps toggle):
+       - `REACT_APP_GOOGLE_MAPS_API_KEY` – from https://console.cloud.google.com/google/maps-apis (enable Maps JavaScript API and Places API)
      - Note: OpenStreetMap works without any API key
 
 4. **Start MongoDB** (if running locally):

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt } from 'react-icons/fa';
-import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinDetails.css';
 
-const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
+const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
+  const userId = user?.uid ?? null;
+  const displayName = user?.displayName || user?.email || 'Anonymous';
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
-  const [commentAuthor, setCommentAuthor] = useState('');
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -20,6 +20,9 @@ const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
     fetchVoteStatus();
     fetchImages();
   }, [pin._id, userId]);
+  useEffect(() => {
+    setVoteStatus((prev) => ({ ...prev, upvotes: pin.upvotes, downvotes: pin.downvotes }));
+  }, [pin.upvotes, pin.downvotes]);
 
   const fetchComments = async () => {
     try {
@@ -31,11 +34,12 @@ const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
   };
 
   const fetchVoteStatus = async () => {
+    if (!userId) {
+      setVoteStatus({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
+      return;
+    }
     try {
-      const deviceFingerprint = getDeviceFingerprint();
-      const response = await axios.get(`/api/votes/${pin._id}/${userId}`, {
-        params: { deviceFingerprint }
-      });
+      const response = await axios.get(`/api/votes/${pin._id}/${userId}`);
       setVoteStatus(response.data);
     } catch (error) {
       console.error('Error fetching vote status:', error);
@@ -53,13 +57,15 @@ const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
   };
 
   const handleVote = async (voteType) => {
+    if (!userId) {
+      alert('Please log in to vote.');
+      return;
+    }
     try {
-      const deviceFingerprint = getDeviceFingerprint();
       await axios.post('/api/votes', {
         pinId: pin._id,
         userId,
-        voteType,
-        deviceFingerprint
+        voteType
       });
       fetchVoteStatus();
       onUpdate();
@@ -74,16 +80,19 @@ const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
+    if (!userId) {
+      alert('Please log in to comment.');
+      return;
+    }
 
     setLoading(true);
     try {
       await axios.post('/api/comments', {
         pinId: pin._id,
-        author: commentAuthor || 'Anonymous',
+        author: displayName,
         text: newComment
       });
       setNewComment('');
-      setCommentAuthor('');
       fetchComments();
     } catch (error) {
       console.error('Error submitting comment:', error);
@@ -249,13 +258,9 @@ const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
             </div>
 
             <form onSubmit={handleCommentSubmit} className="comment-form">
-              <input
-                type="text"
-                placeholder="Your name (optional)"
-                value={commentAuthor}
-                onChange={(e) => setCommentAuthor(e.target.value)}
-                className="comment-author-input"
-              />
+              {user && (
+                <div className="comment-author-display">Posting as <strong>{displayName}</strong></div>
+              )}
               <div className="comment-input-group">
                 <textarea
                   placeholder="Write a comment..."

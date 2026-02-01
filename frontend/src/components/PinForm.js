@@ -36,11 +36,12 @@ const UploadIcon = () => (
   </svg>
 );
 
-const PinForm = ({ location, onClose, onSubmit, userId }) => {
+const PinForm = ({ location, onClose, onSubmit, user }) => {
+  const defaultName = user?.displayName || user?.email || '';
   const [formData, setFormData] = useState({
     problemType: 'Trash Pile',
     severity: 5,
-    name: '',
+    name: defaultName,
     description: '',
     images: []
   });
@@ -49,6 +50,12 @@ const PinForm = ({ location, onClose, onSubmit, userId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
+
+  // Keep name in sync when user prop is available (e.g. after login)
+  React.useEffect(() => {
+    const name = user?.displayName || user?.email || '';
+    if (name && !formData.name) setFormData((prev) => ({ ...prev, name }));
+  }, [user]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;

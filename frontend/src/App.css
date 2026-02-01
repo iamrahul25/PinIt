@@ -16,6 +16,51 @@
   backdrop-filter: blur(10px);
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.app-header .app-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.app-header .app-user span {
+  font-size: 0.8rem;
+  opacity: 0.95;
+}
+
+.logout-btn {
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.9375rem;
 }
 
 .app-header::before {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from './context/AuthContext';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
@@ -8,30 +9,26 @@ import { reverseGeocode } from './utils/geocode';
 import './App.css';
 
 function App() {
+  const { user, loading, logout } = useAuth();
   const { pinId: urlPinId } = useParams();
   const navigate = useNavigate();
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
-  const [focusedPinId, setFocusedPinId] = useState(null); // which pin is highlighted on map (panel click = focus + fly)
-  const [hoveredPinId, setHoveredPinId] = useState(null); // which pin card is hovered in panel (highlight on map only, no fly)
+  const [focusedPinId, setFocusedPinId] = useState(null);
+  const [hoveredPinId, setHoveredPinId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [formLocation, setFormLocation] = useState(null);
   const [isAddPinMode, setIsAddPinMode] = useState(false);
   const [tempPinLocation, setTempPinLocation] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const [userId] = useState(() => {
-    // Generate or retrieve user ID (in production, use proper auth)
-    let id = localStorage.getItem('userId');
-    if (!id) {
-      id = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('userId', id);
-    }
-    return id;
-  });
 
   useEffect(() => {
-    fetchPins();
-  }, []);
+    if (user) fetchPins();
+  }, [user]);
+
+  useEffect(() => {
+    if (!loading && !user) navigate('/login', { replace: true });
+  }, [loading, user, navigate]);
 
   // When URL has pin ID, select that pin after pins are loaded (or fetch single pin if not in list)
   useEffect(() => {
@@ -71,8 +68,11 @@ function App() {
   };
 
   const handleAddButtonClick = () => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
     if (isAddPinMode) {
-      // Clicking X cancels add-pin mode
       setIsAddPinMode(false);
       setTempPinLocation(null);
     } else {
@@ -169,11 +169,27 @@ function App() {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="App app-loading">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
   return (
     <div className="App">
       <header className="app-header">
-        <h1>📍 Pin-It</h1>
-        <p>Report civic issues in your area</p>
+        <div>
+          <h1>📍 Pin-It</h1>
+          <p>Report civic issues in your area</p>
+        </div>
+        <div className="app-user">
+          <span>{user.displayName || user.email}</span>
+          <button type="button" className="logout-btn" onClick={() => logout()}>Sign out</button>
+        </div>
       </header>
       <div className="map-container">
         <MapView
@@ -183,7 +199,6 @@ function App() {
           highlightedPinId={focusedPinId || hoveredPinId}
           hoveredPinId={hoveredPinId}
           flyToPinId={focusedPinId}
-          userId={userId}
           isAddPinMode={isAddPinMode}
           tempPinLocation={tempPinLocation}
         />
@@ -199,14 +214,14 @@ function App() {
             location={formLocation}
             onClose={handleFormClose}
             onSubmit={handleFormSubmit}
-            userId={userId}
+            user={user}
           />
         )}
         {selectedPin && (
           <PinDetails
             pin={selectedPin}
             onClose={handleDetailsClose}
-            userId={userId}
+            user={user}
             onUpdate={fetchPins}
             shareUrl={`${window.location.origin}/pin/${selectedPin._id}`}
           />

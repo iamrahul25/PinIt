@@ -400,6 +400,16 @@
   box-shadow: 0 3px 7.5px rgba(0, 0, 0, 0.05);
 }
 
+.comment-author-display {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.5rem;
+}
+
+.comment-author-display strong {
+  color: #374151;
+}
+
 .comment-author-input {
   width: 100%;
   padding: 0.675rem 0.9rem;

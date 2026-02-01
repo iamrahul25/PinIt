@@ -419,7 +419,7 @@ function LocationSearch({ onLocationFound }) {
   return null;
 }
 
-const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, userId, isAddPinMode, tempPinLocation }) => {
+const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, tempPinLocation }) => {
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'

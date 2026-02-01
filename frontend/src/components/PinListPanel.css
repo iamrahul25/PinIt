@@ -63,6 +63,83 @@
   font-weight: 600;
 }
 
+.panel-filters {
+  padding: 1rem 1.25rem;
+  background: #f0f2f5;
+  border-bottom: 1px solid #e9ecef;
+  flex-shrink: 0;
+}
+
+.filter-section,
+.sort-section {
+  margin-bottom: 0.75rem;
+}
+
+.filter-section:last-of-type,
+.sort-section:last-child {
+  margin-bottom: 0;
+}
+
+.filter-label,
+.sort-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 0.5rem;
+}
+
+.filter-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.filter-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-checkbox-label input {
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.sort-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.sort-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sort-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.sort-btn.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: transparent;
+  color: white;
+}
+
 .close-panel-btn {
   background: rgba(255, 255, 255, 0.2);
   border: none;

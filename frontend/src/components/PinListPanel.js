@@ -1,9 +1,55 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt } from 'react-icons/fa';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinListPanel.css';
 
+const PROBLEM_TYPES = [
+  { value: 'Trash Pile', label: 'Trash Pile' },
+  { value: 'Pothole', label: 'Pothole' },
+  { value: 'Broken Pipe', label: 'Broken Pipe' },
+  { value: 'Fuse Street Light', label: 'Fuse Street Light' },
+  { value: 'Other', label: 'Other' }
+];
+
 const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDetails, onPinHover, onPinHoverEnd, onSharePin, isOpen, onToggle }) => {
+  const [selectedTypes, setSelectedTypes] = useState([]);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+
+  const filteredPins = useMemo(() => {
+    if (selectedTypes.length === 0) return pins;
+    return pins.filter((p) => selectedTypes.includes(p.problemType));
+  }, [pins, selectedTypes]);
+
+  const sortedPins = useMemo(() => {
+    const list = [...filteredPins];
+    const mult = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'createdAt') {
+      list.sort((a, b) => mult * (new Date(a.createdAt) - new Date(b.createdAt)));
+    } else if (sortBy === 'severity') {
+      list.sort((a, b) => mult * ((a.severity ?? 0) - (b.severity ?? 0)));
+    } else if (sortBy === 'upvotes') {
+      list.sort((a, b) => mult * ((a.upvotes ?? 0) - (b.upvotes ?? 0)));
+    } else if (sortBy === 'comments') {
+      list.sort((a, b) => mult * ((a.comments?.length ?? 0) - (b.comments?.length ?? 0)));
+    }
+    return list;
+  }, [filteredPins, sortBy, sortOrder]);
+
+  const toggleType = (type) => {
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+    );
+  };
+
+  const handleSortClick = (field) => {
+    setSortBy(field);
+  };
+
+  const handleSortDoubleClick = () => {
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -30,20 +76,81 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
       {/* Side Panel */}
       <div className={`pin-list-panel ${isOpen ? 'open' : ''}`}>
         <div className="panel-header">
-          <h2>Pins ({pins.length})</h2>
+          <h2>Pins ({sortedPins.length}{pins.length !== sortedPins.length ? ` / ${pins.length}` : ''})</h2>
           <button className="close-panel-btn" onClick={onToggle}>×</button>
         </div>
 
+        <div className="panel-filters">
+          <div className="filter-section">
+            <span className="filter-label">Filter by type</span>
+            <div className="filter-checkboxes">
+              {PROBLEM_TYPES.map(({ value, label }) => (
+                <label key={value} className="filter-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={selectedTypes.includes(value)}
+                    onChange={() => toggleType(value)}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="sort-section">
+            <span className="sort-label">Sort by</span>
+            <div className="sort-buttons">
+              <button
+                type="button"
+                className={`sort-btn ${sortBy === 'createdAt' ? 'active' : ''}`}
+                onClick={() => handleSortClick('createdAt')}
+                onDoubleClick={handleSortDoubleClick}
+                title="Single click: sort by date. Double click: reverse order."
+              >
+                Date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '↓' : '↑')}
+              </button>
+              <button
+                type="button"
+                className={`sort-btn ${sortBy === 'severity' ? 'active' : ''}`}
+                onClick={() => handleSortClick('severity')}
+                onDoubleClick={handleSortDoubleClick}
+                title="Single click: sort by severity. Double click: reverse order."
+              >
+                Severity {sortBy === 'severity' && (sortOrder === 'desc' ? '↓' : '↑')}
+              </button>
+              <button
+                type="button"
+                className={`sort-btn ${sortBy === 'upvotes' ? 'active' : ''}`}
+                onClick={() => handleSortClick('upvotes')}
+                onDoubleClick={handleSortDoubleClick}
+                title="Single click: sort by likes. Double click: reverse order."
+              >
+                Likes {sortBy === 'upvotes' && (sortOrder === 'desc' ? '↓' : '↑')}
+              </button>
+              <button
+                type="button"
+                className={`sort-btn ${sortBy === 'comments' ? 'active' : ''}`}
+                onClick={() => handleSortClick('comments')}
+                onDoubleClick={handleSortDoubleClick}
+                title="Single click: sort by comments. Double click: reverse order."
+              >
+                Comments {sortBy === 'comments' && (sortOrder === 'desc' ? '↓' : '↑')}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="panel-content">
-          {pins.length === 0 ? (
+          {sortedPins.length === 0 ? (
             <div className="no-pins-message">
-              <p>No pins available</p>
-              <p className="subtext">Click the + button to add a new pin</p>
+              <p>{pins.length === 0 ? 'No pins available' : 'No pins match the selected filter'}</p>
+              <p className="subtext">
+                {pins.length === 0 ? 'Click the + button to add a new pin' : 'Check one or more types above to see pins'}
+              </p>
             </div>
           ) : (
             <>
               <div className="pins-list">
-                {pins.map((pin) => (
+                {sortedPins.map((pin) => (
                   <div 
                     key={pin._id} 
                     className={`pin-box ${(focusedPinId === pin._id || hoveredPinId === pin._id) ? 'pin-box-focused' : ''}`}

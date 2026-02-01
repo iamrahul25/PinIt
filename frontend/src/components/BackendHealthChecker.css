@@ -1,0 +1,69 @@
+.backend-health-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.backend-health-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  max-width: 360px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.backend-health-message {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.backend-health-hint {
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.backend-health-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.backend-health-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, color 0.2s;
+}
+
+.backend-health-btn.primary {
+  background: #1e3a8a;
+  color: #fff;
+}
+
+.backend-health-btn.primary:hover {
+  background: #1e40af;
+}
+
+.backend-health-btn.secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.backend-health-btn.secondary:hover {
+  background: #e2e8f0;
+  color: #334155;
+}

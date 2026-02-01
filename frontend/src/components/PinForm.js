@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 import './PinForm.css';
 
 const PROBLEM_TYPES = [
@@ -109,7 +110,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
       for (const file of imageFiles) {
         const multipart = new FormData();
         multipart.append('image', file);
-        const uploadResponse = await axios.post('/api/images/upload', multipart, {
+        const uploadResponse = await axios.post(`${API_BASE_URL}/api/images/upload`, multipart, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         imageUrls.push(uploadResponse.data.url);
@@ -128,7 +129,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
         description: formData.description || ''
       };
 
-      await axios.post('/api/pins', pinData);
+      await axios.post(`${API_BASE_URL}/api/pins`, pinData);
       onSubmit();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create report. Please try again.');

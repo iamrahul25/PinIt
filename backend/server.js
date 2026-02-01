@@ -27,9 +27,9 @@ app.use('/api/comments', require('./routes/comments'));
 app.use('/api/votes', require('./routes/votes'));
 app.use('/api/images', require('./routes/images'));
 
-// Health check
+// Health check – lightweight route to verify backend is listening (200 + message)
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  res.status(200).json({ status: 'OK', message: 'Server is running' });
 });
 
 const PORT = process.env.PORT || 5000;

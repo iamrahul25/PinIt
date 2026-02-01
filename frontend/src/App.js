@@ -6,6 +6,7 @@ import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
 import PinListPanel from './components/PinListPanel';
 import { reverseGeocode } from './utils/geocode';
+import { API_BASE_URL } from './config';
 import './App.css';
 
 function App() {
@@ -41,7 +42,7 @@ function App() {
     }
     // Pin not in list (shared link) - fetch it
     if (pins.length > 0) {
-      fetch(`/api/pins/${urlPinId}`)
+      fetch(`${API_BASE_URL}/api/pins/${urlPinId}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((fetchedPin) => {
           if (fetchedPin) {
@@ -59,7 +60,7 @@ function App() {
 
   const fetchPins = async () => {
     try {
-      const response = await fetch('/api/pins');
+      const response = await fetch(`${API_BASE_URL}/api/pins`);
       const data = await response.json();
       setPins(data);
     } catch (error) {

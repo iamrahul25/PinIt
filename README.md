@@ -53,6 +53,7 @@ A React-based web application that allows users to report and track civic issues
        - `CLOUDINARY_API_KEY`
        - `CLOUDINARY_API_SECRET`
    - Create `frontend/.env` with:
+     - **Backend URL** (optional): `REACT_APP_BACKEND_URL` – leave empty or unset to use the package.json proxy (localhost:5000 in dev). Set to a full URL (e.g. `http://192.168.1.100:5000`) to point to a different backend.
      - **Firebase** (required for login/signup): get from Firebase Console → Project settings → General → Your apps
        - `REACT_APP_FIREBASE_API_KEY`
        - `REACT_APP_FIREBASE_AUTH_DOMAIN`

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt } from 'react-icons/fa';
+import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinDetails.css';
 
@@ -26,7 +27,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
 
   const fetchComments = async () => {
     try {
-      const response = await axios.get(`/api/comments/pin/${pin._id}`);
+      const response = await axios.get(`${API_BASE_URL}/api/comments/pin/${pin._id}`);
       setComments(response.data);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -39,7 +40,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
       return;
     }
     try {
-      const response = await axios.get(`/api/votes/${pin._id}/${userId}`);
+      const response = await axios.get(`${API_BASE_URL}/api/votes/${pin._id}/${userId}`);
       setVoteStatus(response.data);
     } catch (error) {
       console.error('Error fetching vote status:', error);
@@ -50,7 +51,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
     if (pin.images && pin.images.length > 0) {
       // New pins: images are Cloudinary URLs; legacy pins: GridFS IDs → /api/images/:id
       const urls = pin.images.map(entry =>
-        entry.startsWith('http') ? entry : `/api/images/${entry}`
+        entry.startsWith('http') ? entry : `${API_BASE_URL}/api/images/${entry}`
       );
       setImages(urls);
     }
@@ -62,7 +63,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
       return;
     }
     try {
-      await axios.post('/api/votes', {
+      await axios.post(`${API_BASE_URL}/api/votes`, {
         pinId: pin._id,
         userId,
         voteType
@@ -87,7 +88,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl }) => {
 
     setLoading(true);
     try {
-      await axios.post('/api/comments', {
+      await axios.post(`${API_BASE_URL}/api/comments`, {
         pinId: pin._id,
         author: displayName,
         text: newComment

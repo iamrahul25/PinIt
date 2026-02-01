@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaThumbsUp, FaThumbsDown, FaComment } from 'react-icons/fa';
+import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt } from 'react-icons/fa';
 import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinDetails.css';
 
-const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
+const PinDetails = ({ pin, onClose, userId, onUpdate, shareUrl }) => {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [commentAuthor, setCommentAuthor] = useState('');
@@ -13,6 +13,7 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     fetchComments();
@@ -99,6 +100,44 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
     setSelectedImage(null);
   };
 
+  const handleShare = async () => {
+    const url = shareUrl || `${window.location.origin}/pin/${pin._id}`;
+    const title = `Pin-It: ${pin.problemType}`;
+    const text = pin.description
+      ? `${pin.problemType} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
+      : pin.problemType;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text,
+          url
+        });
+      } catch (err) {
+        if (err.name !== 'AbortError') copyToClipboard(url);
+      }
+    } else {
+      copyToClipboard(url);
+    }
+  };
+
+  const copyToClipboard = (url) => {
+    navigator.clipboard.writeText(url).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }).catch(() => {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -129,7 +168,17 @@ const PinDetails = ({ pin, onClose, userId, onUpdate }) => {
                 </p>
               </div>
             </div>
-            <button className="close-btn" onClick={onClose}>×</button>
+            <div className="pin-details-header-actions">
+              <button
+                type="button"
+                className={`share-btn ${shareCopied ? 'copied' : ''}`}
+                onClick={handleShare}
+                title="Share this pin"
+              >
+                <FaShareAlt /> {shareCopied ? 'Copied!' : 'Share'}
+              </button>
+              <button className="close-btn" onClick={onClose}>×</button>
+            </div>
           </div>
 
         <div className="pin-details-content">

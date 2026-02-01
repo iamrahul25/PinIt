@@ -430,22 +430,8 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   const mapWrapperRef = useRef(null);
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
-  useEffect(() => {
-    // Try to get user's location on load
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
-          setCenter([latitude, longitude]);
-          setZoom(13);
-          setUserLocation({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
-        },
-        () => {
-          // Use default location if geolocation fails
-        }
-      );
-    }
-  }, []);
+  // Don't auto-move to user location on load (so shared pin links show the pin, not user's location).
+  // User location is only fetched and map moved when "My Location" button is clicked.
 
   // Sync center and zoom to Google Maps when state changes
   useEffect(() => {

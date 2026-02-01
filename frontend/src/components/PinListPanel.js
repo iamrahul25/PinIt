@@ -1,9 +1,9 @@
 import React from 'react';
-import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt } from 'react-icons/fa';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import './PinListPanel.css';
 
-const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDetails, onPinHover, onPinHoverEnd, isOpen, onToggle }) => {
+const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDetails, onPinHover, onPinHoverEnd, onSharePin, isOpen, onToggle }) => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -101,16 +101,29 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
                       <span className="pin-date">{formatDate(pin.createdAt)}</span>
                     </div>
 
-                    <button
-                      type="button"
-                      className="pin-full-details-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onShowDetails(pin);
-                      }}
-                    >
-                      Full details
-                    </button>
+                    <div className="pin-card-actions">
+                      <button
+                        type="button"
+                        className="pin-share-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSharePin?.(pin);
+                        }}
+                        title="Share this pin"
+                      >
+                        <FaShareAlt /> Share
+                      </button>
+                      <button
+                        type="button"
+                        className="pin-full-details-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onShowDetails(pin);
+                        }}
+                      >
+                        Full details
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

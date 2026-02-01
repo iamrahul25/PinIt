@@ -151,18 +151,43 @@
   background: #f8f9ff;
 }
 
-.pin-full-details-btn {
-  width: 100%;
+.pin-card-actions {
+  display: flex;
+  gap: 0.5rem;
   margin-top: 0.75rem;
+}
+
+.pin-share-btn,
+.pin-full-details-btn {
+  flex: 1;
   padding: 0.5rem 1rem;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
-  border: 1px solid #667eea;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 1px solid;
+}
+
+.pin-share-btn {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.pin-share-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  color: #059669;
+}
+
+.pin-full-details-btn {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  border-color: #667eea;
 }
 
 .pin-full-details-btn:hover {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
@@ -7,6 +8,8 @@ import { reverseGeocode } from './utils/geocode';
 import './App.css';
 
 function App() {
+  const { pinId: urlPinId } = useParams();
+  const navigate = useNavigate();
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null); // which pin is highlighted on map (panel click = focus + fly)
@@ -29,6 +32,33 @@ function App() {
   useEffect(() => {
     fetchPins();
   }, []);
+
+  // When URL has pin ID, select that pin after pins are loaded (or fetch single pin if not in list)
+  useEffect(() => {
+    if (!urlPinId) return;
+    const pin = pins.find((p) => p._id === urlPinId);
+    if (pin) {
+      setSelectedPin(pin);
+      setFocusedPinId(pin._id);
+      return;
+    }
+    // Pin not in list (shared link) - fetch it
+    if (pins.length > 0) {
+      fetch(`/api/pins/${urlPinId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((fetchedPin) => {
+          if (fetchedPin) {
+            setPins((prev) => {
+              const exists = prev.some((p) => p._id === fetchedPin._id);
+              return exists ? prev : [...prev, fetchedPin];
+            });
+            setSelectedPin(fetchedPin);
+            setFocusedPinId(fetchedPin._id);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [urlPinId, pins]);
 
   const fetchPins = async () => {
     try {
@@ -68,6 +98,7 @@ function App() {
 
   // When user clicks a pin on the map: show full details popup and highlight on map
   const handlePinClick = (pin) => {
+    navigate(`/pin/${pin._id}`);
     setSelectedPin(pin);
     setFocusedPinId(pin._id);
     setShowForm(false);
@@ -84,6 +115,7 @@ function App() {
 
   // When user clicks "Full details" in panel: show full details popup (and focus map on that pin)
   const handleShowDetails = (pin) => {
+    navigate(`/pin/${pin._id}`);
     setSelectedPin(pin);
     setFocusedPinId(pin._id);
   };
@@ -108,6 +140,7 @@ function App() {
   };
 
   const handleDetailsClose = () => {
+    navigate('/');
     setSelectedPin(null);
     setIsAddPinMode(false);
     setFocusedPinId(null);
@@ -115,6 +148,25 @@ function App() {
 
   const handleTogglePanel = () => {
     setIsPanelOpen(prev => !prev);
+  };
+
+  const handleSharePin = async (pin) => {
+    const url = `${window.location.origin}/pin/${pin._id}`;
+    const title = `Pin-It: ${pin.problemType}`;
+    const text = pin.description
+      ? `${pin.problemType} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
+      : pin.problemType;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          navigator.clipboard?.writeText(url);
+        }
+      }
+    } else {
+      navigator.clipboard?.writeText(url);
+    }
   };
 
   return (
@@ -156,6 +208,7 @@ function App() {
             onClose={handleDetailsClose}
             userId={userId}
             onUpdate={fetchPins}
+            shareUrl={`${window.location.origin}/pin/${selectedPin._id}`}
           />
         )}
         <PinListPanel
@@ -166,6 +219,7 @@ function App() {
           onShowDetails={handleShowDetails}
           onPinHover={handlePinHover}
           onPinHoverEnd={handlePinHoverEnd}
+          onSharePin={handleSharePin}
           isOpen={isPanelOpen}
           onToggle={handleTogglePanel}
         />

@@ -5,6 +5,7 @@ import { ClerkProvider } from '@clerk/clerk-react';
 import BackendHealthChecker from './components/BackendHealthChecker';
 import LoginSignup from './pages/LoginSignup';
 import OAuthCallback from './pages/OAuthCallback';
+import UserProfile from './pages/UserProfile';
 import App from './App';
 import './index.css';
 
@@ -23,6 +24,7 @@ root.render(
           <Routes>
             <Route path="/login" element={<LoginSignup />} />
             <Route path="/sso-callback" element={<OAuthCallback />} />
+            <Route path="/profile" element={<UserProfile />} />
             <Route path="/pin/:pinId" element={<App />} />
             <Route path="/" element={<App />} />
             <Route path="*" element={<Navigate to="/" replace />} />

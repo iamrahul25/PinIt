@@ -37,6 +37,24 @@
   opacity: 0.95;
 }
 
+.profile-link-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 0.8rem;
+  opacity: 0.95;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.profile-link-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+
 .logout-btn {
   padding: 0.35rem 0.75rem;
   background: rgba(255, 255, 255, 0.2);

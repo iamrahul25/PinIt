@@ -269,7 +269,14 @@ function App() {
           <p>Report civic issues in your area</p>
         </div>
         <div className="app-user">
-          <span>{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
+          <button
+            type="button"
+            className="profile-link-btn"
+            onClick={() => navigate('/profile')}
+            title="Your profile"
+          >
+            {user?.fullName || user?.primaryEmailAddress?.emailAddress}
+          </button>
           <button type="button" className="logout-btn" onClick={handleSignOut}>Sign out</button>
         </div>
       </header>

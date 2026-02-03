@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const UserData = require('../models/UserData');
+const Pin = require('../models/Pin');
+const Comment = require('../models/Comment');
 
 /**
  * Create or update user profile in MongoDB (upsert by userId).
@@ -31,6 +33,26 @@ router.post('/sync', async (req, res) => {
     res.json(doc);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+/**
+ * Get user profile stats: contributions, total upvotes (on contributed pins), total comments.
+ * Must be defined before /:userId to avoid "stats" being captured as userId.
+ */
+router.get('/stats', async (req, res) => {
+  try {
+    const authUserId = req.auth?.userId;
+    if (!authUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const contributions = await Pin.countDocuments({ contributor_id: authUserId });
+    const userPins = await Pin.find({ contributor_id: authUserId }).select('upvotes').lean();
+    const totalUpvotes = userPins.reduce((sum, p) => sum + (p.upvotes || 0), 0);
+    const totalComments = await Comment.countDocuments({ authorId: authUserId });
+    res.json({ contributions, totalUpvotes, totalComments });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

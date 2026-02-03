@@ -17,10 +17,12 @@ router.get('/pin/:pinId', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { pinId, author, text } = req.body;
+    const authorId = req.auth?.userId || '';
     
     const comment = new Comment({
       pinId,
       author: author || 'Anonymous',
+      authorId,
       text
     });
 

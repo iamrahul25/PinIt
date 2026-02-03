@@ -10,6 +10,10 @@ const commentSchema = new mongoose.Schema({
     type: String,
     default: 'Anonymous'
   },
+  authorId: {
+    type: String,
+    default: ''
+  },
   text: {
     type: String,
     required: true
@@ -19,5 +23,7 @@ const commentSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+
+commentSchema.index({ authorId: 1 });
 
 module.exports = mongoose.model('Comment', commentSchema);

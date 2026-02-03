@@ -22,6 +22,7 @@ mongoose.connect(MONGODB_URI)
 .catch(err => console.error('MongoDB connection error:', err));
 
 // Routes
+app.use('/api/users', require('./routes/users'));
 app.use('/api/pins', require('./routes/pins'));
 app.use('/api/comments', require('./routes/comments'));
 app.use('/api/votes', require('./routes/votes'));

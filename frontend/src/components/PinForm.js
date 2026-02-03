@@ -138,7 +138,8 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
         },
         images: imageUrls,
         name: formData.name || '',
-        description: formData.description || ''
+        description: formData.description || '',
+        userId: user?.uid || ''
       };
 
       await axios.post(`${API_BASE_URL}/api/pins`, pinData);

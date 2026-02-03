@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 /**
- * Per-user data. One document per user; holds all details specific to that user
- * (e.g. saved pin IDs). This data is personal and is not stored on the Pin model.
- * More user-specific fields can be added to this schema later.
+ * Per-user profile and data in MongoDB, synced from Firebase after signup/login.
+ * Stores: Firebase uid, email, username, emailVerified, plus app-specific data
+ * (saved pins). User-contributed pins are stored on the Pin model via userId.
  */
 const userDataSchema = new mongoose.Schema({
   userId: {
@@ -11,9 +11,25 @@ const userDataSchema = new mongoose.Schema({
     required: true,
     unique: true
   },
+  email: {
+    type: String,
+    default: ''
+  },
+  username: {
+    type: String,
+    default: ''
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
   pinIds: {
     type: [String],
     default: []
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   },
   updatedAt: {
     type: Date,
@@ -22,5 +38,6 @@ const userDataSchema = new mongoose.Schema({
 });
 
 userDataSchema.index({ userId: 1 });
+userDataSchema.index({ email: 1 });
 
 module.exports = mongoose.model('UserData', userDataSchema);

@@ -49,11 +49,11 @@ const UploadIcon = () => (
 );
 
 const PinForm = ({ location, onClose, onSubmit, user }) => {
-  const defaultName = user?.displayName || user?.email || '';
+  const defaultContributorName = user?.displayName || user?.email || '';
   const [formData, setFormData] = useState({
     problemType: 'Trash Pile',
     severity: 5,
-    name: defaultName,
+    contributor_name: defaultContributorName,
     description: '',
     images: []
   });
@@ -63,10 +63,10 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
-  // Keep name in sync when user prop is available (e.g. after login)
+  // Keep contributor_name in sync when user prop is available (e.g. after login)
   React.useEffect(() => {
     const name = user?.displayName || user?.email || '';
-    if (name && !formData.name) setFormData((prev) => ({ ...prev, name }));
+    if (name && !formData.contributor_name) setFormData((prev) => ({ ...prev, contributor_name: name }));
   }, [user]);
 
   const handleInputChange = (e) => {
@@ -137,9 +137,9 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
           address: location.address || ''
         },
         images: imageUrls,
-        name: formData.name || '',
-        description: formData.description || '',
-        userId: user?.uid || ''
+        contributor_id: user?.uid || '',
+        contributor_name: formData.contributor_name || '',
+        description: formData.description || ''
       };
 
       await axios.post(`${API_BASE_URL}/api/pins`, pinData);
@@ -215,8 +215,8 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
             <label>Your Name <span className="optional">(Optional)</span></label>
             <input
               type="text"
-              name="name"
-              value={formData.name}
+              name="contributor_name"
+              value={formData.contributor_name}
               onChange={handleInputChange}
               placeholder="Enter your name"
             />

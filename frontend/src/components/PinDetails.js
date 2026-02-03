@@ -200,7 +200,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
                 <h2>{pin.problemType}</h2>
                 <p className="pin-meta">
                   Severity: <span className="severity-badge">{pin.severity}/10</span>
-                  {pin.name && <span> • Reported by: {pin.name}</span>}
+                  {(pin.contributor_name || pin.name) && <span> • Reported by: {pin.contributor_name || pin.name}</span>}
                   {user && (
                     <span className={`saved-badge ${isSaved ? 'saved' : ''}`}>
                       {isSaved ? <FaBookmark /> : <FaRegBookmark />}

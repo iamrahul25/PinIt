@@ -238,7 +238,7 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
                     </div>
 
                     <div className="pin-meta">
-                      {pin.name && <span className="pin-author">By {pin.name}</span>}
+                      {(pin.contributor_name || pin.name) && <span className="pin-author">By {pin.contributor_name || pin.name}</span>}
                       <span className="pin-date">{formatDate(pin.createdAt)}</span>
                     </div>
 

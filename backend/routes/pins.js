@@ -4,11 +4,11 @@ const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
 const UserData = require('../models/UserData');
 
-// Get all pins (optional query: createdBy=userId for user-contributed pins)
+// Get all pins (optional query: createdBy=contributor_id for user-contributed pins)
 router.get('/', async (req, res) => {
   try {
     const { createdBy } = req.query;
-    const filter = createdBy ? { userId: createdBy } : {};
+    const filter = createdBy ? { contributor_id: createdBy } : {};
     const pins = await Pin.find(filter).populate('comments').sort({ createdAt: -1 });
     res.json(pins);
   } catch (error) {
@@ -87,16 +87,16 @@ router.get('/:id', async (req, res) => {
 // Create a new pin
 router.post('/', async (req, res) => {
   try {
-    const { problemType, severity, location, images, name, description, userId } = req.body;
-    
+    const { problemType, severity, location, images, contributor_id, contributor_name, description } = req.body;
+
     const pin = new Pin({
       problemType,
       severity,
       location,
       images: images || [],
-      name: name || '',
-      description: description || '',
-      userId: userId || ''
+      contributor_id: contributor_id || '',
+      contributor_name: contributor_name || '',
+      description: description || ''
     });
 
     const savedPin = await pin.save();

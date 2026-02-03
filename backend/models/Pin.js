@@ -32,11 +32,11 @@ const pinSchema = new mongoose.Schema({
     type: String, // Cloudinary URLs (or legacy GridFS file IDs for backward compat)
     default: []
   }],
-  userId: {
+  contributor_id: {
     type: String,
     default: ''
   },
-  name: {
+  contributor_name: {
     type: String,
     default: ''
   },
@@ -74,6 +74,6 @@ const pinSchema = new mongoose.Schema({
 });
 
 pinSchema.index({ 'location.latitude': 1, 'location.longitude': 1 });
-pinSchema.index({ userId: 1 });
+pinSchema.index({ contributor_id: 1 });
 
 module.exports = mongoose.model('Pin', pinSchema);

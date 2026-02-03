@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '@clerk/clerk-react';
 import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt, FaBookmark, FaRegBookmark } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
@@ -7,8 +8,9 @@ import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import './PinDetails.css';
 
 const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, onUnsave }) => {
-  const userId = user?.uid ?? null;
-  const displayName = user?.displayName || user?.email || 'Anonymous';
+  const { isLoaded: authLoaded, getToken } = useAuth();
+  const userId = user?.id ?? null;
+  const displayName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Anonymous';
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
@@ -19,17 +21,33 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (!authLoaded) return;
     fetchComments();
     fetchVoteStatus();
     fetchImages();
-  }, [pin._id, userId]);
+  }, [authLoaded, getToken, pin._id, userId]);
   useEffect(() => {
     setVoteStatus((prev) => ({ ...prev, upvotes: pin.upvotes, downvotes: pin.downvotes }));
   }, [pin.upvotes, pin.downvotes]);
 
+  const getAuthConfig = async (extraHeaders = {}) => {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Missing auth token');
+    }
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...extraHeaders
+      }
+    };
+  };
+
   const fetchComments = async () => {
+    if (!authLoaded) return;
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/comments/pin/${pin._id}`);
+      const config = await getAuthConfig();
+      const response = await axios.get(`${API_BASE_URL}/api/comments/pin/${pin._id}`, config);
       setComments(response.data);
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -41,8 +59,10 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       setVoteStatus({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
       return;
     }
+    if (!authLoaded) return;
     try {
-      const response = await axios.get(`${API_BASE_URL}/api/votes/${pin._id}/${userId}`);
+      const config = await getAuthConfig();
+      const response = await axios.get(`${API_BASE_URL}/api/votes/${pin._id}/status`, config);
       setVoteStatus(response.data);
     } catch (error) {
       console.error('Error fetching vote status:', error);
@@ -66,12 +86,13 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       alert('Please log in to vote.');
       return;
     }
+    if (!authLoaded) return;
     try {
+      const config = await getAuthConfig();
       await axios.post(`${API_BASE_URL}/api/votes`, {
         pinId: pin._id,
-        userId,
         voteType
-      });
+      }, config);
       fetchVoteStatus();
       onUpdate();
     } catch (error) {
@@ -89,14 +110,16 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       alert('Please log in to comment.');
       return;
     }
+    if (!authLoaded) return;
 
     setLoading(true);
     try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
       await axios.post(`${API_BASE_URL}/api/comments`, {
         pinId: pin._id,
         author: displayName,
         text: newComment
-      });
+      }, config);
       setNewComment('');
       fetchComments();
     } catch (error) {
@@ -141,13 +164,15 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       alert('Please log in to save pins.');
       return;
     }
+    if (!authLoaded) return;
     setSaving(true);
     try {
+      const config = await getAuthConfig();
       if (isSaved) {
-        await axios.delete(`${API_BASE_URL}/api/pins/${pin._id}/save/${userId}`);
+        await axios.delete(`${API_BASE_URL}/api/pins/${pin._id}/save`, config);
         onUnsave?.(pin);
       } else {
-        await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/save`, { userId });
+        await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/save`, {}, config);
         onSave?.(pin);
       }
       onUpdate?.();

@@ -23,10 +23,10 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
   const filteredPins = useMemo(() => {
     let list = pins;
     if (filterSavedOnly) list = list.filter((p) => p.saved);
-    if (filterContributedOnly && user?.uid) list = list.filter((p) => p.contributor_id === user.uid);
+    if (filterContributedOnly && user?.id) list = list.filter((p) => p.contributor_id === user.id);
     if (selectedTypes.length > 0) list = list.filter((p) => selectedTypes.includes(p.problemType));
     return list;
-  }, [pins, selectedTypes, filterSavedOnly, filterContributedOnly, user?.uid]);
+  }, [pins, selectedTypes, filterSavedOnly, filterContributedOnly, user?.id]);
 
   const sortedPins = useMemo(() => {
     const list = [...filteredPins];
@@ -98,7 +98,7 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
               <FaBookmark className="filter-saved-icon" />
               <span>Saved pins only</span>
             </label>
-            {user?.uid && (
+            {user?.id && (
               <label className="filter-checkbox-label filter-contributed-label">
                 <input
                   type="checkbox"

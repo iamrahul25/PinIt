@@ -2,10 +2,11 @@ const express = require('express');
 const router = express.Router();
 const Pin = require('../models/Pin');
 
-// Vote on a pin (requires authenticated userId from Firebase)
+// Vote on a pin (requires a valid Clerk-authenticated user)
 router.post('/', async (req, res) => {
   try {
-    const { pinId, userId, voteType } = req.body;
+    const { pinId, voteType } = req.body;
+    const userId = req.auth?.userId;
 
     if (!['upvote', 'downvote'].includes(voteType)) {
       return res.status(400).json({ error: 'Invalid vote type' });
@@ -58,14 +59,18 @@ router.post('/', async (req, res) => {
 });
 
 // Get vote status for a user
-router.get('/:pinId/:userId', async (req, res) => {
+router.get('/:pinId/status', async (req, res) => {
   try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     const pin = await Pin.findById(req.params.pinId);
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });
     }
 
-    const userVote = pin.votes.find((v) => v.userId === req.params.userId);
+    const userVote = pin.votes.find((v) => v.userId === userId);
 
     res.json({
       hasVoted: !!userVote,

@@ -1,5 +1,6 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '@clerk/clerk-react';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import './PinForm.css';
@@ -49,7 +50,8 @@ const UploadIcon = () => (
 );
 
 const PinForm = ({ location, onClose, onSubmit, user }) => {
-  const defaultContributorName = user?.displayName || user?.email || '';
+  const { isLoaded: authLoaded, getToken } = useAuth();
+  const defaultContributorName = user?.fullName || user?.primaryEmailAddress?.emailAddress || '';
   const [formData, setFormData] = useState({
     problemType: 'Trash Pile',
     severity: 5,
@@ -64,10 +66,10 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
   const fileInputRef = useRef(null);
 
   // Keep contributor_name in sync when user prop is available (e.g. after login)
-  React.useEffect(() => {
-    const name = user?.displayName || user?.email || '';
+  useEffect(() => {
+    const name = user?.fullName || user?.primaryEmailAddress?.emailAddress || '';
     if (name && !formData.contributor_name) setFormData((prev) => ({ ...prev, contributor_name: name }));
-  }, [user]);
+  }, [user, formData.contributor_name]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -113,18 +115,38 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!authLoaded) {
+      setError('Authentication is still loading. Please wait a moment.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
+      const getAuthConfig = async (extraHeaders = {}) => {
+        const token = await getToken();
+        if (!token) {
+          throw new Error('Missing auth token');
+        }
+        return {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...extraHeaders
+          }
+        };
+      };
+
       const imageUrls = [];
       for (const file of imageFiles) {
         const compressedFile = await imageCompression(file, COMPRESSION_OPTIONS);
         const multipart = new FormData();
         multipart.append('image', compressedFile);
-        const uploadResponse = await axios.post(`${API_BASE_URL}/api/images/upload`, multipart, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const uploadResponse = await axios.post(
+          `${API_BASE_URL}/api/images/upload`,
+          multipart,
+          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
+        );
         imageUrls.push(uploadResponse.data.url);
       }
 
@@ -137,12 +159,12 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
           address: location.address || ''
         },
         images: imageUrls,
-        contributor_id: user?.uid || '',
+        contributor_id: user?.id || '',
         contributor_name: formData.contributor_name || '',
         description: formData.description || ''
       };
 
-      await axios.post(`${API_BASE_URL}/api/pins`, pinData);
+      await axios.post(`${API_BASE_URL}/api/pins`, pinData, await getAuthConfig({ 'Content-Type': 'application/json' }));
       onSubmit();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create report. Please try again.');

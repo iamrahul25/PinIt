@@ -17,9 +17,13 @@ router.get('/', async (req, res) => {
 });
 
 // Get saved pin IDs for a user (from UserData – personal data per user, not on Pin)
-router.get('/saved/:userId', async (req, res) => {
+router.get('/saved', async (req, res) => {
   try {
-    const doc = await UserData.findOne({ userId: req.params.userId }).lean();
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const doc = await UserData.findOne({ userId }).lean();
     res.json({ pinIds: doc ? (doc.pinIds || []) : [] });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -29,9 +33,9 @@ router.get('/saved/:userId', async (req, res) => {
 // Save a pin for a user (store in UserData only; Pin DB unchanged)
 router.post('/:id/save', async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.auth?.userId;
     if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+      return res.status(401).json({ error: 'Unauthorized' });
     }
     const pinId = req.params.id;
     const pin = await Pin.findById(pinId);
@@ -56,9 +60,13 @@ router.post('/:id/save', async (req, res) => {
 });
 
 // Unsave a pin for a user (remove from UserData only)
-router.delete('/:id/save/:userId', async (req, res) => {
+router.delete('/:id/save', async (req, res) => {
   try {
-    const doc = await UserData.findOne({ userId: req.params.userId });
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const doc = await UserData.findOne({ userId });
     if (!doc) {
       return res.json({ ok: true, pinIds: [] });
     }
@@ -87,14 +95,18 @@ router.get('/:id', async (req, res) => {
 // Create a new pin
 router.post('/', async (req, res) => {
   try {
-    const { problemType, severity, location, images, contributor_id, contributor_name, description } = req.body;
+    const { problemType, severity, location, images, contributor_name, description } = req.body;
+    const contributorId = req.auth?.userId;
+    if (!contributorId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
     const pin = new Pin({
       problemType,
       severity,
       location,
       images: images || [],
-      contributor_id: contributor_id || '',
+      contributor_id: contributorId,
       contributor_name: contributor_name || '',
       description: description || ''
     });

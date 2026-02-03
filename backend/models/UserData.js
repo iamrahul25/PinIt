@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 /**
- * Per-user profile and data in MongoDB, synced from Firebase after signup/login.
- * Stores: Firebase uid, email, username, emailVerified, plus app-specific data
+ * Per-user profile and data in MongoDB, kept in sync with Clerk after signup/login.
+ * Stores: Clerk user id, email, username, emailVerified, plus app-specific data
  * (saved pins). User-contributed pins are stored on the Pin model via userId.
  */
 const userDataSchema = new mongoose.Schema({

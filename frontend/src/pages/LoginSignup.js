@@ -1,108 +1,89 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useSignIn, useUser } from '@clerk/clerk-react';
 import './LoginSignup.css';
 
-export default function LoginSignup() {
-  const { login, signup } = useAuth();
-  const navigate = useNavigate();
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+const SOCIAL_PROVIDERS = [
+  { label: 'Continue with Google', strategy: 'oauth_google', key: 'google' },
+  { label: 'Continue with Apple', strategy: 'oauth_apple', key: 'apple' },
+  { label: 'Continue with Microsoft', strategy: 'oauth_microsoft', key: 'microsoft' }
+];
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      if (mode === 'login') {
-        await login(email, password);
-      } else {
-        const { updateProfile } = await import('firebase/auth');
-        const cred = await signup(email, password);
-        if (displayName.trim()) {
-          await updateProfile(cred.user, { displayName: displayName.trim() });
-        }
-      }
+export default function LoginSignup() {
+  const navigate = useNavigate();
+  const { isSignedIn } = useUser();
+  const { signIn, isLoaded } = useSignIn();
+  const [error, setError] = useState('');
+  const [pendingProvider, setPendingProvider] = useState('');
+
+  useEffect(() => {
+    if (isSignedIn) {
       navigate('/', { replace: true });
+    }
+  }, [isSignedIn, navigate]);
+
+  const handleSocialSignIn = async (strategy, key) => {
+    setError('');
+    setPendingProvider(key);
+    if (!isLoaded || !signIn) {
+      setError('Authentication service is not ready. Please try again.');
+      setPendingProvider('');
+      return;
+    }
+    try {
+      await signIn.authenticateWithRedirect({
+        strategy,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/'
+      });
     } catch (err) {
-      setError(err.message || 'Something went wrong.');
-    } finally {
-      setLoading(false);
+      const message =
+        err?.errors?.[0]?.longMessage ||
+        err?.message ||
+        'Unable to continue with that provider right now.';
+      setError(message);
+      setPendingProvider('');
     }
   };
 
-  const toggleMode = () => {
-    setMode((m) => (m === 'login' ? 'signup' : 'login'));
-    setError('');
-    setEmail('');
-    setPassword('');
-    setDisplayName('');
-  };
-
   return (
-    <div className="login-signup-page">
-      <div className="login-signup-card">
-        <h1 className="login-signup-title">Pin-It</h1>
-        <p className="login-signup-subtitle">
-          {mode === 'login' ? 'Sign in to continue' : 'Create an account'}
+    <div className="login-page">
+      <div className="login-card">
+        <div className="login-brand">
+          <div className="brand-icon" aria-hidden="true">📍</div>
+          <div>
+            <h1>Pin-It</h1>
+            <p>Report and track civic issues effortlessly.</p>
+          </div>
+        </div>
+
+        <p className="login-helper-text">
+          Sign up or sign in using your preferred account.
         </p>
 
-        <form onSubmit={handleSubmit} className="login-signup-form">
-          {error && <div className="login-signup-error" role="alert">{error}</div>}
-
-          {mode === 'signup' && (
-            <div className="form-field">
-              <label htmlFor="displayName">Display name</label>
-              <input
-                id="displayName"
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name"
-                autoComplete="name"
-              />
-            </div>
-          )}
-
-          <div className="form-field">
-            <label htmlFor="email">Email</label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
-            />
+        {error && (
+          <div className="login-error" role="alert">
+            {error}
           </div>
+        )}
 
-          <div className="form-field">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={mode === 'signup' ? 'Min 6 characters' : ''}
-              required
-              minLength={mode === 'signup' ? 6 : undefined}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-            />
-          </div>
+        <div className="login-buttons">
+          {SOCIAL_PROVIDERS.map(({ label, strategy, key }) => (
+            <button
+              key={key}
+              type="button"
+              className="login-provider-btn"
+              onClick={() => handleSocialSignIn(strategy, key)}
+              disabled={!!pendingProvider}
+            >
+              {pendingProvider === key ? 'Redirecting…' : label}
+            </button>
+          ))}
+        </div>
 
-          <button type="submit" className="login-signup-submit" disabled={loading}>
-            {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Sign up'}
-          </button>
-        </form>
-
-        <button type="button" className="login-signup-toggle" onClick={toggleMode}>
-          {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Sign in'}
-        </button>
+        <p className="login-disclaimer">
+          Only Google, Apple, or Microsoft accounts are supported.
+        </p>
       </div>
     </div>
   );

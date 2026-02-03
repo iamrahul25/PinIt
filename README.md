@@ -8,7 +8,7 @@ A React-based web application that allows users to report and track civic issues
 - 🔄 **Map Toggle**: Switch between OpenStreetMap and Google Maps
 - 📍 **Location Services**: Search for locations or use your current location
 - 📸 **Image Upload**: Attach up to 5 images per report
-- 🔐 **Login / Signup**: Firebase Authentication (email/password)
+- 🔐 **Login / Signup**: Clerk Authentication (Google, Apple, Microsoft only)
 - ⭐ **Voting System**: Upvote or downvote (one vote per logged-in user)
 - 💬 **Comments**: Add comments (name auto from account)
 - 🎨 **Color-Coded Pins**: Different colors for different problem types
@@ -19,7 +19,7 @@ A React-based web application that allows users to report and track civic issues
 ### Frontend
 - React 18
 - React Leaflet (Map integration)
-- Firebase (Authentication)
+- Clerk React SDK (Authentication)
 - Axios (HTTP client)
 - React Icons
 
@@ -29,6 +29,7 @@ A React-based web application that allows users to report and track civic issues
 - MongoDB
 - Cloudinary (image storage; images compressed to ~1080px / 200–300KB)
 - Multer (file upload handling)
+- Clerk Express middleware (route protection)
 
 ## Installation
 
@@ -46,24 +47,31 @@ A React-based web application that allows users to report and track civic issues
    ```
 
 3. **Set up environment variables:**
-   - Create `backend/.env` with:
+   - **frontend/.env**
+     - `REACT_APP_CLERK_PUBLISHABLE_KEY` – Clerk publishable key (required for login/signup)
+     - `REACT_APP_BACKEND_URL` (optional) – leave empty or unset to use the package.json proxy (localhost:5000 in dev). Set to a full URL (e.g. `http://192.168.1.100:5000`) to point to a different backend.
+     - `REACT_APP_GOOGLE_MAPS_API_KEY` (optional) – from https://console.cloud.google.com/google/maps-apis (enable Maps JavaScript API and Places API). OpenStreetMap works without any API key.
+   - **backend/.env**
      - `MONGODB_URI` – MongoDB connection string (default: `mongodb://localhost:27017/pinit`)
      - **Cloudinary** (required for image uploads): get from https://cloudinary.com/console
        - `CLOUDINARY_CLOUD_NAME`
        - `CLOUDINARY_API_KEY`
        - `CLOUDINARY_API_SECRET`
-   - Create `frontend/.env` with:
-     - **Backend URL** (optional): `REACT_APP_BACKEND_URL` – leave empty or unset to use the package.json proxy (localhost:5000 in dev). Set to a full URL (e.g. `http://192.168.1.100:5000`) to point to a different backend.
-     - **Firebase** (required for login/signup): get from Firebase Console → Project settings → General → Your apps
-       - `REACT_APP_FIREBASE_API_KEY`
-       - `REACT_APP_FIREBASE_AUTH_DOMAIN`
-       - `REACT_APP_FIREBASE_PROJECT_ID`
-       - `REACT_APP_FIREBASE_STORAGE_BUCKET`
-       - `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`
-       - `REACT_APP_FIREBASE_APP_ID`
-     - **Google Maps** (optional, for Google Maps toggle):
-       - `REACT_APP_GOOGLE_MAPS_API_KEY` – from https://console.cloud.google.com/google/maps-apis (enable Maps JavaScript API and Places API)
-     - Note: OpenStreetMap works without any API key
+     - **Clerk** (required for authentication & backend protection)
+       - `CLERK_SECRET_KEY`
+       - `CLERK_PUBLISHABLE_KEY`
+
+   **Where to get Clerk keys and how to set them up:**
+   - Go to [Clerk Dashboard](https://dashboard.clerk.com).
+   - Sign up or log in, then create an **Application** (or select an existing one).
+   - In the left sidebar, go to **API Keys**.
+   - You will see:
+     - **Publishable key** (`pk_...`) – use in `frontend/.env` as `REACT_APP_CLERK_PUBLISHABLE_KEY` and in `backend/.env` as `CLERK_PUBLISHABLE_KEY`
+     - **Secret key** (`sk_...`) – click “Show” and use in `backend/.env` as `CLERK_SECRET_KEY` only (never in the frontend)
+   - **Important:** Never commit `.env` files or expose the secret key in the frontend. The publishable key is safe to use in the React app; the secret key must only live in the backend.
+   - **OAuth (Google/Apple/Microsoft):** In the Clerk Dashboard, go to **Paths** or **Redirect URLs** and ensure your app’s OAuth callback is allowed. For local dev, add `http://localhost:3000/sso-callback` (or your frontend origin + `/sso-callback`) so “Continue with Google” etc. can redirect back correctly.
+   - After changing `.env`, restart the frontend (`npm start`) and backend server so the new values are loaded.
+   - **Console warning:** When using development keys (`pk_test_...`), Clerk shows a warning in the browser console. This is expected for local testing and cannot be disabled; use production keys in production to avoid it.
 
 4. **Start MongoDB** (if running locally):
    ```bash
@@ -114,6 +122,8 @@ A React-based web application that allows users to report and track civic issues
 
 ## API Endpoints
 
+> All `/api/*` routes (except `/api/health`) require a valid Clerk session token in the `Authorization: Bearer <token>` header.
+
 ### Pins
 - `GET /api/pins` - Get all pins
 - `GET /api/pins/:id` - Get pin by ID
@@ -128,16 +138,16 @@ A React-based web application that allows users to report and track civic issues
 
 ### Votes
 - `POST /api/votes` - Vote on a pin
-- `GET /api/votes/:pinId/:userId` - Get vote status for a user
+- `GET /api/votes/:pinId/status` - Get the current user's vote status
 
 ### Images
 - `POST /api/images/upload` - Upload an image (stored on Cloudinary, compressed; returns URL)
 - `GET /api/images/:id` - Get image by ID (legacy GridFS only; new pins use Cloudinary URLs)
 
 ### Saved pins (UserData)
-- `GET /api/pins/saved/:userId` - Get saved pin IDs for a user
-- `POST /api/pins/:id/save` - Save a pin for a user (body: `{ userId }`)
-- `DELETE /api/pins/:id/save/:userId` - Unsave a pin for a user
+- `GET /api/pins/saved` - Get saved pin IDs for the current user
+- `POST /api/pins/:id/save` - Save a pin for the current user
+- `DELETE /api/pins/:id/save` - Unsave a pin for the current user
 
 ## Schema
 
@@ -201,8 +211,8 @@ PinIt/
 ## Notes
 
 - Images are uploaded to **Cloudinary** and only the URL is stored in MongoDB. Images are compressed to max 1080px and ~200–300KB. Old pins may still reference GridFS image IDs; those are served via `GET /api/images/:id`.
-- User identification is handled via localStorage (for demo purposes)
-- In production, implement proper authentication
+- Authentication is handled by Clerk; enable Google/Apple/Microsoft providers in your Clerk dashboard.
+- The backend validates every request with `@clerk/express` to ensure routes are protected by the same identity provider.
 - The map uses OpenStreetMap tiles by default (free, no API key required)
 - Google Maps option available (requires API key - see setup instructions)
 - Location search uses Nominatim geocoding service for OpenStreetMap

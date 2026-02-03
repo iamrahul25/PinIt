@@ -4,15 +4,16 @@ const UserData = require('../models/UserData');
 
 /**
  * Create or update user profile in MongoDB (upsert by userId).
- * Called by frontend after Firebase signup/login with Firebase user info.
- * Body: { userId, email, username?, emailVerified? }
+ * Can be called by the frontend after Clerk signup/login with user info.
+ * Body: { email?, username?, emailVerified? }
  */
 router.post('/sync', async (req, res) => {
   try {
-    const { userId, email, username, emailVerified } = req.body;
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
+    const authUserId = req.auth?.userId;
+    if (!authUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
+    const { email, username, emailVerified } = req.body;
     const setFields = {
       updatedAt: new Date(),
       ...(email !== undefined && { email: email || '' }),
@@ -20,7 +21,7 @@ router.post('/sync', async (req, res) => {
       ...(emailVerified !== undefined && { emailVerified: !!emailVerified })
     };
     const doc = await UserData.findOneAndUpdate(
-      { userId },
+      { userId: authUserId },
       {
         $set: setFields,
         $setOnInsert: { pinIds: [], createdAt: new Date() }
@@ -34,10 +35,13 @@ router.post('/sync', async (req, res) => {
 });
 
 /**
- * Get user profile by Firebase userId.
+ * Get user profile by Clerk userId.
  */
 router.get('/:userId', async (req, res) => {
   try {
+    if (req.params.userId !== req.auth?.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
     const doc = await UserData.findOne({ userId: req.params.userId }).lean();
     if (!doc) {
       return res.status(404).json({ error: 'User not found' });

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext';
+import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
@@ -10,7 +10,8 @@ import { API_BASE_URL } from './config';
 import './App.css';
 
 function App() {
-  const { user, loading, logout } = useAuth();
+  const { isLoaded: userLoaded, isSignedIn, user } = useUser();
+  const { isLoaded: authLoaded, getToken, signOut } = useClerkAuth();
   const { pinId: urlPinId } = useParams();
   const navigate = useNavigate();
   const [pins, setPins] = useState([]);
@@ -24,67 +25,92 @@ function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
 
-  useEffect(() => {
-    if (user) {
-      fetchPins();
-      fetchSavedPinIds();
-    }
-  }, [user]);
+  const loading = !userLoaded || !authLoaded;
 
-  useEffect(() => {
-    if (!loading && !user) navigate('/login', { replace: true });
-  }, [loading, user, navigate]);
-
-  // When URL has pin ID, select that pin after pins are loaded (or fetch single pin if not in list)
-  useEffect(() => {
-    if (!urlPinId) return;
-    const pin = pins.find((p) => p._id === urlPinId);
-    if (pin) {
-      setSelectedPin(pin);
-      setFocusedPinId(pin._id);
-      return;
+  const getAuthHeaders = useCallback(async (headers = {}) => {
+    const token = await getToken();
+    if (!token) {
+      throw new Error('Unable to acquire auth token');
     }
-    // Pin not in list (shared link) - fetch it
-    if (pins.length > 0) {
-      fetch(`${API_BASE_URL}/api/pins/${urlPinId}`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((fetchedPin) => {
-          if (fetchedPin) {
-            setPins((prev) => {
-              const exists = prev.some((p) => p._id === fetchedPin._id);
-              return exists ? prev : [...prev, fetchedPin];
-            });
-            setSelectedPin(fetchedPin);
-            setFocusedPinId(fetchedPin._id);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [urlPinId, pins]);
+    return {
+      ...headers,
+      Authorization: `Bearer ${token}`
+    };
+  }, [getToken]);
 
-  const fetchPins = async () => {
+  const authFetch = useCallback(async (url, options = {}) => {
+    const headers = await getAuthHeaders(options.headers || {});
+    return fetch(url, { ...options, headers });
+  }, [getAuthHeaders]);
+
+  const fetchPins = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pins`);
+      const response = await authFetch(`${API_BASE_URL}/api/pins`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch pins');
+      }
       const data = await response.json();
       setPins(data);
     } catch (error) {
       console.error('Error fetching pins:', error);
     }
-  };
+  }, [authFetch]);
 
-  const fetchSavedPinIds = async () => {
-    if (!user?.uid) return;
+  const fetchSavedPinIds = useCallback(async () => {
+    if (!user?.id) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/pins/saved/${user.uid}`);
+      const response = await authFetch(`${API_BASE_URL}/api/pins/saved`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch saved pins');
+      }
       const data = await response.json();
       setSavedPinIds(data.pinIds || []);
     } catch (error) {
       console.error('Error fetching saved pins:', error);
     }
-  };
+  }, [authFetch, user?.id]);
+
+  useEffect(() => {
+    if (!userLoaded) return;
+    if (!isSignedIn) {
+      navigate('/login', { replace: true });
+    }
+  }, [userLoaded, isSignedIn, navigate]);
+
+  useEffect(() => {
+    if (!isSignedIn || !authLoaded) return;
+    fetchPins();
+    fetchSavedPinIds();
+  }, [isSignedIn, authLoaded, fetchPins, fetchSavedPinIds]);
+
+  useEffect(() => {
+    if (!isSignedIn || !authLoaded || !urlPinId) return;
+    const existingPin = pins.find((p) => p._id === urlPinId);
+    if (existingPin) {
+      setSelectedPin(existingPin);
+      setFocusedPinId(existingPin._id);
+      return;
+    }
+    const fetchPinById = async () => {
+      try {
+        const response = await authFetch(`${API_BASE_URL}/api/pins/${urlPinId}`);
+        if (!response.ok) return;
+        const pin = await response.json();
+        setPins((prev) => {
+          const alreadyPresent = prev.some((p) => p._id === pin._id);
+          return alreadyPresent ? prev : [...prev, pin];
+        });
+        setSelectedPin(pin);
+        setFocusedPinId(pin._id);
+      } catch (error) {
+        console.error('Error fetching shared pin:', error);
+      }
+    };
+    fetchPinById();
+  }, [authFetch, authLoaded, isSignedIn, pins, urlPinId]);
 
   const handleAddButtonClick = () => {
-    if (!user) {
+    if (!isSignedIn) {
       navigate('/login');
       return;
     }
@@ -193,6 +219,15 @@ function App() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="App app-loading">
@@ -201,7 +236,7 @@ function App() {
     );
   }
 
-  if (!user) return null;
+  if (!isSignedIn) return null;
 
   return (
     <div className="App">
@@ -211,8 +246,8 @@ function App() {
           <p>Report civic issues in your area</p>
         </div>
         <div className="app-user">
-          <span>{user.displayName || user.email}</span>
-          <button type="button" className="logout-btn" onClick={() => logout()}>Sign out</button>
+          <span>{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
+          <button type="button" className="logout-btn" onClick={handleSignOut}>Sign out</button>
         </div>
       </header>
       <div className="map-container">

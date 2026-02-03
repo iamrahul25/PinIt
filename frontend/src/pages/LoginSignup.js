@@ -76,6 +76,13 @@ export default function LoginSignup() {
               onClick={() => handleSocialSignIn(strategy, key)}
               disabled={!!pendingProvider}
             >
+              <img
+                src={`${process.env.PUBLIC_URL || ''}/icons/${key}-icon.svg`}
+                alt=""
+                className="login-provider-icon"
+                width={24}
+                height={24}
+              />
               {pendingProvider === key ? 'Redirecting…' : label}
             </button>
           ))}

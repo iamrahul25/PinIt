@@ -171,8 +171,10 @@ function App() {
     setTempPinLocation(null);
   };
 
-  // When user clicks a pin card in All Pins panel: only highlight pin and move map (no popup)
+  // When user clicks a pin card in All Pins panel: close full-detail popup, highlight pin and move map
   const handlePinFocus = (pin) => {
+    navigate('/');
+    setSelectedPin(null);
     setFocusedPinId(pin._id);
     setShowForm(false);
     setIsAddPinMode(false);

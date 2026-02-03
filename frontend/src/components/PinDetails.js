@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
-import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt, FaBookmark, FaRegBookmark } from 'react-icons/fa';
+import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt, FaBookmark, FaRegBookmark, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
@@ -16,9 +16,10 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const imageModalRef = useRef(null);
 
   useEffect(() => {
     if (!authLoaded) return;
@@ -29,6 +30,12 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   useEffect(() => {
     setVoteStatus((prev) => ({ ...prev, upvotes: pin.upvotes, downvotes: pin.downvotes }));
   }, [pin.upvotes, pin.downvotes]);
+
+  useEffect(() => {
+    if (selectedImageIndex != null && imageModalRef.current) {
+      imageModalRef.current.focus();
+    }
+  }, [selectedImageIndex]);
 
   const getAuthConfig = async (extraHeaders = {}) => {
     const token = await getToken();
@@ -129,12 +136,24 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
     }
   };
 
-  const openImageModal = (imageSrc) => {
-    setSelectedImage(imageSrc);
+  const openImageModal = (index) => {
+    setSelectedImageIndex(index);
   };
 
   const closeImageModal = () => {
-    setSelectedImage(null);
+    setSelectedImageIndex(null);
+  };
+
+  const goToPrevImage = (e) => {
+    e.stopPropagation();
+    if (images.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goToNextImage = (e) => {
+    e.stopPropagation();
+    if (images.length <= 1) return;
+    setSelectedImageIndex((prev) => (prev + 1) % images.length);
   };
 
   const handleShare = async () => {
@@ -289,7 +308,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
                     key={index} 
                     src={url} 
                     alt={`Problem ${index + 1}`}
-                    onClick={() => openImageModal(url)}
+                    onClick={() => openImageModal(index)}
                   />
                 ))}
               </div>
@@ -356,16 +375,51 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
 
       {/* Image Modal */}
       <div 
-        className={`image-modal ${selectedImage ? 'active' : ''}`}
+        ref={imageModalRef}
+        className={`image-modal ${selectedImageIndex != null ? 'active' : ''}`}
         onClick={closeImageModal}
+        onKeyDown={(e) => {
+          if (selectedImageIndex == null) return;
+          if (e.key === 'Escape') closeImageModal();
+          if (e.key === 'ArrowLeft') goToPrevImage(e);
+          if (e.key === 'ArrowRight') goToNextImage(e);
+        }}
+        tabIndex={selectedImageIndex != null ? 0 : -1}
+        role="dialog"
+        aria-label="Image viewer"
       >
         <button className="image-modal-close" onClick={closeImageModal}>×</button>
-        {selectedImage && (
-          <img 
-            src={selectedImage} 
-            alt="Full size" 
-            onClick={(e) => e.stopPropagation()}
-          />
+        {images.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="image-modal-nav image-modal-prev"
+              onClick={goToPrevImage}
+              aria-label="Previous image"
+            >
+              <FaChevronLeft />
+            </button>
+            <button
+              type="button"
+              className="image-modal-nav image-modal-next"
+              onClick={goToNextImage}
+              aria-label="Next image"
+            >
+              <FaChevronRight />
+            </button>
+          </>
+        )}
+        {selectedImageIndex != null && images[selectedImageIndex] && (
+          <>
+            <img 
+              src={images[selectedImageIndex]} 
+              alt={`Image ${selectedImageIndex + 1} of ${images.length}`}
+              onClick={(e) => e.stopPropagation()}
+            />
+            <span className="image-modal-counter">
+              {selectedImageIndex + 1} / {images.length}
+            </span>
+          </>
         )}
       </div>
     </>

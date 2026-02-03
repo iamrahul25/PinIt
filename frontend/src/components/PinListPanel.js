@@ -239,15 +239,15 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
 
                     <div className="pin-stats">
                       <div className="stat-item">
-                        <FaThumbsUp className="stat-icon upvote" />
+                        <FaThumbsUp className="stat-icon-side-panel upvote" />
                         <span>{pin.upvotes || 0}</span>
                       </div>
                       <div className="stat-item">
-                        <FaThumbsDown className="stat-icon downvote" />
+                        <FaThumbsDown className="stat-icon-side-panel downvote" />
                         <span>{pin.downvotes || 0}</span>
                       </div>
                       <div className="stat-item">
-                        <FaComment className="stat-icon comment" />
+                        <FaComment className="stat-icon-side-panel comment" />
                         <span>{pin.comments?.length || 0}</span>
                       </div>
                     </div>

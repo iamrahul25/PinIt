@@ -411,19 +411,19 @@
   color: #666;
 }
 
-.stat-icon {
+.stat-icon-side-panel {
   font-size: 0.9rem;
 }
 
-.stat-icon.upvote {
+.stat-icon-side-panel.upvote {
   color: #4ecdc4;
 }
 
-.stat-icon.downvote {
+.stat-icon-side-panel.downvote {
   color: #ff6b6b;
 }
 
-.stat-icon.comment {
+.stat-icon-side-panel.comment {
   color: #667eea;
 }
 

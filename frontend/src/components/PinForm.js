@@ -62,6 +62,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [compressingImages, setCompressingImages] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
@@ -79,30 +80,40 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
     }));
   };
 
-  const handleImageChange = useCallback((e) => {
+  const handleImageChange = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
     const remaining = 5 - imageFiles.length;
     const toAdd = files.slice(0, remaining);
     if (toAdd.length === 0) return;
     setError(toAdd.length < files.length ? 'Maximum 5 images allowed. Only the first allowed slots were added.' : '');
-
-    const newFiles = [...imageFiles, ...toAdd];
-    setImageFiles(newFiles);
-
-    const newPreviews = new Array(newFiles.length);
-    let loaded = 0;
-    newFiles.forEach((file, i) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newPreviews[i] = reader.result;
-        loaded += 1;
-        if (loaded === newFiles.length) {
-          setImagePreviews([...newPreviews]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
     if (e.target) e.target.value = '';
+
+    setCompressingImages(true);
+    try {
+      const compressed = await Promise.all(
+        toAdd.map((file) => imageCompression(file, COMPRESSION_OPTIONS))
+      );
+      const newFiles = [...imageFiles, ...compressed];
+      setImageFiles(newFiles);
+
+      const newPreviews = new Array(newFiles.length);
+      let loaded = 0;
+      newFiles.forEach((file, i) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPreviews[i] = reader.result;
+          loaded += 1;
+          if (loaded === newFiles.length) {
+            setImagePreviews([...newPreviews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    } catch (err) {
+      setError('Failed to process images. Please try again.');
+    } finally {
+      setCompressingImages(false);
+    }
   }, [imageFiles]);
 
   const removeImage = (index) => {
@@ -139,9 +150,8 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
 
       const imageUrls = [];
       for (const file of imageFiles) {
-        const compressedFile = await imageCompression(file, COMPRESSION_OPTIONS);
         const multipart = new FormData();
-        multipart.append('image', compressedFile);
+        multipart.append('image', file);
         const uploadResponse = await axios.post(
           `${API_BASE_URL}/api/images/upload`,
           multipart,
@@ -174,7 +184,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
   };
 
   const severityClass = getSeverityClass(formData.severity);
-  const uploadDisabled = imageFiles.length >= 5;
+  const uploadDisabled = imageFiles.length >= 5 || compressingImages;
 
   return (
     <div className="pin-form-overlay" onClick={onClose}>
@@ -271,7 +281,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
               aria-label="Click to upload images"
             >
               <UploadIcon />
-              <p>Click to upload images</p>
+              <p>{compressingImages ? 'Compressing images...' : 'Click to upload images'}</p>
               <p className="upload-count">{imageFiles.length}/5 images uploaded</p>
             </div>
             <input

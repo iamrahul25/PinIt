@@ -255,6 +255,7 @@ function App() {
         )}
         <PinListPanel
           pins={pins.map((p) => ({ ...p, saved: savedPinIds.includes(p._id) }))}
+          user={user}
           focusedPinId={focusedPinId}
           hoveredPinId={hoveredPinId}
           onPinFocus={handlePinFocus}

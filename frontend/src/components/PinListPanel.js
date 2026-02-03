@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaThumbsUp, FaThumbsDown, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
@@ -13,18 +13,20 @@ const PROBLEM_TYPES = [
   { value: 'Other', label: 'Other' }
 ];
 
-const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDetails, onPinHover, onPinHoverEnd, onSharePin, isOpen, onToggle }) => {
+const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onShowDetails, onPinHover, onPinHoverEnd, onSharePin, isOpen, onToggle }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterSavedOnly, setFilterSavedOnly] = useState(false);
+  const [filterContributedOnly, setFilterContributedOnly] = useState(false);
 
   const filteredPins = useMemo(() => {
     let list = pins;
     if (filterSavedOnly) list = list.filter((p) => p.saved);
+    if (filterContributedOnly && user?.uid) list = list.filter((p) => p.contributor_id === user.uid);
     if (selectedTypes.length > 0) list = list.filter((p) => selectedTypes.includes(p.problemType));
     return list;
-  }, [pins, selectedTypes, filterSavedOnly]);
+  }, [pins, selectedTypes, filterSavedOnly, filterContributedOnly, user?.uid]);
 
   const sortedPins = useMemo(() => {
     const list = [...filteredPins];
@@ -96,6 +98,17 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
               <FaBookmark className="filter-saved-icon" />
               <span>Saved pins only</span>
             </label>
+            {user?.uid && (
+              <label className="filter-checkbox-label filter-contributed-label">
+                <input
+                  type="checkbox"
+                  checked={filterContributedOnly}
+                  onChange={(e) => setFilterContributedOnly(e.target.checked)}
+                />
+                <FaUser className="filter-contributed-icon" />
+                <span>Your contributed pins</span>
+              </label>
+            )}
           </div>
           <div className="filter-section">
             <span className="filter-label">Filter by type</span>
@@ -160,7 +173,13 @@ const PinListPanel = ({ pins, focusedPinId, hoveredPinId, onPinFocus, onShowDeta
             <div className="no-pins-message">
               <p>{pins.length === 0 ? 'No pins available' : 'No pins match the selected filter'}</p>
               <p className="subtext">
-                {pins.length === 0 ? 'Click the + button to add a new pin' : filterSavedOnly ? 'Save pins from their full details view to see them here' : 'Check one or more types above to see pins'}
+                {pins.length === 0
+                  ? 'Click the + button to add a new pin'
+                  : filterContributedOnly
+                    ? "You haven't contributed any pins yet"
+                    : filterSavedOnly
+                      ? 'Save pins from their full details view to see them here'
+                      : 'Check one or more types above to see pins'}
               </p>
             </div>
           ) : (

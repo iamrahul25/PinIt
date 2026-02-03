@@ -119,6 +119,15 @@
   font-size: 0.9rem;
 }
 
+.filter-contributed-label {
+  margin-bottom: 0.5rem;
+}
+
+.filter-contributed-icon {
+  color: #667eea;
+  font-size: 0.9rem;
+}
+
 .pin-saved-indicator {
   flex-shrink: 0;
   color: #f59e0b;

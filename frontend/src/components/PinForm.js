@@ -1,7 +1,18 @@
 import React, { useState, useRef, useCallback } from 'react';
 import axios from 'axios';
+import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import './PinForm.css';
+
+// Compress image in frontend before upload (reduces size sent to Cloudinary)
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.6,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  fileType: undefined, // keep original type when possible
+  initialQuality: 0.75,
+  alwaysKeepResolution: false
+};
 
 const PROBLEM_TYPES = [
   { value: 'Trash Pile', label: '🗑️ Trash Pile' },
@@ -108,8 +119,9 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
     try {
       const imageUrls = [];
       for (const file of imageFiles) {
+        const compressedFile = await imageCompression(file, COMPRESSION_OPTIONS);
         const multipart = new FormData();
-        multipart.append('image', file);
+        multipart.append('image', compressedFile);
         const uploadResponse = await axios.post(`${API_BASE_URL}/api/images/upload`, multipart, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });

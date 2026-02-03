@@ -42,12 +42,23 @@ router.post('/:id/save', async (req, res) => {
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });
     }
+    const { email, username } = req.body || {};
     let doc = await UserData.findOne({ userId });
     if (!doc) {
-      doc = new UserData({ userId, pinIds: [] });
+      doc = new UserData({
+        userId,
+        pinIds: [],
+        ...(email !== undefined && { email: email || '' }),
+        ...(username !== undefined && { username: username || '' })
+      });
+    } else {
+      if (email !== undefined) doc.email = email || '';
+      if (username !== undefined) doc.username = username || '';
     }
     const pinIds = doc.pinIds || [];
     if (pinIds.includes(pinId)) {
+      doc.updatedAt = new Date();
+      await doc.save();
       return res.json({ ok: true, pinIds: doc.pinIds });
     }
     doc.pinIds = [...pinIds, pinId];

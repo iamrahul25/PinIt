@@ -172,7 +172,12 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
         await axios.delete(`${API_BASE_URL}/api/pins/${pin._id}/save`, config);
         onUnsave?.(pin);
       } else {
-        await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/save`, {}, config);
+        const email = user?.primaryEmailAddress?.emailAddress ?? '';
+        const username = user?.fullName || user?.username || email;
+        await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/save`, { email, username }, {
+          ...config,
+          headers: { ...config.headers, 'Content-Type': 'application/json' }
+        });
         onSave?.(pin);
       }
       onUpdate?.();

@@ -70,6 +70,28 @@ function App() {
     }
   }, [authFetch, user?.id]);
 
+  const syncUserData = useCallback(async () => {
+    if (!user?.id || !authLoaded) return;
+    try {
+      const email = user.primaryEmailAddress?.emailAddress ?? '';
+      const username = user.fullName || user.username || email;
+      const response = await authFetch(`${API_BASE_URL}/api/users/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          username,
+          emailVerified: !!user.primaryEmailAddress?.verification?.status
+        })
+      });
+      if (!response.ok) {
+        throw new Error('Failed to sync user data');
+      }
+    } catch (error) {
+      console.error('Error syncing user data:', error);
+    }
+  }, [authFetch, authLoaded, user?.id, user?.primaryEmailAddress, user?.fullName, user?.username]);
+
   useEffect(() => {
     if (!userLoaded) return;
     if (!isSignedIn) {
@@ -79,9 +101,10 @@ function App() {
 
   useEffect(() => {
     if (!isSignedIn || !authLoaded) return;
+    syncUserData();
     fetchPins();
     fetchSavedPinIds();
-  }, [isSignedIn, authLoaded, fetchPins, fetchSavedPinIds]);
+  }, [isSignedIn, authLoaded, syncUserData, fetchPins, fetchSavedPinIds]);
 
   useEffect(() => {
     if (!isSignedIn || !authLoaded || !urlPinId) return;

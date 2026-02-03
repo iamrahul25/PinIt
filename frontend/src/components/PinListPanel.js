@@ -50,11 +50,11 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
   };
 
   const handleSortClick = (field) => {
-    setSortBy(field);
-  };
-
-  const handleSortDoubleClick = () => {
-    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -132,8 +132,7 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
                 type="button"
                 className={`sort-btn ${sortBy === 'createdAt' ? 'active' : ''}`}
                 onClick={() => handleSortClick('createdAt')}
-                onDoubleClick={handleSortDoubleClick}
-                title="Single click: sort by date. Double click: reverse order."
+                title="Click to sort by date. Click again to reverse."
               >
                 Date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '↓' : '↑')}
               </button>
@@ -141,8 +140,7 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
                 type="button"
                 className={`sort-btn ${sortBy === 'severity' ? 'active' : ''}`}
                 onClick={() => handleSortClick('severity')}
-                onDoubleClick={handleSortDoubleClick}
-                title="Single click: sort by severity. Double click: reverse order."
+                title="Click to sort by severity. Click again to reverse."
               >
                 Severity {sortBy === 'severity' && (sortOrder === 'desc' ? '↓' : '↑')}
               </button>
@@ -150,8 +148,7 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
                 type="button"
                 className={`sort-btn ${sortBy === 'upvotes' ? 'active' : ''}`}
                 onClick={() => handleSortClick('upvotes')}
-                onDoubleClick={handleSortDoubleClick}
-                title="Single click: sort by likes. Double click: reverse order."
+                title="Click to sort by likes. Click again to reverse."
               >
                 Likes {sortBy === 'upvotes' && (sortOrder === 'desc' ? '↓' : '↑')}
               </button>
@@ -159,8 +156,7 @@ const PinListPanel = ({ pins, user, focusedPinId, hoveredPinId, onPinFocus, onSh
                 type="button"
                 className={`sort-btn ${sortBy === 'comments' ? 'active' : ''}`}
                 onClick={() => handleSortClick('comments')}
-                onDoubleClick={handleSortDoubleClick}
-                title="Single click: sort by comments. Double click: reverse order."
+                title="Click to sort by comments. Click again to reverse."
               >
                 Comments {sortBy === 'comments' && (sortOrder === 'desc' ? '↓' : '↑')}
               </button>

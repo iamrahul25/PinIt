@@ -266,20 +266,49 @@ function App() {
   return (
     <div className="App">
       <header className="app-header">
-        <div>
-          <h1>📍 Pin-It</h1>
-          <p>Report civic issues in your area</p>
-        </div>
+        <button
+          type="button"
+          className="app-brand"
+          onClick={() => navigate('/')}
+          title="Home"
+        >
+          <span className="app-brand-icon" aria-hidden="true">
+            <svg width="35" height="35" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" fill="currentColor" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"/>
+            </svg>
+          </span>
+          <span className="app-brand-text">
+            <span className="app-brand-title">Pin-It</span>
+            <span className="app-brand-tagline">Report civic issues</span>
+          </span>
+        </button>
         <div className="app-user">
+          <span className="app-user-name">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
           <button
             type="button"
-            className="profile-link-btn"
+            className="profile-avatar-btn"
             onClick={() => navigate('/profile')}
             title="Your profile"
+            aria-label="Profile"
           >
-            {user?.fullName || user?.primaryEmailAddress?.emailAddress}
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="" className="app-user-avatar" />
+            ) : (
+              <span className="app-user-avatar-placeholder">
+                {(user?.fullName || user?.primaryEmailAddress?.emailAddress || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
           </button>
-          <button type="button" className="logout-btn" onClick={handleSignOut}>Sign out</button>
+          <button type="button" className="logout-btn" onClick={handleSignOut}>
+            <span className="logout-btn-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </span>
+            Sign out
+          </button>
         </div>
       </header>
       <div className="map-container">

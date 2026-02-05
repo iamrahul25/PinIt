@@ -6,69 +6,134 @@
 }
 
 .app-header {
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
-  color: white;
-  padding: 0.65rem 2rem;
-  box-shadow: 0 2px 12px rgba(30, 58, 138, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #6366f1 100%);
+  color: #fff;
+  padding: 0.6rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   z-index: 1000;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.app-brand:hover .app-brand-title {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.app-brand-icon {
+  display: flex;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+.app-brand-icon svg {
+  display: block;
+}
+
+.app-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.app-brand-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.app-brand-tagline {
+  font-size: 8px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.82);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.2;
 }
 
 .app-header .app-user {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  margin-left: auto;
-  position: relative;
-  z-index: 1;
 }
 
-.app-header .app-user span {
-  font-size: 0.8rem;
-  opacity: 0.95;
+.app-user-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #fff;
 }
 
-.profile-link-btn {
-  background: none;
-  border: none;
-  color: inherit;
-  font-size: 0.8rem;
-  opacity: 0.95;
+.profile-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  padding: 0;
   cursor: pointer;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.profile-link-btn:hover {
-  opacity: 1;
-  background: rgba(255, 255, 255, 0.15);
+.profile-avatar-btn:hover {
+  opacity: 0.9;
+}
+
+.app-user-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-user-avatar-placeholder {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
 }
 
 .logout-btn {
-  padding: 0.35rem 0.75rem;
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 6px;
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 1rem;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
 }
 
 .logout-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.logout-btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logout-btn-icon svg {
+  display: block;
 }
 
 .app-loading {
@@ -81,38 +146,6 @@
   font-size: 0.9375rem;
 }
 
-.app-header::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  pointer-events: none;
-}
-
-.app-header h1 {
-  font-size: 1.5rem;
-  margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.app-header p {
-  font-size: 0.8rem;
-  opacity: 0.9;
-  margin: 0.15rem 0 0 0;
-  font-weight: 400;
-  letter-spacing: 0.01em;
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
 
 .map-container {
   flex: 1;

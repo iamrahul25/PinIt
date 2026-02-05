@@ -359,44 +359,52 @@ function LocationSearch({ onLocationFound }) {
     searchContainer.appendChild(inputWrapper);
     searchContainer.appendChild(suggestionsList);
 
+    const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
     const currentLocationBtn = document.createElement('button');
-    currentLocationBtn.textContent = '📍 My Location';
+    currentLocationBtn.type = 'button';
+    currentLocationBtn.title = 'My Location';
+    currentLocationBtn.innerHTML = locationIconImg;
     currentLocationBtn.style.cssText = `
       position: absolute;
       top: 10px;
       left: 360px;
       z-index: 1000;
-      padding: 10px 15px;
+      width: 36px;
+      height: 36px;
+      padding: 0;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
       cursor: pointer;
-      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #374151;
     `;
     currentLocationBtn.onclick = () => {
       if (navigator.geolocation) {
-        const originalText = currentLocationBtn.textContent;
-        currentLocationBtn.textContent = '⏳ Locating...';
+        const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
+        currentLocationBtn.innerHTML = '<span class="map-location-spinner" style="width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:mapLocationSpin 0.6s linear infinite"></span>';
         currentLocationBtn.disabled = true;
         currentLocationBtn.style.cursor = 'wait';
-        currentLocationBtn.style.opacity = '0.8';
+        document.body.style.cursor = 'wait';
+        const restore = () => {
+          currentLocationBtn.innerHTML = locationIconImg;
+          currentLocationBtn.disabled = false;
+          currentLocationBtn.style.cursor = 'pointer';
+          document.body.style.cursor = '';
+        };
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude, accuracy } = position.coords;
             map.setView([latitude, longitude], 15);
             onLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
-            currentLocationBtn.textContent = originalText;
-            currentLocationBtn.disabled = false;
-            currentLocationBtn.style.cursor = 'pointer';
-            currentLocationBtn.style.opacity = '1';
+            restore();
           },
           (error) => {
             alert('Unable to get your location. Please enable location services.');
-            currentLocationBtn.textContent = originalText;
-            currentLocationBtn.disabled = false;
-            currentLocationBtn.style.cursor = 'pointer';
-            currentLocationBtn.style.opacity = '1';
+            restore();
           }
         );
       }
@@ -638,45 +646,53 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         }
       });
 
+      const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
       const currentLocationBtn = document.createElement('button');
-      currentLocationBtn.textContent = '📍 My Location';
+      currentLocationBtn.type = 'button';
+      currentLocationBtn.title = 'My Location';
+      currentLocationBtn.innerHTML = locationIconImg;
       currentLocationBtn.style.cssText = `
         position: absolute;
         top: 10px;
         left: 360px;
         z-index: 1000;
-        padding: 10px 15px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
         border: none;
-        border-radius: 5px;
+        border-radius: 6px;
         background: white;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
         cursor: pointer;
-        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #374151;
       `;
       currentLocationBtn.onclick = () => {
         if (navigator.geolocation) {
-          const originalText = currentLocationBtn.textContent;
-          currentLocationBtn.textContent = '⏳ Locating...';
+          const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
+          currentLocationBtn.innerHTML = '<span class="map-location-spinner" style="width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:mapLocationSpin 0.6s linear infinite"></span>';
           currentLocationBtn.disabled = true;
           currentLocationBtn.style.cursor = 'wait';
-          currentLocationBtn.style.opacity = '0.8';
+          document.body.style.cursor = 'wait';
+          const restore = () => {
+            currentLocationBtn.innerHTML = locationIconImg;
+            currentLocationBtn.disabled = false;
+            currentLocationBtn.style.cursor = 'pointer';
+            document.body.style.cursor = '';
+          };
           navigator.geolocation.getCurrentPosition(
             (position) => {
               const { latitude, longitude, accuracy } = position.coords;
               map.setCenter({ lat: latitude, lng: longitude });
               map.setZoom(15);
               onLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
-              currentLocationBtn.textContent = originalText;
-              currentLocationBtn.disabled = false;
-              currentLocationBtn.style.cursor = 'pointer';
-              currentLocationBtn.style.opacity = '1';
+              restore();
             },
             (error) => {
               alert('Unable to get your location. Please enable location services.');
-              currentLocationBtn.textContent = originalText;
-              currentLocationBtn.disabled = false;
-              currentLocationBtn.style.cursor = 'pointer';
-              currentLocationBtn.style.opacity = '1';
+              restore();
             }
           );
         }
@@ -855,16 +871,28 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <MapClickHandler onMapClick={onMapClick} isAddPinMode={isAddPinMode} />
           <LocationSearch onLocationFound={handleLocationFound} />
           {userLocation && (
-            <LeafletCircle
-              center={[userLocation.lat, userLocation.lng]}
-              radius={userLocation.accuracy}
-              pathOptions={{
-                color: '#2196F3',
-                fillColor: '#2196F3',
-                fillOpacity: 0.25,
-                weight: 2,
-              }}
-            />
+            <>
+              <LeafletCircle
+                center={[userLocation.lat, userLocation.lng]}
+                radius={userLocation.accuracy}
+                pathOptions={{
+                  color: '#2196F3',
+                  fillColor: '#2196F3',
+                  fillOpacity: 0.25,
+                  weight: 2,
+                }}
+              />
+              <Marker
+                position={[userLocation.lat, userLocation.lng]}
+                icon={L.divIcon({
+                  className: 'user-location-center-dot',
+                  html: '<div style="width:12px;height:12px;background:#2196F3;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>',
+                  iconSize: [12, 12],
+                  iconAnchor: [6, 6],
+                })}
+                zIndexOffset={1000}
+              />
+            </>
           )}
           {tempPinLocation && (
             <Marker
@@ -934,16 +962,25 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               }}
             >
               {userLocation && (
-                <GoogleCircle
-                  center={{ lat: userLocation.lat, lng: userLocation.lng }}
-                  radius={userLocation.accuracy}
-                  options={{
-                    fillColor: '#2196F3',
-                    fillOpacity: 0.25,
-                    strokeColor: '#2196F3',
-                    strokeWeight: 2,
-                  }}
-                />
+                <>
+                  <GoogleCircle
+                    center={{ lat: userLocation.lat, lng: userLocation.lng }}
+                    radius={userLocation.accuracy}
+                    options={{
+                      fillColor: '#2196F3',
+                      fillOpacity: 0.25,
+                      strokeColor: '#2196F3',
+                      strokeWeight: 2,
+                    }}
+                  />
+                  <AdvancedMarker
+                    map={googleMapInstance}
+                    position={{ lat: userLocation.lat, lng: userLocation.lng }}
+                    content={
+                      '<div style="width:12px;height:12px;background:#2196F3;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.3);"></div>'
+                    }
+                  />
+                </>
               )}
               {tempPinLocation && googleMapInstance && (
                 <AdvancedMarker

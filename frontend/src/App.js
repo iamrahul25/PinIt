@@ -359,6 +359,8 @@ function App() {
           onPinHover={handlePinHover}
           onPinHoverEnd={handlePinHoverEnd}
           onSharePin={handleSharePin}
+          onSavePin={handleSavePin}
+          onUnsavePin={handleUnsavePin}
           isOpen={isPanelOpen}
           onToggle={handleTogglePanel}
         />

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '@clerk/clerk-react';
-import { FaThumbsUp, FaThumbsDown, FaComment, FaShareAlt, FaBookmark, FaRegBookmark, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
@@ -78,7 +77,6 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
 
   const fetchImages = () => {
     if (pin.images && pin.images.length > 0) {
-      // New pins: Cloudinary base URLs → apply full-size transformation; legacy: GridFS IDs → /api/images/:id
       const urls = pin.images.map(entry =>
         entry.startsWith('http')
           ? getFullImageUrl(entry)
@@ -227,7 +225,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
     const date = new Date(dateString);
     const now = new Date();
     const diffInSeconds = Math.floor((now - date) / 1000);
-    
+
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
@@ -235,27 +233,34 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
     return date.toLocaleDateString();
   };
 
+  const getSeverityLabel = (s) => {
+    if (s >= 9) return 'CRITICAL';
+    if (s >= 7) return 'HIGH';
+    if (s >= 5) return 'MEDIUM';
+    if (s >= 3) return 'LOW';
+    return 'MINOR';
+  };
+
+  const reporterName = pin.contributor_name || pin.name || 'Anonymous';
+  const reporterAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(reporterName)}&background=ec4899&color=fff`;
+
   return (
     <>
       <div className="pin-details-overlay" onClick={onClose}>
         <div className="pin-details-container" onClick={(e) => e.stopPropagation()}>
-          <div className="pin-details-header">
+          <header className="pin-details-header">
             <div className="pin-details-header-content">
               <div
                 className="pin-type-icon-detail"
                 dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 40) }}
               />
               <div>
-                <h2>{pin.problemType}</h2>
-                <p className="pin-meta">
-                  Severity: <span className="severity-badge">{pin.severity}/10</span>
-                  {(pin.contributor_name || pin.name) && <span> • Reported by: {pin.contributor_name || pin.name}</span>}
-                  {user && (
-                    <span className={`saved-badge ${isSaved ? 'saved' : ''}`}>
-                      {isSaved ? <FaBookmark /> : <FaRegBookmark />}
-                      {isSaved ? ' Saved' : ' Not saved'}
-                    </span>
-                  )}
+                <div className="pin-details-title-row">
+                  <h2 className="pin-details-title">{pin.problemType}</h2>
+                  <span className="pin-details-badge">Report</span>
+                </div>
+                <p className="pin-details-meta">
+                  Published {formatDate(pin.createdAt)} • Community Report
                 </p>
               </div>
             </div>
@@ -263,118 +268,180 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
               {user && (
                 <button
                   type="button"
-                  className={`save-pin-btn ${isSaved ? 'saved' : ''}`}
+                  className={`pin-details-btn pin-details-btn-primary ${isSaved ? 'saved' : ''}`}
                   onClick={handleSaveToggle}
                   disabled={saving}
                   title={isSaved ? 'Unsave this pin' : 'Save this pin'}
                 >
-                  {isSaved ? <FaBookmark /> : <FaRegBookmark />}
+                  <span className="material-icons-round">bookmark</span>
                   {saving ? '...' : isSaved ? 'Saved' : 'Save'}
                 </button>
               )}
               <button
                 type="button"
-                className={`share-btn ${shareCopied ? 'copied' : ''}`}
+                className="pin-details-btn pin-details-btn-secondary"
                 onClick={handleShare}
                 title="Share this pin"
               >
-                <FaShareAlt /> {shareCopied ? 'Copied!' : 'Share'}
+                <span className="material-icons-round">share</span>
+                {shareCopied ? 'Copied!' : 'Share'}
               </button>
-              <button className="close-btn" onClick={onClose}>×</button>
+              <button className="pin-details-close" onClick={onClose} aria-label="Close">
+                <span className="material-icons-round">close</span>
+              </button>
             </div>
-          </div>
+          </header>
 
-        <div className="pin-details-content">
-          {pin.description && (
-            <div className="pin-description">
-              <h3>Description</h3>
-              <p>{pin.description}</p>
-            </div>
-          )}
-
-          {pin.location.address && (
-            <div className="pin-location">
-              <h3>Location</h3>
-              <p>{pin.location.address}</p>
-            </div>
-          )}
-
-          {images.length > 0 && (
-            <div className="pin-images">
-              <h3>Images</h3>
-              <div className="images-grid">
-                {images.map((url, index) => (
-                  <img 
-                    key={index} 
-                    src={url} 
-                    alt={`Problem ${index + 1}`}
-                    onClick={() => openImageModal(index)}
-                  />
-                ))}
+          <main className="pin-details-main">
+            <div className="pin-details-stats">
+              <div className="pin-details-stat-card">
+                <p className="pin-details-stat-label">Severity Score</p>
+                <div className="pin-details-stat-value">
+                  <span className={`severity-score severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>{pin.severity}/10</span>
+                  <span className={`severity-label severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>
+                    {getSeverityLabel(pin.severity)}
+                  </span>
+                </div>
+              </div>
+              <div className="pin-details-stat-card">
+                <p className="pin-details-stat-label">Reported By</p>
+                <div className="pin-details-stat-reported">
+                  <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
+                  <span className="reporter-name">{reporterName}</span>
+                </div>
+              </div>
+              <div className="pin-details-stat-card pin-details-stat-votes">
+                <p className="pin-details-stat-label">Community Response</p>
+                <div className="pin-details-votes">
+                  <button
+                    type="button"
+                    className={`vote-inline upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
+                    onClick={() => handleVote('upvote')}
+                  >
+                    <span className="material-icons-round">thumb_up</span>
+                    {voteStatus.upvotes}
+                  </button>
+                  <button
+                    type="button"
+                    className={`vote-inline downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
+                    onClick={() => handleVote('downvote')}
+                  >
+                    <span className="material-icons-round">thumb_down</span>
+                    {voteStatus.downvotes}
+                  </button>
+                </div>
               </div>
             </div>
-          )}
 
-          <div className="pin-votes">
-            <button
-              className={`vote-btn upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
-              onClick={() => handleVote('upvote')}
-            >
-              <FaThumbsUp /> {voteStatus.upvotes}
-            </button>
-            <button
-              className={`vote-btn downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
-              onClick={() => handleVote('downvote')}
-            >
-              <FaThumbsDown /> {voteStatus.downvotes}
-            </button>
-          </div>
+            {pin.description && (
+              <section className="pin-details-section">
+                <h3 className="pin-details-section-title">
+                  <span className="material-icons-round">subject</span>
+                  Incident Details
+                </h3>
+                <div className="pin-details-description">
+                  <p>{pin.description}</p>
+                </div>
+              </section>
+            )}
 
-          <div className="pin-comments">
-            <h3>
-              <FaComment /> Comments ({comments.length})
-            </h3>
-
-            <div className="comments-list">
-              {comments.length === 0 ? (
-                <p className="no-comments">No comments yet. Be the first to comment!</p>
-              ) : (
-                comments.map(comment => (
-                  <div key={comment._id} className="comment-item">
-                    <div className="comment-author">{comment.author}</div>
-                    <div className="comment-text">{comment.text}</div>
-                    <div className="comment-date">
-                      {formatDate(comment.createdAt)}
+            {images.length > 0 && (
+              <section className="pin-details-section">
+                <div className="pin-details-section-header">
+                  <h3 className="pin-details-section-title">
+                    <span className="material-icons-round">photo_library</span>
+                    Visual Evidence
+                  </h3>
+                  <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
+                </div>
+                <div className="pin-details-images-grid">
+                  {images.map((url, index) => (
+                    <div
+                      key={index}
+                      className="pin-details-image-wrap"
+                      onClick={() => openImageModal(index)}
+                    >
+                      <img src={url} alt={`Evidence ${index + 1}`} />
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
-            <form onSubmit={handleCommentSubmit} className="comment-form">
-              {user && (
-                <div className="comment-author-display">Posting as <strong>{displayName}</strong></div>
-              )}
-              <div className="comment-input-group">
-                <textarea
-                  placeholder="Write a comment..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  rows="3"
-                  className="comment-text-input"
-                />
-                <button type="submit" disabled={loading || !newComment.trim()} className="comment-submit-btn">
-                  {loading ? 'Posting...' : 'Post'}
-                </button>
+            {pin.location?.address && (
+              <section className="pin-details-section">
+                <h3 className="pin-details-section-title">
+                  <span className="material-icons-round">pin_drop</span>
+                  Precise Location
+                </h3>
+                <div className="pin-details-location">
+                  <p className="location-address">{pin.location.address}</p>
+                  {pin.location.latitude != null && pin.location.longitude != null && (
+                    <div className="location-coords">
+                      <span>LAT: {pin.location.latitude.toFixed(4)}° N</span>
+                      <span>LONG: {pin.location.longitude.toFixed(4)}° E</span>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            <section className="pin-details-section pin-details-comments-section">
+              <h3 className="pin-details-section-title">
+                <span className="material-icons-round">forum</span>
+                Comments ({comments.length})
+              </h3>
+              <div className="pin-details-comments-list">
+                {comments.length === 0 ? (
+                  <p className="pin-details-no-comments">No comments yet. Be the first to comment!</p>
+                ) : (
+                  comments.map((comment) => (
+                    <div key={comment._id} className="pin-details-comment">
+                      <img
+                        alt=""
+                        className="comment-avatar"
+                        src={comment.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author)}&background=e2e8f0&color=64748b`}
+                      />
+                      <div className="comment-body">
+                        <div className="comment-header">
+                          <span className="comment-author">{comment.author}</span>
+                          <span className="comment-date">{formatDate(comment.createdAt)}</span>
+                        </div>
+                        <p className="comment-text">{comment.text}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
+            </section>
+          </main>
+
+          <footer className="pin-details-footer">
+            <p className="pin-details-footer-label">
+              Posting as <span className="primary-text">{displayName}</span>
+            </p>
+            <form onSubmit={handleCommentSubmit} className="pin-details-comment-form">
+              <textarea
+                placeholder="Add a comment..."
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                rows={2}
+                className="pin-details-textarea"
+              />
+              <button
+                type="submit"
+                disabled={loading || !newComment.trim()}
+                className="pin-details-post-btn"
+              >
+                Post Note
+              </button>
             </form>
-          </div>
+          </footer>
         </div>
-      </div>
       </div>
 
       {/* Image Modal */}
-      <div 
+      <div
         ref={imageModalRef}
         className={`image-modal ${selectedImageIndex != null ? 'active' : ''}`}
         onClick={closeImageModal}
@@ -388,7 +455,9 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
         role="dialog"
         aria-label="Image viewer"
       >
-        <button className="image-modal-close" onClick={closeImageModal}>×</button>
+        <button className="image-modal-close" onClick={closeImageModal}>
+          <span className="material-icons-round">close</span>
+        </button>
         {images.length > 1 && (
           <>
             <button
@@ -397,7 +466,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
               onClick={goToPrevImage}
               aria-label="Previous image"
             >
-              <FaChevronLeft />
+              <span className="material-icons-round">chevron_left</span>
             </button>
             <button
               type="button"
@@ -405,14 +474,14 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
               onClick={goToNextImage}
               aria-label="Next image"
             >
-              <FaChevronRight />
+              <span className="material-icons-round">chevron_right</span>
             </button>
           </>
         )}
         {selectedImageIndex != null && images[selectedImageIndex] && (
           <>
-            <img 
-              src={images[selectedImageIndex]} 
+            <img
+              src={images[selectedImageIndex]}
               alt={`Image ${selectedImageIndex + 1} of ${images.length}`}
               onClick={(e) => e.stopPropagation()}
             />

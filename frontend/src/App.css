@@ -162,53 +162,53 @@
   position: absolute;
   bottom: 30px;
   left: 30px;
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 9999px;
+  background: #6366f1;
   border: none;
   color: white;
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 0.72rem;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.35);
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s ease;
+  gap: 7px;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .add-pin-btn:hover {
-  transform: scale(1.08);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
+  transform: translateY(-1px);
+  box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.35);
 }
 
 .add-pin-btn.active {
-  background: linear-gradient(135deg, #4ecdc4 0%, #45b7d1 100%);
+  background: #6366f1;
   animation: pulse 2s infinite;
 }
 
-.add-pin-btn.active .add-icon {
-  transform: rotate(45deg);
+.add-pin-btn-icon {
+  font-size: 1.1rem;
+}
+
+.add-pin-btn-text {
+  white-space: nowrap;
 }
 
 @keyframes pulse {
   0%, 100% {
-    box-shadow: 0 3px 12px rgba(78, 205, 196, 0.35);
+    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
   }
   50% {
-    box-shadow: 0 3px 20px rgba(78, 205, 196, 0.7);
+    box-shadow: 0 10px 25px -3px rgba(99, 102, 241, 0.5);
   }
-}
-
-.add-icon {
-  transition: transform 0.3s ease;
-  line-height: 1;
 }
 
 .temp-pin-marker {
-  background-color: #667eea;
+  background-color: #6366f1;
   width: 30px;
   height: 30px;
   border-radius: 50% 50% 50% 0;
@@ -248,7 +248,7 @@
   transform: scale(1.25);
 }
 .custom-pin-icon.pin-marker-highlighted > div {
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.8);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.8);
 }
 
 /* Bold black border when hovering over pin in All Pins side panel */

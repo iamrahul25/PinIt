@@ -321,13 +321,15 @@ function App() {
           flyToPinId={focusedPinId}
           isAddPinMode={isAddPinMode}
           tempPinLocation={tempPinLocation}
+          onCancelAddPin={handleAddButtonClick}
         />
         <button 
           className={`add-pin-btn ${isAddPinMode ? 'active' : ''}`}
           onClick={handleAddButtonClick}
           title="Add a new problem report"
         >
-          <span className="add-icon">+</span>
+          <span className="material-icons-round add-pin-btn-icon">add_location</span>
+          <span className="add-pin-btn-text">Pin an Issue</span>
         </button>
         {showForm && (
           <PinForm

@@ -31,7 +31,7 @@ const TEMP_PIN_MARKER_HTML = `
     width: 30px;
     height: 30px;
     border-radius: 50%;
-    background-color: #667eea;
+    background-color: #6366f1;
     border: 3px solid white;
     box-shadow: 0 2px 5px rgba(0,0,0,0.3);
   "></div>
@@ -427,10 +427,19 @@ function LocationSearch({ onLocationFound }) {
   return null;
 }
 
-const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, tempPinLocation }) => {
+const MAP_LAYERS = [
+  { id: 'standard', label: 'Standard' },
+  { id: 'satellite', label: 'Satellite' },
+  { id: 'terrain', label: 'Terrain' },
+];
+
+const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, tempPinLocation, onCancelAddPin }) => {
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
+  const [mapLayer, setMapLayer] = useState('standard'); // 'standard' | 'satellite' | 'terrain'
+  const [layersDropdownOpen, setLayersDropdownOpen] = useState(false);
+  const layersDropdownRef = useRef(null);
   const [googleMapInstance, setGoogleMapInstance] = useState(null);
   const [leafletMapInstance, setLeafletMapInstance] = useState(null);
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, accuracy } - accuracy in meters
@@ -470,6 +479,14 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       return () => clearTimeout(timer);
     }
   }, [mapType, googleMapInstance]);
+
+  // Update Google Map type when mapLayer changes
+  useEffect(() => {
+    if (mapType === 'google' && googleMapInstance && window.google) {
+      const mapTypeId = mapLayer === 'satellite' ? 'satellite' : mapLayer === 'terrain' ? 'terrain' : 'roadmap';
+      googleMapInstance.setMapTypeId(mapTypeId);
+    }
+  }, [mapType, mapLayer, googleMapInstance]);
 
   // Handle map movement from Leaflet
   const handleLeafletMapMove = (newCenter, newZoom) => {
@@ -732,6 +749,19 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
     if (!isAddPinMode) setPointerPosition(null);
   }, [isAddPinMode]);
 
+  // Close layers dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (layersDropdownRef.current && !layersDropdownRef.current.contains(e.target)) {
+        setLayersDropdownOpen(false);
+      }
+    };
+    if (layersDropdownOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [layersDropdownOpen]);
+
   // When flyToPinId changes (click in All Pins panel or map pin), fly/pan map to that pin (not on hover)
   useEffect(() => {
     if (!flyToPinId || !pins.length) return;
@@ -759,30 +789,105 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       onMouseMove={isAddPinMode ? handlePointerMove : undefined}
       onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
     >
-      {/* Map Type Toggle Button */}
+      {/* Map Layers Toggle - after location icon */}
+      <div ref={layersDropdownRef} style={{ position: 'absolute', top: '10px', left: '404px', zIndex: 1000 }}>
+        <button
+          type="button"
+          onClick={() => setLayersDropdownOpen((prev) => !prev)}
+          title="Map layers"
+          style={{
+            width: '36px',
+            height: '36px',
+            padding: 0,
+            border: 'none',
+            borderRadius: '6px',
+            background: 'white',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#374151',
+          }}
+        >
+          <span className="material-icons-round" style={{ fontSize: '20px' }}>layers</span>
+        </button>
+        {layersDropdownOpen && (
+          <div
+            style={{
+              position: 'absolute',
+              top: '42px',
+              left: 0,
+              minWidth: '140px',
+              background: 'white',
+              borderRadius: '6px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              overflow: 'hidden',
+              zIndex: 1001,
+            }}
+          >
+            {MAP_LAYERS.map((layer) => (
+              <button
+                key={layer.id}
+                type="button"
+                onClick={() => {
+                  setMapLayer(layer.id);
+                  setLayersDropdownOpen(false);
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  border: 'none',
+                  background: mapLayer === layer.id ? '#f3f4f6' : 'white',
+                  color: '#374151',
+                  fontSize: '14px',
+                  fontWeight: mapLayer === layer.id ? 600 : 400,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+                onMouseEnter={(e) => {
+                  if (mapLayer !== layer.id) e.currentTarget.style.background = '#f9fafb';
+                }}
+                onMouseLeave={(e) => {
+                  if (mapLayer !== layer.id) e.currentTarget.style.background = 'white';
+                }}
+              >
+                <span style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: mapLayer === layer.id ? '#6366f1' : '#f9fafb' }} />
+                {layer.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Map Type Toggle Button - matches sidebar toggle theme */}
       <div style={{
         position: 'absolute',
         top: '10px',
         right: '10px',
         zIndex: 1000,
         display: 'flex',
-        gap: '5px',
-        background: 'white',
-        borderRadius: '5px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+        alignItems: 'center',
+        border: '1px solid #e2e8f0',
+        borderRadius: '8px',
+        background: '#fff',
+        boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.15)',
         overflow: 'hidden'
       }}>
         <button
           onClick={toggleMapType}
           style={{
-            padding: '8px 15px',
+            padding: '8px 14px',
             border: 'none',
-            background: mapType === 'osm' ? '#667eea' : 'white',
-            color: mapType === 'osm' ? 'white' : '#333',
+            background: mapType === 'osm' ? '#6366f1' : 'transparent',
+            color: mapType === 'osm' ? '#fff' : '#64748b',
             cursor: 'pointer',
             fontSize: '13px',
             fontWeight: '500',
-            transition: 'all 0.2s'
+            transition: 'background 0.2s, color 0.2s'
           }}
         >
           OpenStreetMap
@@ -790,14 +895,14 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         <button
           onClick={toggleMapType}
           style={{
-            padding: '8px 15px',
+            padding: '8px 14px',
             border: 'none',
-            background: mapType === 'google' ? '#667eea' : 'white',
-            color: mapType === 'google' ? 'white' : '#333',
+            background: mapType === 'google' ? '#6366f1' : 'transparent',
+            color: mapType === 'google' ? '#fff' : '#64748b',
             cursor: 'pointer',
             fontSize: '13px',
             fontWeight: '500',
-            transition: 'all 0.2s'
+            transition: 'background 0.2s, color 0.2s'
           }}
         >
           Google Maps
@@ -811,17 +916,46 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
             left: '50%',
             transform: 'translate(-50%, -50%)',
             zIndex: 1000,
-            pointerEvents: 'none',
-            background: 'rgba(102, 126, 234, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '11px',
+            background: 'rgba(99, 102, 241, 0.75)',
             color: 'white',
-            padding: '10px 20px',
-            borderRadius: '5px',
-            fontSize: '14px',
+            padding: '8px 14px 8px 17px',
+            borderRadius: '6px',
+            fontSize: '10px',
             fontWeight: 'bold',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
-            whiteSpace: 'nowrap'
+            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+            whiteSpace: 'nowrap',
+            border: '1px solid rgba(255,255,255,0.25)',
+            backdropFilter: 'blur(6px)'
           }}>
-            Click on the map to place a pin
+            <span style={{ pointerEvents: 'none' }}>Click on the map to place a pin</span>
+            {onCancelAddPin && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onCancelAddPin(); }}
+                aria-label="Cancel"
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  color: 'white',
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  transition: 'background 0.2s'
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+              >
+                <span className="material-icons-round" style={{ fontSize: '13px' }}>close</span>
+              </button>
+            )}
           </div>
           {pointerPosition != null && (
             <div
@@ -863,8 +997,21 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           }}
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            key={mapLayer}
+            attribution={
+              mapLayer === 'standard'
+                ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                : mapLayer === 'satellite'
+                ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+                : '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+            }
+            url={
+              mapLayer === 'standard'
+                ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+                : mapLayer === 'satellite'
+                ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                : 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+            }
           />
           <LeafletMapCapture />
           <MapUpdater center={center} zoom={zoom} onMapMove={handleLeafletMapMove} />
@@ -954,10 +1101,11 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               onZoomChanged={handleGoogleMapZoomChanged}
               options={{
                 mapId: DEFAULT_MAP_ID,
+                mapTypeId: mapLayer === 'satellite' ? 'satellite' : mapLayer === 'terrain' ? 'terrain' : 'roadmap',
                 disableDefaultUI: false,
                 zoomControl: true,
                 streetViewControl: false,
-                mapTypeControl: true,
+                mapTypeControl: false,
                 fullscreenControl: true,
               }}
             >

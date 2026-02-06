@@ -195,14 +195,15 @@
   padding: 0.5rem;
   background: none;
   border: none;
-  color: var(--pin-slate-400);
+  color: var(--pin-slate-500);
   cursor: pointer;
   border-radius: 8px;
-  transition: color 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 .pin-details-close:hover {
-  color: var(--pin-slate-600);
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
 }
 
 .pin-details-close .material-icons-round {
@@ -611,7 +612,7 @@
   right: 1rem;
   bottom: 1rem;
   padding: 0.625rem 1.25rem;
-  background: var(--pin-indigo-600);
+  background: #ec4899;
   color: white;
   font-size: 0.75rem;
   font-weight: 700;
@@ -622,7 +623,7 @@
 }
 
 .pin-details-post-btn:hover:not(:disabled) {
-  background: var(--pin-indigo-700);
+  background: #db2777;
 }
 
 .pin-details-post-btn:disabled {

@@ -16,11 +16,11 @@ const COMPRESSION_OPTIONS = {
 };
 
 const PROBLEM_TYPES = [
-  { value: 'Trash Pile', label: '🗑️ Trash Pile' },
-  { value: 'Pothole', label: '🕳️ Pothole' },
-  { value: 'Broken Pipe', label: '🚰 Broken Pipe' },
-  { value: 'Fuse Street Light', label: '💡 Fuse Street Light' },
-  { value: 'Other', label: '📋 Other' }
+  { value: 'Trash Pile', label: 'Trash Pile', icon: 'delete_outline' },
+  { value: 'Pothole', label: 'Pothole', icon: 'construction' },
+  { value: 'Broken Pipe', label: 'Broken Pipe', icon: 'plumbing' },
+  { value: 'Fuse Street Light', label: 'Fuse Street Light', icon: 'lightbulb_outline' },
+  { value: 'Other', label: 'Other', icon: 'category' }
 ];
 
 const getSeverityClass = (value) => {
@@ -30,24 +30,6 @@ const getSeverityClass = (value) => {
   if (v <= 8) return 'severity-high';
   return 'severity-critical';
 };
-
-const HeaderIcon = () => (
-  <span className="header-icon" aria-hidden="true">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-  </span>
-);
-
-const UploadIcon = () => (
-  <svg className="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-    <polyline points="17 8 12 3 7 8" />
-    <line x1="12" y1="3" x2="12" y2="15" />
-  </svg>
-);
 
 const PinForm = ({ location, onClose, onSubmit, user }) => {
   const { isLoaded: authLoaded, getToken } = useAuth();
@@ -190,12 +172,15 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
     <div className="pin-form-overlay" onClick={onClose}>
       <div className="pin-form-container" onClick={(e) => e.stopPropagation()}>
         <div className="pin-form-header">
-          <h2>
-            <HeaderIcon />
-            Report a Problem
-          </h2>
+          <div>
+            <h1 className="pin-form-title">
+              <span className="material-icons-round pin-form-title-icon">report_problem</span>
+              Report a Problem
+            </h1>
+            <p className="pin-form-subtitle">Help us improve your neighborhood by reporting issues.</p>
+          </div>
           <button type="button" className="close-btn" onClick={onClose} aria-label="Close">
-            ×
+            <span className="material-icons-round">close</span>
           </button>
         </div>
 
@@ -204,42 +189,60 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
 
           <div className="form-group">
             <label>Address <span className="optional">(from pin location)</span></label>
-            <div className="address-display" aria-readonly="true">
-              {location.address !== undefined
-                ? (location.address || 'Address not found')
-                : 'Loading address...'}
+            <div className="form-input-wrap form-input-with-icon">
+              <span className="material-icons-round form-icon">location_on</span>
+              <input
+                type="text"
+                className="form-input address-input"
+                value={location.address !== undefined ? (location.address || 'Address not found') : 'Loading address...'}
+                readOnly
+                aria-readonly="true"
+              />
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Problem Type <span className="required">*</span></label>
-            <select
-              name="problemType"
-              value={formData.problemType}
-              onChange={handleInputChange}
-              required
-            >
-              {PROBLEM_TYPES.map(({ value, label }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Severity (1–10) <span className="required">*</span></label>
-            <input
-              type="range"
-              name="severity"
-              min="1"
-              max="10"
-              value={formData.severity}
-              onChange={handleInputChange}
-              required
-            />
-            <div className="severity-display">
-              <span>Low</span>
-              <div className={`severity-value ${severityClass}`}>{formData.severity}/10</div>
-              <span>High</span>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Problem Type <span className="required">*</span></label>
+              <div className="form-input-wrap form-input-with-icon form-select-wrap">
+                <span className="material-icons-round form-icon form-icon-muted">
+                  {PROBLEM_TYPES.find((t) => t.value === formData.problemType)?.icon || 'delete_outline'}
+                </span>
+                <select
+                  name="problemType"
+                  value={formData.problemType}
+                  onChange={handleInputChange}
+                  required
+                  className="form-input form-select"
+                >
+                  {PROBLEM_TYPES.map(({ value, label }) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+                <span className="material-icons-round form-icon form-icon-right">expand_more</span>
+              </div>
+            </div>
+            <div className="form-group">
+              <div className="form-group-severity-header">
+                <label>Severity (1–10) <span className="required">*</span></label>
+                <span className={`severity-badge ${severityClass}`}>{formData.severity}/10</span>
+              </div>
+              <div className="severity-slider-wrap">
+                <input
+                  type="range"
+                  name="severity"
+                  min="1"
+                  max="10"
+                  value={formData.severity}
+                  onChange={handleInputChange}
+                  required
+                  className={`custom-range ${severityClass}`}
+                />
+                <div className="severity-labels">
+                  <span>LOW</span>
+                  <span>HIGH</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -250,7 +253,8 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
               name="contributor_name"
               value={formData.contributor_name}
               onChange={handleInputChange}
-              placeholder="Enter your name"
+              placeholder="e.g. Rahul Kumar"
+              className="form-input"
             />
           </div>
 
@@ -261,7 +265,8 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
               value={formData.description}
               onChange={handleInputChange}
               placeholder="Describe the problem in detail..."
-              rows="4"
+              rows="3"
+              className="form-input form-textarea"
             />
           </div>
 
@@ -280,8 +285,10 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
               }}
               aria-label="Click to upload images"
             >
-              <UploadIcon />
-              <p>{compressingImages ? 'Compressing images...' : 'Click to upload images'}</p>
+              <div className="upload-area-icon-wrap">
+                <span className="material-icons-round upload-area-icon">cloud_upload</span>
+              </div>
+              <p className="upload-area-text">{compressingImages ? 'Compressing images...' : 'Click to upload images'}</p>
               <p className="upload-count">{imageFiles.length}/5 images uploaded</p>
             </div>
             <input

@@ -337,7 +337,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
               <section className="pin-details-section">
                 <h3 className="pin-details-section-title">
                   <span className="material-icons-round">subject</span>
-                  Incident Details
+                  Description
                 </h3>
                 <div className="pin-details-description">
                   <p>{pin.description}</p>

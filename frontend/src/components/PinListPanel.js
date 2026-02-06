@@ -47,7 +47,7 @@ const PinListPanel = ({
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterSavedOnly, setFilterSavedOnly] = useState(false);
   const [filterContributedOnly, setFilterContributedOnly] = useState(false);
-  const [viewSize, setViewSize] = useState('big'); // 'big' | 'small'
+  const [viewSize, setViewSize] = useState('small'); // 'big' | 'small' — list view is default
 
   const filteredPins = useMemo(() => {
     let list = pins;
@@ -205,21 +205,21 @@ const PinListPanel = ({
                 className={`pins-sort-btn ${sortBy === 'severity' ? 'active' : ''}`}
                 onClick={() => handleSortClick('severity')}
               >
-                Severity
+                Severity <span className="pins-sort-arrow">{sortBy === 'severity' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
               <button
                 type="button"
                 className={`pins-sort-btn ${sortBy === 'upvotes' ? 'active' : ''}`}
                 onClick={() => handleSortClick('upvotes')}
               >
-                Likes
+                Likes <span className="pins-sort-arrow">{sortBy === 'upvotes' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
               <button
                 type="button"
                 className={`pins-sort-btn ${sortBy === 'comments' ? 'active' : ''}`}
                 onClick={() => handleSortClick('comments')}
               >
-                Comments
+                Comments <span className="pins-sort-arrow">{sortBy === 'comments' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
             </div>
           </section>
@@ -251,26 +251,21 @@ const PinListPanel = ({
                     {viewSize === 'big' ? (
                       <>
                         <div className="pin-card-media">
-                          <div className="pin-card-carousel">
+                          <div className={`pin-card-media-grid pin-card-media-grid--n${Math.min(pin.images?.length || 0, 5) || 1}`}>
                             {pin.images?.length ? (
                               pin.images.slice(0, 5).map((_, i) => (
-                                <div key={i} className="pin-card-carousel-slide">
+                                <div key={i} className="pin-card-media-grid-item">
                                   <img src={imgUrl(pin, i)} alt="" />
                                 </div>
                               ))
                             ) : (
-                              <div className="pin-card-carousel-slide pin-card-placeholder">
+                              <div className="pin-card-media-grid-item pin-card-placeholder">
                                 <div
                                   className="pin-card-type-icon"
                                   dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 40) }}
                                 />
                               </div>
                             )}
-                          </div>
-                          <div className="pin-card-dots">
-                            {Array.from({ length: Math.min(pin.images?.length || 1, 5) }, (_, i) => (
-                              <span key={i} className={i === 0 ? 'active' : ''} />
-                            ))}
                           </div>
                           {pin.saved && (
                             <button

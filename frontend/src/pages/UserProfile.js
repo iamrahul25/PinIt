@@ -52,7 +52,7 @@ export default function UserProfile() {
 
   if (loadingState) {
     return (
-      <div className="user-profile-page app-loading">
+      <div className="user-profile-page">
         <p>Loading...</p>
       </div>
     );

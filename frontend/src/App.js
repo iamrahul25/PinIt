@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
 import Toast from './components/Toast';
 import PinListPanel from './components/PinListPanel';
+import UserProfile from './pages/UserProfile';
 import { reverseGeocode } from './utils/geocode';
 import { API_BASE_URL } from './config';
 import './App.css';
@@ -14,6 +15,8 @@ function App() {
   const { loading: authLoading, isSignedIn, user, getToken, logout } = useAuth();
   const { pinId: urlPinId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProfilePage = location.pathname === '/profile';
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null);
@@ -319,6 +322,11 @@ function App() {
           </button>
         </div>
       </header>
+      {isProfilePage ? (
+        <div className="app-profile-container">
+          <UserProfile />
+        </div>
+      ) : (
       <div className="map-container">
         <MapView
           pins={pins}
@@ -383,6 +391,7 @@ function App() {
           onToggle={handleTogglePanel}
         />
       </div>
+      )}
     </div>
   );
 }

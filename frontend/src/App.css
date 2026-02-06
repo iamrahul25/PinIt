@@ -153,6 +153,12 @@
   overflow: hidden;
 }
 
+.app-profile-container {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
 .leaflet-container {
   height: 100%;
   width: 100%;

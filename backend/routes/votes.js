@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Pin = require('../models/Pin');
 
-// Vote on a pin (requires a valid Clerk-authenticated user)
+// Vote on a pin (requires a valid authenticated user)
 router.post('/', async (req, res) => {
   try {
     const { pinId, voteType } = req.body;

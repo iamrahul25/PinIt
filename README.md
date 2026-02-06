@@ -8,7 +8,7 @@ A React-based web application that allows users to report and track civic issues
 - 🔄 **Map Toggle**: Switch between OpenStreetMap and Google Maps
 - 📍 **Location Services**: Search for locations or use your current location
 - 📸 **Image Upload**: Attach up to 5 images per report
-- 🔐 **Login / Signup**: Clerk Authentication (Google, Apple, Microsoft only)
+- 🔐 **Login / Signup**: Google Sign-In only
 - ⭐ **Voting System**: Upvote or downvote (one vote per logged-in user)
 - 💬 **Comments**: Add comments (name auto from account)
 - 🎨 **Color-Coded Pins**: Different colors for different problem types
@@ -19,7 +19,7 @@ A React-based web application that allows users to report and track civic issues
 ### Frontend
 - React 18
 - React Leaflet (Map integration)
-- Clerk React SDK (Authentication)
+- @react-oauth/google (Google Sign-In)
 - Axios (HTTP client)
 - React Icons
 
@@ -29,7 +29,7 @@ A React-based web application that allows users to report and track civic issues
 - MongoDB
 - Cloudinary (image storage; images compressed to ~1080px / 200–300KB)
 - Multer (file upload handling)
-- Clerk Express middleware (route protection)
+- JWT + Google Auth (route protection)
 
 ## Installation
 
@@ -48,30 +48,17 @@ A React-based web application that allows users to report and track civic issues
 
 3. **Set up environment variables:**
    - **frontend/.env**
-     - `REACT_APP_CLERK_PUBLISHABLE_KEY` – Clerk publishable key (required for login/signup)
+     - `REACT_APP_GOOGLE_CLIENT_ID` – Google OAuth 2.0 Client ID (required for login; see setup below)
      - `REACT_APP_BACKEND_URL` (optional) – leave empty or unset to use the package.json proxy (localhost:5000 in dev). Set to a full URL (e.g. `http://192.168.1.100:5000`) to point to a different backend.
      - `REACT_APP_GOOGLE_MAPS_API_KEY` (optional) – from https://console.cloud.google.com/google/maps-apis (enable Maps JavaScript API and Places API). OpenStreetMap works without any API key.
    - **backend/.env**
      - `MONGODB_URI` – MongoDB connection string (default: `mongodb://localhost:27017/pinit`)
+     - `GOOGLE_CLIENT_ID` – same Google OAuth Client ID as frontend (required for auth)
+     - `JWT_SECRET` (optional) – secret for signing JWTs. If omitted, a default is used (fine for dev; **must** set in production).
      - **Cloudinary** (required for image uploads): get from https://cloudinary.com/console
        - `CLOUDINARY_CLOUD_NAME`
        - `CLOUDINARY_API_KEY`
        - `CLOUDINARY_API_SECRET`
-     - **Clerk** (required for authentication & backend protection)
-       - `CLERK_SECRET_KEY`
-       - `CLERK_PUBLISHABLE_KEY`
-
-   **Where to get Clerk keys and how to set them up:**
-   - Go to [Clerk Dashboard](https://dashboard.clerk.com).
-   - Sign up or log in, then create an **Application** (or select an existing one).
-   - In the left sidebar, go to **API Keys**.
-   - You will see:
-     - **Publishable key** (`pk_...`) – use in `frontend/.env` as `REACT_APP_CLERK_PUBLISHABLE_KEY` and in `backend/.env` as `CLERK_PUBLISHABLE_KEY`
-     - **Secret key** (`sk_...`) – click “Show” and use in `backend/.env` as `CLERK_SECRET_KEY` only (never in the frontend)
-   - **Important:** Never commit `.env` files or expose the secret key in the frontend. The publishable key is safe to use in the React app; the secret key must only live in the backend.
-   - **OAuth (Google/Apple/Microsoft):** In the Clerk Dashboard, go to **Paths** or **Redirect URLs** and ensure your app’s OAuth callback is allowed. For local dev, add `http://localhost:3000/sso-callback` (or your frontend origin + `/sso-callback`) so “Continue with Google” etc. can redirect back correctly.
-   - After changing `.env`, restart the frontend (`npm start`) and backend server so the new values are loaded.
-   - **Console warning:** When using development keys (`pk_test_...`), Clerk shows a warning in the browser console. This is expected for local testing and cannot be disabled; use production keys in production to avoid it.
 
 4. **Start MongoDB** (if running locally):
    ```bash
@@ -98,23 +85,102 @@ A React-based web application that allows users to report and track civic issues
    npm run client
    ```
 
+---
+
+## How to Set Up Google Sign-In
+
+Follow these steps to configure Google OAuth for the Pin-It app.
+
+### Step 1: Go to Google Cloud Console
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/)
+2. Sign in with your Google account.
+3. Create a new project or select an existing one:
+   - Click the project dropdown (top left) → **New Project**
+   - Name it (e.g. "PinIt") and click **Create**.
+
+### Step 2: Configure OAuth Consent Screen
+
+1. In the left sidebar, go to **APIs & Services** → **OAuth consent screen**.
+2. Choose **External** (unless you use Google Workspace and want internal only), then **Create**.
+3. Fill in:
+   - **App name**: `Pin-It` (or your app name)
+   - **User support email**: your email
+   - **Developer contact**: your email
+4. Click **Save and Continue**.
+5. On **Scopes**, click **Add or Remove Scopes** and add:
+   - `email`
+   - `profile`
+   - `openid`
+6. Save and continue through the remaining screens.
+
+### Step 3: Create OAuth 2.0 Credentials
+
+1. Go to **APIs & Services** → **Credentials**.
+2. Click **Create Credentials** → **OAuth client ID**.
+3. Choose **Application type**: **Web application**.
+4. **Name**: e.g. `PinIt Web Client`.
+5. **Authorized JavaScript origins**:
+   - For local dev: `http://localhost:3000`
+   - For production: `https://yourdomain.com` (add all domains where the frontend runs)
+6. **Authorized redirect URIs** (for Web application type, Google Sign-In often uses JavaScript origins only; add these for compatibility):
+   - For local dev: `http://localhost:3000`
+   - For production: `https://yourdomain.com`
+7. Click **Create**.
+8. Copy the **Client ID** (looks like `123456789-abc.apps.googleusercontent.com`).
+
+### Step 4: Add the Client ID to Your App
+
+1. **Frontend** (`frontend/.env`):
+   ```
+   REACT_APP_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   ```
+
+2. **Backend** (`backend/.env`):
+   ```
+   GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+   ```
+
+   Use the **same** Client ID for both.
+
+### Step 5: Restart Servers
+
+Restart the frontend and backend so the new env vars are loaded:
+
+```bash
+# Stop existing processes (Ctrl+C), then:
+npm run dev
+```
+
+### Step 6: Test Sign-In
+
+1. Open `http://localhost:3000`.
+2. Click **Login** or go to `/login`.
+3. Click **Continue with Google**.
+4. Pick your Google account.
+5. You should be redirected back and logged in.
+
+---
+
 ## Usage
 
 1. **Open the application** in your browser at `http://localhost:3000`
 
-2. **Search for a location** using the search bar or click "📍 My Location" to go to your current location
+2. **Sign in with Google** (required to add pins, vote, comment)
 
-3. **Click on the map** where you want to report a problem
+3. **Search for a location** using the search bar or click "📍 My Location" to go to your current location
 
-4. **Fill out the form**:
+4. **Click on the map** where you want to report a problem
+
+5. **Fill out the form**:
    - Select problem type
    - Set severity (1-10)
    - Optionally add your name and description
    - Upload images (up to 5)
 
-5. **Submit** to create a pin on the map
+6. **Submit** to create a pin on the map
 
-6. **Click on any pin** to:
+7. **Click on any pin** to:
    - View full details
    - Upvote or downvote
    - Add comments
@@ -122,7 +188,10 @@ A React-based web application that allows users to report and track civic issues
 
 ## API Endpoints
 
-> All `/api/*` routes (except `/api/health`) require a valid Clerk session token in the `Authorization: Bearer <token>` header.
+> All `/api/*` routes (except `/api/health` and `/api/auth/*`) require a valid JWT in the `Authorization: Bearer <token>` header.
+
+### Auth
+- `POST /api/auth/google` – Exchange Google ID token for JWT and user. Body: `{ "credential": "<google-id-token>" }`. Returns: `{ token, user }`.
 
 ### Pins
 - `GET /api/pins` - Get all pins
@@ -175,7 +244,7 @@ A React-based web application that allows users to report and track civic issues
 **UserData** (per-user; one document per user)
 | Field | Type |
 |-------|------|
-| userId | String (unique) |
+| userId | String (unique, Google sub) |
 | pinIds | [String] (saved pin IDs) |
 | updatedAt | Date |
 
@@ -184,26 +253,28 @@ A React-based web application that allows users to report and track civic issues
 ```
 PinIt/
 ├── backend/
+│   ├── middleware/
+│   │   └── auth.js
 │   ├── models/
 │   │   ├── Pin.js
 │   │   ├── Comment.js
 │   │   └── UserData.js
 │   ├── routes/
+│   │   ├── auth.js
 │   │   ├── pins.js
 │   │   ├── comments.js
 │   │   ├── votes.js
+│   │   ├── users.js
 │   │   └── images.js
 │   ├── server.js
 │   └── package.json
 ├── frontend/
-│   ├── public/
 │   ├── src/
+│   │   ├── context/
+│   │   │   └── AuthContext.js
 │   │   ├── components/
-│   │   │   ├── MapView.js
-│   │   │   ├── PinForm.js
-│   │   │   └── PinDetails.js
-│   │   ├── App.js
-│   │   └── index.js
+│   │   ├── pages/
+│   │   └── App.js
 │   └── package.json
 └── package.json
 ```
@@ -211,8 +282,7 @@ PinIt/
 ## Notes
 
 - Images are uploaded to **Cloudinary** and only the URL is stored in MongoDB. Images are compressed to max 1080px and ~200–300KB. Old pins may still reference GridFS image IDs; those are served via `GET /api/images/:id`.
-- Authentication is handled by Clerk; enable Google/Apple/Microsoft providers in your Clerk dashboard.
-- The backend validates every request with `@clerk/express` to ensure routes are protected by the same identity provider.
+- Authentication uses **Google Sign-In** and JWT. The backend verifies the Google ID token and issues a JWT for subsequent API requests.
 - The map uses OpenStreetMap tiles by default (free, no API key required)
 - Google Maps option available (requires API key - see setup instructions)
 - Location search uses Nominatim geocoding service for OpenStreetMap

@@ -6,7 +6,7 @@ const Comment = require('../models/Comment');
 
 /**
  * Create or update user profile in MongoDB (upsert by userId).
- * Can be called by the frontend after Clerk signup/login with user info.
+ * Can be called by the frontend after Google sign-in with user info.
  * Body: { email?, username?, emailVerified? }
  */
 router.post('/sync', async (req, res) => {
@@ -57,7 +57,7 @@ router.get('/stats', async (req, res) => {
 });
 
 /**
- * Get user profile by Clerk userId.
+ * Get user profile by userId (Google sub).
  */
 router.get('/:userId', async (req, res) => {
   try {

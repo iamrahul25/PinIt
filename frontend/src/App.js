@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { useAuth } from './context/AuthContext';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
@@ -10,8 +10,7 @@ import { API_BASE_URL } from './config';
 import './App.css';
 
 function App() {
-  const { isLoaded: userLoaded, isSignedIn, user } = useUser();
-  const { isLoaded: authLoaded, getToken, signOut } = useClerkAuth();
+  const { loading: authLoading, isSignedIn, user, getToken, logout } = useAuth();
   const { pinId: urlPinId } = useParams();
   const navigate = useNavigate();
   const [pins, setPins] = useState([]);
@@ -25,7 +24,7 @@ function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
 
-  const loading = !userLoaded || !authLoaded;
+  const loading = authLoading;
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -71,17 +70,17 @@ function App() {
   }, [authFetch, user?.id]);
 
   const syncUserData = useCallback(async () => {
-    if (!user?.id || !authLoaded) return;
+    if (!user?.id || authLoading) return;
     try {
-      const email = user.primaryEmailAddress?.emailAddress ?? '';
-      const username = user.fullName || user.username || email;
+      const email = user.email ?? '';
+      const username = user.fullName || email;
       const response = await authFetch(`${API_BASE_URL}/api/users/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email,
           username,
-          emailVerified: !!user.primaryEmailAddress?.verification?.status
+          emailVerified: true
         })
       });
       if (!response.ok) {
@@ -90,24 +89,24 @@ function App() {
     } catch (error) {
       console.error('Error syncing user data:', error);
     }
-  }, [authFetch, authLoaded, user?.id, user?.primaryEmailAddress, user?.fullName, user?.username]);
+  }, [authFetch, authLoading, user?.id, user?.email, user?.fullName]);
 
   useEffect(() => {
-    if (!userLoaded) return;
+    if (authLoading) return;
     if (!isSignedIn) {
       navigate('/login', { replace: true });
     }
-  }, [userLoaded, isSignedIn, navigate]);
+  }, [authLoading, isSignedIn, navigate]);
 
   useEffect(() => {
-    if (!isSignedIn || !authLoaded) return;
+    if (!isSignedIn || authLoading) return;
     syncUserData();
     fetchPins();
     fetchSavedPinIds();
-  }, [isSignedIn, authLoaded, syncUserData, fetchPins, fetchSavedPinIds]);
+  }, [isSignedIn, authLoading, syncUserData, fetchPins, fetchSavedPinIds]);
 
   useEffect(() => {
-    if (!isSignedIn || !authLoaded || !urlPinId) return;
+    if (!isSignedIn || authLoading || !urlPinId) return;
     const existingPin = pins.find((p) => p._id === urlPinId);
     if (existingPin) {
       setSelectedPin(existingPin);
@@ -130,7 +129,7 @@ function App() {
       }
     };
     fetchPinById();
-  }, [authFetch, authLoaded, isSignedIn, pins, urlPinId]);
+  }, [authFetch, authLoading, isSignedIn, pins, urlPinId]);
 
   const handleAddButtonClick = () => {
     if (!isSignedIn) {
@@ -244,13 +243,9 @@ function App() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      navigate('/login', { replace: true });
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+  const handleSignOut = () => {
+    logout();
+    navigate('/login', { replace: true });
   };
 
   if (loading) {
@@ -283,7 +278,7 @@ function App() {
           </span>
         </button>
         <div className="app-user">
-          <span className="app-user-name">{user?.fullName || user?.primaryEmailAddress?.emailAddress}</span>
+          <span className="app-user-name">{user?.fullName || user?.email}</span>
           <button
             type="button"
             className="profile-avatar-btn"
@@ -292,10 +287,10 @@ function App() {
             aria-label="Profile"
           >
             {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="" className="app-user-avatar" />
+              <img src={user.imageUrl} alt="" className="app-user-avatar" referrerPolicy="no-referrer" />
             ) : (
               <span className="app-user-avatar-placeholder">
-                {(user?.fullName || user?.primaryEmailAddress?.emailAddress || '?').charAt(0).toUpperCase()}
+                {(user?.fullName || user?.email || '?').charAt(0).toUpperCase()}
               </span>
             )}
           </button>

@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSignIn, useUser } from '@clerk/clerk-react';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../context/AuthContext';
 import './LoginSignup.css';
 
-const SOCIAL_PROVIDERS = [
-  { label: 'Continue with Google', strategy: 'oauth_google', key: 'google' },
-  { label: 'Continue with Apple', strategy: 'oauth_apple', key: 'apple' },
-  { label: 'Continue with Microsoft', strategy: 'oauth_microsoft', key: 'microsoft' }
-];
-
-export default function LoginSignup() {
+function LoginContent() {
   const navigate = useNavigate();
-  const { isSignedIn } = useUser();
-  const { signIn, isLoaded } = useSignIn();
+  const { isSignedIn, login } = useAuth();
   const [error, setError] = useState('');
-  const [pendingProvider, setPendingProvider] = useState('');
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -22,28 +16,27 @@ export default function LoginSignup() {
     }
   }, [isSignedIn, navigate]);
 
-  const handleSocialSignIn = async (strategy, key) => {
-    setError('');
-    setPendingProvider(key);
-    if (!isLoaded || !signIn) {
-      setError('Authentication service is not ready. Please try again.');
-      setPendingProvider('');
+  const handleSuccess = async (credentialResponse) => {
+    const credential = credentialResponse?.credential;
+    if (!credential) {
+      setError('No credential received from Google');
       return;
     }
+    setPending(true);
+    setError('');
     try {
-      await signIn.authenticateWithRedirect({
-        strategy,
-        redirectUrl: '/sso-callback',
-        redirectUrlComplete: '/'
-      });
+      await login(credential);
+      navigate('/', { replace: true });
     } catch (err) {
-      const message =
-        err?.errors?.[0]?.longMessage ||
-        err?.message ||
-        'Unable to continue with that provider right now.';
-      setError(message);
-      setPendingProvider('');
+      setError(err.message || 'Sign in failed');
+    } finally {
+      setPending(false);
     }
+  };
+
+  const handleError = () => {
+    setError('Google sign in was cancelled or failed');
+    setPending(false);
   };
 
   return (
@@ -58,7 +51,7 @@ export default function LoginSignup() {
         </div>
 
         <p className="login-helper-text">
-          Sign up or sign in using your preferred account.
+          Sign up or sign in with your Google account.
         </p>
 
         {error && (
@@ -68,30 +61,53 @@ export default function LoginSignup() {
         )}
 
         <div className="login-buttons">
-          {SOCIAL_PROVIDERS.map(({ label, strategy, key }) => (
-            <button
-              key={key}
-              type="button"
-              className="login-provider-btn"
-              onClick={() => handleSocialSignIn(strategy, key)}
-              disabled={!!pendingProvider}
-            >
-              <img
-                src={`${process.env.PUBLIC_URL || ''}/icons/${key}-icon.svg`}
-                alt=""
-                className="login-provider-icon"
-                width={24}
-                height={24}
-              />
-              {pendingProvider === key ? 'Redirecting…' : label}
-            </button>
-          ))}
+          <div className="login-google-wrap">
+            <GoogleLogin
+              onSuccess={handleSuccess}
+              onError={handleError}
+              useOneTap={false}
+              render={(renderProps) => (
+                <button
+                  type="button"
+                  className="login-provider-btn"
+                  onClick={renderProps.onClick}
+                  disabled={renderProps.disabled || pending}
+                >
+                  <img
+                    src={`${process.env.PUBLIC_URL || ''}/icons/google-icon.svg`}
+                    alt=""
+                    className="login-provider-icon"
+                    width={24}
+                    height={24}
+                  />
+                  {pending ? 'Signing in…' : 'Continue with Google'}
+                </button>
+              )}
+            />
+          </div>
         </div>
-
-        <p className="login-disclaimer">
-          Only Google, Apple, or Microsoft accounts are supported.
-        </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginSignup() {
+  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  if (!clientId) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <div className="login-error" role="alert">
+            Missing REACT_APP_GOOGLE_CLIENT_ID. Add it to frontend/.env
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <GoogleOAuthProvider clientId={clientId}>
+      <LoginContent />
+    </GoogleOAuthProvider>
   );
 }

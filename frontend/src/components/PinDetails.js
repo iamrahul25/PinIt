@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import './PinDetails.css';
 
 const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, onUnsave }) => {
-  const { isLoaded: authLoaded, getToken } = useAuth();
+  const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
-  const displayName = user?.fullName || user?.primaryEmailAddress?.emailAddress || 'Anonymous';
+  const displayName = user?.fullName || user?.email || 'Anonymous';
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
@@ -21,11 +21,11 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   const imageModalRef = useRef(null);
 
   useEffect(() => {
-    if (!authLoaded) return;
+    if (authLoading) return;
     fetchComments();
     fetchVoteStatus();
     fetchImages();
-  }, [authLoaded, getToken, pin._id, userId]);
+  }, [authLoading, getToken, pin._id, userId]);
   useEffect(() => {
     setVoteStatus((prev) => ({ ...prev, upvotes: pin.upvotes, downvotes: pin.downvotes }));
   }, [pin.upvotes, pin.downvotes]);
@@ -50,7 +50,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   };
 
   const fetchComments = async () => {
-    if (!authLoaded) return;
+    if (authLoading) return;
     try {
       const config = await getAuthConfig();
       const response = await axios.get(`${API_BASE_URL}/api/comments/pin/${pin._id}`, config);
@@ -65,7 +65,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       setVoteStatus({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
       return;
     }
-    if (!authLoaded) return;
+    if (authLoading) return;
     try {
       const config = await getAuthConfig();
       const response = await axios.get(`${API_BASE_URL}/api/votes/${pin._id}/status`, config);
@@ -91,7 +91,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       alert('Please log in to vote.');
       return;
     }
-    if (!authLoaded) return;
+    if (authLoading) return;
     try {
       const config = await getAuthConfig();
       await axios.post(`${API_BASE_URL}/api/votes`, {
@@ -115,7 +115,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       alert('Please log in to comment.');
       return;
     }
-    if (!authLoaded) return;
+    if (authLoading) return;
 
     setLoading(true);
     try {
@@ -181,7 +181,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
       alert('Please log in to save pins.');
       return;
     }
-    if (!authLoaded) return;
+    if (authLoading) return;
     setSaving(true);
     try {
       const config = await getAuthConfig();
@@ -189,8 +189,8 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
         await axios.delete(`${API_BASE_URL}/api/pins/${pin._id}/save`, config);
         onUnsave?.(pin);
       } else {
-        const email = user?.primaryEmailAddress?.emailAddress ?? '';
-        const username = user?.fullName || user?.username || email;
+        const email = user?.email ?? '';
+        const username = user?.fullName || email;
         await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/save`, { email, username }, {
           ...config,
           headers: { ...config.headers, 'Content-Type': 'application/json' }

@@ -1,22 +1,19 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
-if (!process.env.CLERK_PUBLISHABLE_KEY || !process.env.CLERK_SECRET_KEY) {
-  console.error('Missing Clerk keys in backend/.env. Add both:');
-  console.error('  CLERK_PUBLISHABLE_KEY=pk_test_... (from https://dashboard.clerk.com → API Keys)');
-  console.error('  CLERK_SECRET_KEY=sk_test_...');
+if (!process.env.GOOGLE_CLIENT_ID) {
+  console.error('Missing GOOGLE_CLIENT_ID in backend/.env. Get it from https://console.cloud.google.com/apis/credentials');
   process.exit(1);
 }
 
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const { clerkMiddleware, requireAuth } = require('@clerk/express');
+const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
 
 // Middleware
-app.use(clerkMiddleware());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -36,8 +33,11 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });
 });
 
-// Protect all API routes below
-app.use('/api', requireAuth());
+// Auth route (unprotected – used for login)
+app.use('/api/auth', require('./routes/auth'));
+
+// Protect all other API routes
+app.use('/api', authMiddleware);
 
 // Routes
 app.use('/api/users', require('./routes/users'));

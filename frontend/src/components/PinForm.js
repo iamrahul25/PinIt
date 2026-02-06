@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import './PinForm.css';
@@ -32,8 +32,8 @@ const getSeverityClass = (value) => {
 };
 
 const PinForm = ({ location, onClose, onSubmit, user }) => {
-  const { isLoaded: authLoaded, getToken } = useAuth();
-  const defaultContributorName = user?.fullName || user?.primaryEmailAddress?.emailAddress || '';
+  const { loading: authLoading, getToken } = useAuth();
+  const defaultContributorName = user?.fullName || user?.email || '';
   const [formData, setFormData] = useState({
     problemType: 'Trash Pile',
     severity: 5,
@@ -50,7 +50,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
 
   // Keep contributor_name in sync when user prop is available (e.g. after login)
   useEffect(() => {
-    const name = user?.fullName || user?.primaryEmailAddress?.emailAddress || '';
+    const name = user?.fullName || user?.email || '';
     if (name && !formData.contributor_name) setFormData((prev) => ({ ...prev, contributor_name: name }));
   }, [user, formData.contributor_name]);
 
@@ -108,7 +108,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!authLoaded) {
+    if (authLoading) {
       setError('Authentication is still loading. Please wait a moment.');
       return;
     }

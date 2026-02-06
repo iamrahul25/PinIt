@@ -53,7 +53,7 @@ const pinSchema = new mongoose.Schema({
     default: 0
   },
   votes: [{
-    userId: String, // Clerk user ID
+    userId: String, // Google user ID (sub)
     voteType: {
       type: String,
       enum: ['upvote', 'downvote']

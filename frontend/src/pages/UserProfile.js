@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser, useAuth as useClerkAuth } from '@clerk/clerk-react';
+import { useAuth } from '../context/AuthContext';
 import { FaMapPin, FaThumbsUp, FaComment } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import './UserProfile.css';
 
 export default function UserProfile() {
   const navigate = useNavigate();
-  const { isLoaded: userLoaded, isSignedIn, user } = useUser();
-  const { isLoaded: authLoaded, getToken } = useClerkAuth();
+  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
   const [stats, setStats] = useState({ contributions: 0, totalUpvotes: 0, totalComments: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,14 +24,14 @@ export default function UserProfile() {
   }, [getToken]);
 
   useEffect(() => {
-    if (!userLoaded) return;
+    if (authLoading) return;
     if (!isSignedIn) {
       navigate('/login', { replace: true });
     }
-  }, [userLoaded, isSignedIn, navigate]);
+  }, [authLoading, isSignedIn, navigate]);
 
   useEffect(() => {
-    if (!isSignedIn || !authLoaded) return;
+    if (!isSignedIn || authLoading) return;
     const fetchStats = async () => {
       try {
         const headers = await getAuthHeaders();
@@ -47,9 +46,9 @@ export default function UserProfile() {
       }
     };
     fetchStats();
-  }, [isSignedIn, authLoaded, getAuthHeaders]);
+  }, [isSignedIn, authLoading, getAuthHeaders]);
 
-  const loadingState = !userLoaded || !authLoaded;
+  const loadingState = authLoading;
 
   if (loadingState) {
     return (
@@ -66,12 +65,16 @@ export default function UserProfile() {
       <div className="user-profile-card">
         <div className="user-profile-header">
           <div className="user-avatar" aria-hidden="true">
-            {(user?.firstName?.[0] || user?.primaryEmailAddress?.emailAddress?.[0] || '?').toUpperCase()}
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="" referrerPolicy="no-referrer" />
+            ) : (
+              (user?.fullName?.[0] || user?.email?.[0] || '?').toUpperCase()
+            )}
           </div>
           <div className="user-profile-info">
-            <h1>{user?.fullName || user?.primaryEmailAddress?.emailAddress || 'User'}</h1>
-            {user?.primaryEmailAddress?.emailAddress && (
-              <p className="user-email">{user.primaryEmailAddress.emailAddress}</p>
+            <h1>{user?.fullName || user?.email || 'User'}</h1>
+            {user?.email && (
+              <p className="user-email">{user.email}</p>
             )}
           </div>
           <button

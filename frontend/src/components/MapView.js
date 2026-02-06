@@ -2,8 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Circle as LeafletCircle, useMapEvents, useMap } from 'react-leaflet';
 import { GoogleMap, LoadScript, InfoWindow, Circle as GoogleCircle } from '@react-google-maps/api';
 import L from 'leaflet';
+import 'leaflet.markercluster';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
+
+// Expose L globally so leaflet.markercluster can extend it (UMD expects window.L)
+if (typeof window !== 'undefined') window.L = L;
 
 // Static libraries array for Google Maps LoadScript to prevent unnecessary reloads
 const GOOGLE_MAPS_LIBRARIES = ['places', 'marker'];
@@ -141,6 +147,48 @@ function MapClickHandler({ onMapClick, isAddPinMode }) {
       }
     },
   });
+  return null;
+}
+
+// Pin clustering for OSM: use leaflet.markercluster imperatively (React 18 compatible)
+function PinsCluster({ pins, hoveredPinId, highlightedPinId, onPinClick }) {
+  const map = useMap();
+  const groupRef = useRef(null);
+  const onPinClickRef = useRef(onPinClick);
+  onPinClickRef.current = onPinClick;
+
+  useEffect(() => {
+    if (!map || !L.MarkerClusterGroup) return;
+    if (groupRef.current) {
+      map.removeLayer(groupRef.current);
+      groupRef.current = null;
+    }
+    const group = new L.MarkerClusterGroup();
+    pins.forEach((pin) => {
+      const isHovered = pin._id === hoveredPinId;
+      const isHighlighted = pin._id === highlightedPinId && !isHovered;
+      const highlightClass = isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : '');
+      const marker = L.marker([pin.location.latitude, pin.location.longitude], {
+        icon: L.divIcon({
+          className: `custom-pin-icon ${highlightClass}`.trim(),
+          html: getProblemTypeMarkerHtml(pin.problemType),
+          iconSize: [26, 26],
+          iconAnchor: [13, 26],
+        }),
+      });
+      marker.on('click', () => onPinClickRef.current(pin));
+      group.addLayer(marker);
+    });
+    map.addLayer(group);
+    groupRef.current = group;
+    return () => {
+      if (groupRef.current) {
+        map.removeLayer(groupRef.current);
+        groupRef.current = null;
+      }
+    };
+  }, [map, pins, hoveredPinId, highlightedPinId]);
+
   return null;
 }
 
@@ -410,8 +458,36 @@ function LocationSearch({ onLocationFound }) {
       }
     };
 
+    const zoomOutBtn = document.createElement('button');
+    zoomOutBtn.type = 'button';
+    zoomOutBtn.title = 'Zoom out to state level';
+    zoomOutBtn.innerHTML = '<span class="material-icons-round" style="font-size:20px">fullscreen_exit</span>';
+    zoomOutBtn.style.cssText = `
+      position: absolute;
+      top: 10px;
+      left: 402px;
+      z-index: 1000;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border: none;
+      border-radius: 6px;
+      background: white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #374151;
+    `;
+    zoomOutBtn.onclick = () => {
+      const c = map.getCenter();
+      map.setView([c.lat, c.lng], STATE_LEVEL_ZOOM);
+    };
+
     container.appendChild(searchContainer);
     container.appendChild(currentLocationBtn);
+    container.appendChild(zoomOutBtn);
 
     return () => {
       document.removeEventListener('click', handleClickOutside);
@@ -420,6 +496,9 @@ function LocationSearch({ onLocationFound }) {
       }
       if (currentLocationBtn.parentNode) {
         currentLocationBtn.parentNode.removeChild(currentLocationBtn);
+      }
+      if (zoomOutBtn.parentNode) {
+        zoomOutBtn.parentNode.removeChild(zoomOutBtn);
       }
     };
   }, [map, onLocationFound]);
@@ -433,12 +512,16 @@ const MAP_LAYERS = [
   { id: 'terrain', label: 'Terrain' },
 ];
 
+// Zoom level / Reset zoom out (broad regional view)
+const STATE_LEVEL_ZOOM = 8;
+
 const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, tempPinLocation, onCancelAddPin }) => {
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
   const [mapLayer, setMapLayer] = useState('standard'); // 'standard' | 'satellite' | 'terrain'
   const [layersDropdownOpen, setLayersDropdownOpen] = useState(false);
+  const [clusteringEnabled, setClusteringEnabled] = useState(true);
   const layersDropdownRef = useRef(null);
   const [googleMapInstance, setGoogleMapInstance] = useState(null);
   const [leafletMapInstance, setLeafletMapInstance] = useState(null);
@@ -719,8 +802,37 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       inputWrapper.appendChild(clearButton);
       searchContainer.appendChild(inputWrapper);
 
+      const zoomOutBtn = document.createElement('button');
+      zoomOutBtn.type = 'button';
+      zoomOutBtn.title = 'Zoom out';
+      zoomOutBtn.innerHTML = '<span class="material-icons-round" style="font-size:20px">fullscreen_exit</span>';
+      zoomOutBtn.style.cssText = `
+        position: absolute;
+        top: 10px;
+        left: 402px;
+        z-index: 1000;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: white;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #374151;
+      `;
+      zoomOutBtn.onclick = () => {
+        const c = map.getCenter();
+        map.setZoom(STATE_LEVEL_ZOOM);
+        map.panTo(c);
+      };
+
       container.appendChild(searchContainer);
       container.appendChild(currentLocationBtn);
+      container.appendChild(zoomOutBtn);
 
       return () => {
         if (searchContainer.parentNode) {
@@ -728,6 +840,9 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         }
         if (currentLocationBtn.parentNode) {
           currentLocationBtn.parentNode.removeChild(currentLocationBtn);
+        }
+        if (zoomOutBtn.parentNode) {
+          zoomOutBtn.parentNode.removeChild(zoomOutBtn);
         }
       };
     }, [map, onLocationFound]);
@@ -789,8 +904,8 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       onMouseMove={isAddPinMode ? handlePointerMove : undefined}
       onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
     >
-      {/* Map Layers Toggle - after location icon */}
-      <div ref={layersDropdownRef} style={{ position: 'absolute', top: '10px', left: '404px', zIndex: 1000 }}>
+      {/* Map Layers + Clustering - after location and zoom-out buttons */}
+      <div ref={layersDropdownRef} style={{ position: 'absolute', top: '10px', left: '444px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           type="button"
           onClick={() => setLayersDropdownOpen((prev) => !prev)}
@@ -811,6 +926,27 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           }}
         >
           <span className="material-icons-round" style={{ fontSize: '20px' }}>layers</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setClusteringEnabled((prev) => !prev)}
+          title={clusteringEnabled ? 'Disable pin clustering' : 'Enable pin clustering'}
+          style={{
+            width: '36px',
+            height: '36px',
+            padding: 0,
+            border: 'none',
+            borderRadius: '6px',
+            background: clusteringEnabled ? '#6366f1' : 'white',
+            color: clusteringEnabled ? 'white' : '#374151',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span className="material-icons-round" style={{ fontSize: '20px' }}>bubble_chart</span>
         </button>
         {layersDropdownOpen && (
           <div
@@ -1052,26 +1188,35 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               })}
             />
           )}
-          {pins.map((pin) => {
-            const isHovered = pin._id === hoveredPinId;
-            const isHighlighted = pin._id === highlightedPinId && !isHovered;
-            const highlightClass = isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : '');
-            return (
-              <Marker
-                key={pin._id}
-                position={[pin.location.latitude, pin.location.longitude]}
-                icon={L.divIcon({
-                  className: `custom-pin-icon ${highlightClass}`.trim(),
-                  html: getProblemTypeMarkerHtml(pin.problemType),
-                  iconSize: [26, 26],
-                  iconAnchor: [13, 26],
-                })}
-                eventHandlers={{
-                  click: () => onPinClick(pin),
-                }}
-              />
-            );
-          })}
+          {clusteringEnabled ? (
+            <PinsCluster
+              pins={pins}
+              hoveredPinId={hoveredPinId}
+              highlightedPinId={highlightedPinId}
+              onPinClick={onPinClick}
+            />
+          ) : (
+            pins.map((pin) => {
+              const isHovered = pin._id === hoveredPinId;
+              const isHighlighted = pin._id === highlightedPinId && !isHovered;
+              const highlightClass = isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : '');
+              return (
+                <Marker
+                  key={pin._id}
+                  position={[pin.location.latitude, pin.location.longitude]}
+                  icon={L.divIcon({
+                    className: `custom-pin-icon ${highlightClass}`.trim(),
+                    html: getProblemTypeMarkerHtml(pin.problemType),
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 26],
+                  })}
+                  eventHandlers={{
+                    click: () => onPinClick(pin),
+                  }}
+                />
+              );
+            })
+          )}
         </MapContainer>
       </div>
 

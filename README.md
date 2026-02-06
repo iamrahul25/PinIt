@@ -61,7 +61,7 @@ A React-based web application that allows users to report and track civic issues
    | Variable | Required | Description |
    |----------|----------|-------------|
    | `GOOGLE_CLIENT_ID` | Yes | Same Google OAuth Client ID as frontend (required for auth) |
-   | `MONGODB_URI` | Yes* | MongoDB connection string. Default: `mongodb://localhost:27017/pinit`. For Atlas: `mongodb+srv://user:pass@cluster.mongodb.net/pinit?retryWrites=true&w=majority` |
+   | `MONGODB_URI` | Yes* | MongoDB connection string. Default: `mongodb://localhost:27017/pinit`. For Atlas: `mongodb+srv://...` |
    | `JWT_SECRET` | No | Secret for signing JWTs. Omit for dev (default used). **Must** set in production. Use `openssl rand -base64 32` to generate. |
    | `CLOUDINARY_CLOUD_NAME` | Yes | From [Cloudinary Console](https://cloudinary.com/console) |
    | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |

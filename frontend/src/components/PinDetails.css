@@ -424,6 +424,21 @@
 }
 
 /* Incident Details */
+.pin-details-problem-heading {
+  padding: 1rem;
+  background: rgba(248, 250, 252, 0.6);
+  border-radius: 12px;
+  border-left: 4px solid var(--pin-primary);
+}
+
+.pin-details-problem-heading p {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--pin-slate-700, #334155);
+  line-height: 1.5;
+}
+
 .pin-details-description {
   padding: 1rem;
   background: rgba(248, 250, 252, 0.6);

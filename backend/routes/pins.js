@@ -106,10 +106,14 @@ router.get('/:id', async (req, res) => {
 // Create a new pin
 router.post('/', async (req, res) => {
   try {
-    const { problemType, severity, location, images, contributor_name, description } = req.body;
+    const { problemType, severity, location, images, problemHeading, contributor_name, description } = req.body;
     const contributorId = req.auth?.userId;
     if (!contributorId) {
       return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const heading = (problemHeading && String(problemHeading).trim()) || '';
+    if (!heading) {
+      return res.status(400).json({ error: 'Problem Heading is required.' });
     }
 
     const pin = new Pin({
@@ -117,6 +121,7 @@ router.post('/', async (req, res) => {
       severity,
       location,
       images: images || [],
+      problemHeading: heading,
       contributor_id: contributorId,
       contributor_name: contributor_name || '',
       description: description || ''

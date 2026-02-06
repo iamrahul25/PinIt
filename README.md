@@ -186,7 +186,7 @@ npm run dev
 5. **Fill out the form**:
    - Select problem type
    - Set severity (1-10)
-   - Optionally add your name and description
+   - Add a problem heading (required) and optionally add description
    - Upload images (up to 5)
 
 6. **Submit** to create a pin on the map

@@ -288,7 +288,7 @@ const PinListPanel = ({
                         </div>
                         <div className="pin-card-body">
                           <div className="pin-card-head">
-                            <h2 className="pin-card-title">{pin.problemType}</h2>
+                            <h2 className="pin-card-title">{pin.problemHeading || pin.problemType}</h2>
                             <span className={`pin-card-severity ${getSeverityClass(pin.severity)}`}>
                               {getSeverityLabel(pin.severity)} Severity ({pin.severity ?? 0}/10)
                             </span>
@@ -351,7 +351,7 @@ const PinListPanel = ({
                         </div>
                         <div className="pin-card-compact-content">
                           <div className="pin-card-compact-head">
-                            <h3 className="pin-card-compact-title">{pin.problemType}</h3>
+                            <h3 className="pin-card-compact-title">{pin.problemHeading || pin.problemType}</h3>
                             <span className={`pin-card-severity small ${getSeverityClass(pin.severity)}`}>
                               {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                             </span>

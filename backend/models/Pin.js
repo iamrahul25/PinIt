@@ -32,6 +32,10 @@ const pinSchema = new mongoose.Schema({
     type: String, // Cloudinary URLs (or legacy GridFS file IDs for backward compat)
     default: []
   }],
+  problemHeading: {
+    type: String,
+    required: true
+  },
   contributor_id: {
     type: String,
     default: ''

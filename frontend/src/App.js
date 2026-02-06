@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
+import Toast from './components/Toast';
 import PinListPanel from './components/PinListPanel';
 import { reverseGeocode } from './utils/geocode';
 import { API_BASE_URL } from './config';
@@ -23,8 +24,14 @@ function App() {
   const [tempPinLocation, setTempPinLocation] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
   const loading = authLoading;
+
+  const showToast = (message, type = 'success', autoHideMs = 4500) => {
+    setToast({ visible: true, message, type, autoHideMs: autoHideMs ?? 4500 });
+  };
+  const hideToast = () => setToast((t) => ({ ...t, visible: false }));
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -198,11 +205,16 @@ function App() {
   };
 
   const handleFormSubmit = () => {
+    showToast('Report submitted successfully!', 'success');
     fetchPins();
     setShowForm(false);
     setFormLocation(null);
     setTempPinLocation(null);
     setIsAddPinMode(false);
+  };
+
+  const handleFormError = (message) => {
+    showToast(message || 'Failed to create report. Please try again.', 'error');
   };
 
   const handleDetailsClose = () => {
@@ -226,10 +238,11 @@ function App() {
 
   const handleSharePin = async (pin) => {
     const url = `${window.location.origin}/pin/${pin._id}`;
-    const title = `Pin-It: ${pin.problemType}`;
+    const heading = pin.problemHeading || pin.problemType;
+    const title = `Pin-It: ${heading}`;
     const text = pin.description
-      ? `${pin.problemType} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
-      : pin.problemType;
+      ? `${heading} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
+      : heading;
     if (navigator.share) {
       try {
         await navigator.share({ title, text, url });
@@ -331,9 +344,17 @@ function App() {
             location={formLocation}
             onClose={handleFormClose}
             onSubmit={handleFormSubmit}
+            onError={handleFormError}
             user={user}
           />
         )}
+        <Toast
+          visible={toast.visible}
+          message={toast.message}
+          type={toast.type}
+          autoHideMs={toast.autoHideMs ?? 4500}
+          onClose={hideToast}
+        />
         {selectedPin && (
           <PinDetails
             pin={selectedPin}

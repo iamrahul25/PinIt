@@ -156,10 +156,11 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
 
   const handleShare = async () => {
     const url = shareUrl || `${window.location.origin}/pin/${pin._id}`;
-    const title = `Pin-It: ${pin.problemType}`;
+    const heading = pin.problemHeading || pin.problemType;
+    const title = `Pin-It: ${heading}`;
     const text = pin.description
-      ? `${pin.problemType} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
-      : pin.problemType;
+      ? `${heading} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
+      : heading;
 
     if (navigator.share) {
       try {
@@ -332,6 +333,18 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
                 </div>
               </div>
             </div>
+
+            {pin.problemHeading && (
+              <section className="pin-details-section">
+                <h3 className="pin-details-section-title">
+                  <span className="material-icons-round">title</span>
+                  Problem Heading
+                </h3>
+                <div className="pin-details-problem-heading">
+                  <p>{pin.problemHeading}</p>
+                </div>
+              </section>
+            )}
 
             {pin.description && (
               <section className="pin-details-section">

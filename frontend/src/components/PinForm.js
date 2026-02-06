@@ -31,12 +31,13 @@ const getSeverityClass = (value) => {
   return 'severity-critical';
 };
 
-const PinForm = ({ location, onClose, onSubmit, user }) => {
+const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const { loading: authLoading, getToken } = useAuth();
   const defaultContributorName = user?.fullName || user?.email || '';
   const [formData, setFormData] = useState({
     problemType: 'Trash Pile',
     severity: 5,
+    problemHeading: '',
     contributor_name: defaultContributorName,
     description: '',
     images: []
@@ -112,6 +113,11 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
       setError('Authentication is still loading. Please wait a moment.');
       return;
     }
+    const heading = (formData.problemHeading || '').trim();
+    if (!heading) {
+      setError('Problem Heading is required.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -145,6 +151,7 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
       const pinData = {
         problemType: formData.problemType,
         severity: parseInt(formData.severity, 10),
+        problemHeading: (formData.problemHeading || '').trim(),
         location: {
           latitude: location.lat,
           longitude: location.lng,
@@ -159,7 +166,9 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
       await axios.post(`${API_BASE_URL}/api/pins`, pinData, await getAuthConfig({ 'Content-Type': 'application/json' }));
       onSubmit();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create report. Please try again.');
+      const message = err.response?.data?.error || 'Failed to create report. Please try again.';
+      if (onError) onError(message);
+      else setError(message);
     } finally {
       setLoading(false);
     }
@@ -247,14 +256,15 @@ const PinForm = ({ location, onClose, onSubmit, user }) => {
           </div>
 
           <div className="form-group">
-            <label>Your Name <span className="optional">(Optional)</span></label>
+            <label>Problem Heading <span className="required">*</span></label>
             <input
               type="text"
-              name="contributor_name"
-              value={formData.contributor_name}
+              name="problemHeading"
+              value={formData.problemHeading}
               onChange={handleInputChange}
-              placeholder="e.g. Rahul Kumar"
+              placeholder="e.g. Garbage pile near the park"
               className="form-input"
+              required
             />
           </div>
 

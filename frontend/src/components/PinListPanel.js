@@ -285,7 +285,7 @@ const PinListPanel = ({
                           <div className="pin-card-head">
                             <h2 className="pin-card-title">{pin.problemHeading || pin.problemType}</h2>
                             <span className={`pin-card-severity ${getSeverityClass(pin.severity)}`}>
-                              {getSeverityLabel(pin.severity)} Severity ({pin.severity ?? 0}/10)
+                              {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                             </span>
                           </div>
                           {pin.description && (

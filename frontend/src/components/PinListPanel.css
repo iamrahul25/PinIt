@@ -293,7 +293,7 @@
 .pins-list {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 0.8rem; /* 10% less than 1.5rem (between cards) */
 }
 .pins-empty {
   text-align: center;
@@ -576,8 +576,8 @@
 /* Pin card - compact (rest of list) */
 .pin-card-compact {
   display: flex;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 0.9rem; /* 10% less: space between image and content */
+  padding: 0.9rem; /* 10% less */
   background: var(--pins-card-bg);
   border: 1px solid var(--pins-header-border);
   border-radius: 1rem;

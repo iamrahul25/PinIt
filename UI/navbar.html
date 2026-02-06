@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pin-It Responsive Navbar</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Public Sans', sans-serif;
+            background-color: #f6f7f8;
+        }
+
+        .navbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px; 
+            background-color: #ffffff;
+            border-bottom: 1px solid #e7edf3;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-left, .nav-right {
+            display: flex;
+            align-items: center;
+        }
+
+        /* Logo */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #137fec;
+            margin-right: 20px;
+        }
+
+        .brand-name {
+            color: #0d141b;
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        /* Nav Links */
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-item {
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            padding-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .nav-item.active {
+            color: #0d141b;
+            font-weight: 600;
+            border-bottom: 2px solid #137fec;
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            background-color: #f1f5f9;
+            border-radius: 8px;
+            height: 40px;
+            margin-right: 16px;
+            transition: all 0.3s ease;
+            width: 250px; 
+            flex-shrink: 1; 
+        }
+
+        .search-icon {
+            padding-left: 12px;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            padding: 0 12px;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-button {
+            position: relative;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 50%;
+            min-width: 40px;
+            height: 40px;
+            cursor: pointer;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 8px;
+            height: 8px;
+            background-color: #ef4444;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+        }
+
+        .divider {
+            width: 1px;
+            height: 32px;
+            background-color: #e2e8f0;
+        }
+
+        .profile-button {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 9999px;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            margin-right: 4px;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #0d141b;
+            white-space: nowrap;
+        }
+
+        .profile-img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid #e2e8f0;
+        }
+
+
+        /* Tablet View */
+        @media (max-width: 1024px) {
+            .search-container {
+                width: 180px;
+            }
+        }
+
+        /* Large Mobile View */
+        @media (max-width: 900px) {
+            .nav-links, .user-info {
+                display: none; 
+            }
+            .search-container {
+                width: 200px;
+            }
+        }
+
+        /* Small Mobile View */
+        @media (max-width: 500px) {
+            .search-container {
+                width: 40px;
+                background-color: transparent;
+                margin-right: 0;
+            }
+            .search-input {
+                display: none;
+            }
+            .search-icon {
+                padding-left: 8px;
+                background-color: #f1f5f9;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                justify-content: center;
+            }
+            .divider {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header class="navbar">
+    <div class="nav-left">
+        <div class="logo">
+            <span class="material-symbols-outlined">location_on</span>
+            <h2 class="brand-name">Pin It</h2>
+        </div>
+
+        <nav class="nav-links">
+            <a href="#" class="nav-item active">Dashboard</a>
+            <a href="#" class="nav-item">Report Issue</a>
+            <a href="#" class="nav-item">Map View</a>
+            <a href="#" class="nav-item">Community</a>
+        </nav>
+    </div>
+
+    <div class="nav-right">
+        <div class="search-container">
+            <div class="search-icon">
+                <span class="material-symbols-outlined">search</span>
+            </div>
+            <input type="text" class="search-input" placeholder="Search...">
+        </div>
+
+        <div class="actions">
+            <button class="icon-button">
+                <span class="material-symbols-outlined">notifications</span>
+                <span class="notification-badge"></span>
+            </button>
+
+            <div class="divider"></div>
+
+            <button class="profile-button">
+                <div class="user-info">
+                    <span class="user-name">Rahul Kumar</span>
+                </div>
+                <div class="profile-img" style="background-image: url('https://ui-avatars.com/api/?name=Rahul+Kumar&background=137fec&color=fff');"></div>
+            </button>
+        </div>
+    </div>
+</header>
+
+</body>
+</html>

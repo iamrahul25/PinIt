@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Administrative Incident Review - Broken Pipe</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#ec4899",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "12px",
+                    },
+                },
+            },
+        };
+    </script>
+    <style type="text/tailwindcss">
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 min-h-screen overflow-hidden">
+    <div class="flex h-screen justify-center">
+        <div class="w-full max-w-5xl flex flex-col bg-white dark:bg-slate-800 shadow-2xl relative z-10 border-x border-slate-100 dark:border-slate-700">
+            <header class="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 sticky top-0 z-20">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+                        <span class="material-icons-round text-2xl">analytics</span>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="font-black text-lg">Report #4829</h2>
+                            <span class="px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-[10px] font-bold rounded uppercase">Review Mode</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Published 3 hours ago • Internal Audit</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button class="flex items-center gap-2 px-4 py-2 bg-primary text-white text-sm font-bold rounded-lg hover:bg-pink-600 transition-all shadow-sm">
+                        <span class="material-icons-round text-sm">bookmark</span>
+                        Saved
+                    </button>
+                    <button class="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-bold rounded-lg hover:bg-slate-200 transition-all">
+                        <span class="material-icons-round text-sm">share</span>
+                        Share
+                    </button>
+                    <button class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <span class="material-icons-round">close</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Severity Score</p>
+                        <div class="flex items-end gap-2">
+                            <span class="text-3xl font-black text-red-600">8/10</span>
+                            <span class="text-xs text-red-400 font-bold mb-1">CRITICAL</span>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Reported By</p>
+                        <div class="flex items-center gap-3">
+                            <img alt="Rahul Kumar Avatar" class="w-8 h-8 rounded-full ring-2 ring-white dark:ring-slate-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCw6YEi9rwlNyfcumONAZL7X4XMMEXsL_g_WxjbSLiWPDd1ucqli0ITVYMUGPZi-e1lBVCJvZlgW2LkFhU8Ak7ypqfm7F-_2HWTsF4QCaxy3zIOn3uvpdnS4Q9a-OKFmWiG8Qq0GZq4xN_S2SFxWcqc8dnBn6cEwNATdCLY79qCM0qbaanB_KHB4yvY4Pof7CLkVSoxdvFdT5-kUzvQUlPHt7aHZHF_a3jFQ2Zr_lLcXY9_2eJ0f6yR4yXagjRHDffcWnNbtazh4w0"/>
+                            <span class="text-sm font-bold">Rahul Kumar</span>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-700 lg:col-span-1 md:col-span-2">
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Community Response</p>
+                        <div class="flex gap-3">
+                            <div class="flex items-center gap-1.5 text-emerald-600 font-bold text-sm">
+                                <span class="material-icons-round text-sm">thumb_up</span> 1
+                            </div>
+                            <div class="flex items-center gap-1.5 text-slate-400 font-bold text-sm">
+                                <span class="material-icons-round text-sm">thumb_down</span> 0
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="space-y-3">
+                    <div class="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold">
+                        <span class="material-icons-round text-primary">subject</span>
+                        <h3 class="text-sm uppercase tracking-wider">Incident Details</h3>
+                    </div>
+                    <div class="p-4 bg-slate-50 dark:bg-slate-900/30 rounded-xl border-l-4 border-primary">
+                        <p class="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
+                            Need action here help. The water pressure is very high and it's flooding the sidewalk. Multiple reports of traffic slowing down due to spray hitting cars.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold">
+                            <span class="material-icons-round text-primary">photo_library</span>
+                            <h3 class="text-sm uppercase tracking-wider">Visual Evidence</h3>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-500">4 ATTACHMENTS</span>
+                    </div>
+                    <div class="grid grid-cols-4 gap-3">
+                        <div class="aspect-square rounded-lg overflow-hidden border-2 border-primary group cursor-pointer relative">
+                            <img alt="Thumbnail 1" class="w-full h-full object-cover transition-transform group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAbmgb5U5AeDK4cbIH6IQXzM3jG-BbxbxyNqFNvhSMAyaAahJczRq8if7yjwZ5mo8Cmve2-JAMaT-BSgNUB71qnRgxJjkH-0u3zJ2m3FqG7nkLtNCsXdbDK7BtkE14Q0lqgdozafouHlRVarYYL3U2_beBwtdn7NJF-996nmfUBc2qIRJa_DatPXLWNMAhG2e_sHHIGvJ9L4fJC8_q0mx1WP7x-HVOTgvvyrLyfbwLUJjQep-7-Jps-rx6ZuVzmYKXEqxoTfZHWv0Q"/>
+                            <div class="absolute inset-0 bg-primary/10 group-hover:bg-transparent transition-colors"></div>
+                        </div>
+                        <div class="aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group cursor-pointer">
+                            <img alt="Thumbnail 2" class="w-full h-full object-cover transition-transform group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpU-TaFyEHx-5y2Bma3mCmmB8FKz2SghzGb_98LisgLpzel_rsp6QkcdaVZFdWgchwEv8wsUet6-mLtva_Wulb5SeyUBnSEArO7sFUoBSAck3IstV6-chtCf1DP9gDqK8NN2GTq4CtQzT7LpZDp7TlSUG5DhBv8qRn0qd0EDyo2ETL_8Y7CCy_mM-O87bjSOgaSN9CMwdSvzwAqg3gItXworYwx9h8p7ntCqkfetFzrv5bn40cj8siZiXwDlarDkiVKFw84G5hhFw"/>
+                        </div>
+                        <div class="aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group cursor-pointer">
+                            <img alt="Thumbnail 3" class="w-full h-full object-cover transition-transform group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHdg2Drmw3LjGb4fcXDh-XPXV3BXvlkpte3qJY6XO4foe3y4kigZX62-CG1DeCiNna-_OkwfwAxmW8Yln3x3nmFD1N5Ufmsbd402HZK_aKFtD30OL9oMYbt6ywyvNUTjcR9kIS03NlhB3_x0vGfMNfmSjoPoLGnEpS7_w_SyLUC44xe_-FjhE0o1rJ4EUNmCWPxTbAAOKzy7_c9ZMwGl-dzRrzpCxHasC-VbO_WlB8wlCmsTqprzk_G1NFYI2LajddT7-1Lt74VQg"/>
+                        </div>
+                        <div class="aspect-square rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 group cursor-pointer">
+                            <img alt="Thumbnail 4" class="w-full h-full object-cover transition-transform group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAsnzJ_hLMJrL16OPom_Ua6zNsJZVq5eeT8D3VHSN7ib7MosURblUi3k3_euGfPwIirA1w_ZITtYlFI0iKhBInUvCHTkUW8zp-uBhyfarFDvx0jQBpwufXYRECcejdJsW2oQLdvjybkarP2cU8EVSmNNSzePtaA-yOKNpVLDjIV5YW_GKbFZs4-i6dICb2AZa0VMxlJJHyzNGXGmi8GVEY_YUhR-DmDMjGUFiUC2C4cp7fNGTi6eXEOwMXyboGXUhxiJPx3Bqy7uc8"/>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-3">
+                    <div class="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold">
+                        <span class="material-icons-round text-primary">pin_drop</span>
+                        <h3 class="text-sm uppercase tracking-wider">Precise Location</h3>
+                    </div>
+                    <div class="p-4 bg-slate-50 dark:bg-slate-900/30 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">HAL Old Airport Road, Kodihalli, Bengaluru, Karnataka, India</p>
+                        <div class="mt-2 flex gap-4 text-[11px] font-mono text-slate-500">
+                            <span>LAT: 12.9592° N</span>
+                            <span>LONG: 77.6444° E</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="space-y-6 pt-6 border-t border-slate-100 dark:border-slate-700">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-slate-900 dark:text-slate-100 font-bold">
+                            <span class="material-icons-round text-primary">forum</span>
+                            <h3 class="text-sm uppercase tracking-wider">Audit Log & Comments (2)</h3>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex gap-4">
+                            <img alt="User Avatar" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz0yq4E0rMmyFfeebHm0GPF7KLflbNAgiHnswJnhxu2OnfG2aHdWua3fjlfQ-CV5folUm-NqiITXgQo-wyVAqmyl-Ju1ElAYhOnDOPKnRiO7Ih5Vb88LpFfpHFx5wb5UofOQ7ZiguhuercHECkfPiJoha-w4zBxed2HQL5D4ETiHcZ99ucN99O5-_JZNJjKVmax8f3FBpnzfcvvv4fTvouWcIydMICFg6P5JprzkGILxMejrGI49wWNMNOiXxhKLHc1i7Ra1z7Xqc"/>
+                            <div class="flex-1 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-sm">Rahul Kumar</span>
+                                    <span class="text-[10px] text-slate-500">3 hours ago</span>
+                                </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">gggggggg</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <img alt="User Avatar" class="w-10 h-10 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC0t7rRkqh0IbBPWfM9vWyR8SoVT1dQXJSKK8sUMYBK-I2Wgd8-xG9rnC4F2d5gUS0CU_ZmtSFguykWcUFL5n1s9cg95S5oNwfKQ6Ri7ZqJpyn1_L0xt6rcais2eHSpOFlJJFJLNxLHqZyUfsEJTy-BO2NsovciEzj8YIoMhEpcNPjOLHgkcuZad62_x-4kkMjF7OPAqa5UODNqISoFN1g7VKF5D4gKdlJa-zUfpVT7MisQ2VTym_Y_qLSQ_hG4FBL82ATD44NXMU4"/>
+                            <div class="flex-1 bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-bold text-sm">Rahul Kumar</span>
+                                    <span class="text-[10px] text-slate-500">3 hours ago</span>
+                                </div>
+                                <p class="text-sm text-slate-600 dark:text-slate-400">hhhhhhhhhhhhh</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+
+            <footer class="p-4 border-t border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">
+                <div class="flex flex-col gap-3">
+                    <p class="text-[10px] text-slate-500 px-1 font-bold uppercase tracking-wider">Posting as <span class="text-primary">Administrator</span></p>
+                    <div class="relative">
+                        <textarea class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 dark:text-slate-200 text-sm focus:ring-primary focus:border-primary transition-all pr-20 resize-none" placeholder="Add internal note or update status..." rows="2"></textarea>
+                        <button class="absolute right-2 bottom-2 px-4 py-1.5 bg-indigo-600 text-white font-bold rounded-lg text-xs hover:bg-indigo-700 transition-colors shadow-lg">
+                            Post Note
+                        </button>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>

@@ -13,8 +13,12 @@ const { authMiddleware } = require('./middleware/auth');
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// CORS – allow frontend origins. If CORS_ORIGIN is set, use it; otherwise allow all (dev).
+const corsOrigin = process.env.CORS_ORIGIN;
+const corsOptions = corsOrigin
+  ? { origin: corsOrigin.split(',').map((o) => o.trim()), credentials: true }
+  : { origin: true };
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

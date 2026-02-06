@@ -46,19 +46,30 @@ A React-based web application that allows users to report and track civic issues
    npm run install-all
    ```
 
-3. **Set up environment variables:**
-   - **frontend/.env**
-     - `REACT_APP_GOOGLE_CLIENT_ID` – Google OAuth 2.0 Client ID (required for login; see setup below)
-     - `REACT_APP_BACKEND_URL` (optional) – leave empty or unset to use the package.json proxy (localhost:5000 in dev). Set to a full URL (e.g. `http://192.168.1.100:5000`) to point to a different backend.
-     - `REACT_APP_GOOGLE_MAPS_API_KEY` (optional) – from https://console.cloud.google.com/google/maps-apis (enable Maps JavaScript API and Places API). OpenStreetMap works without any API key.
-   - **backend/.env**
-     - `MONGODB_URI` – MongoDB connection string (default: `mongodb://localhost:27017/pinit`)
-     - `GOOGLE_CLIENT_ID` – same Google OAuth Client ID as frontend (required for auth)
-     - `JWT_SECRET` (optional) – secret for signing JWTs. If omitted, a default is used (fine for dev; **must** set in production).
-     - **Cloudinary** (required for image uploads): get from https://cloudinary.com/console
-       - `CLOUDINARY_CLOUD_NAME`
-       - `CLOUDINARY_API_KEY`
-       - `CLOUDINARY_API_SECRET`
+3. **Set up environment variables** (see tables below for all options)
+
+   **frontend/.env**
+
+   | Variable | Required | Description |
+   |----------|----------|-------------|
+   | `REACT_APP_GOOGLE_CLIENT_ID` | Yes | Google OAuth 2.0 Client ID (same as backend; see [Google setup](#how-to-set-up-google-sign-in) below) |
+   | `REACT_APP_BACKEND_URL` | No | Backend API base URL. Leave empty to use the proxy (localhost:5000 in dev). Set when backend runs elsewhere: `http://localhost:5000`, `http://192.168.1.100:5000`, or `https://api.yoursite.com` |
+   | `REACT_APP_GOOGLE_MAPS_API_KEY` | No | From [Google Cloud Console](https://console.cloud.google.com/google/maps-apis). Enable Maps JavaScript API and Places API. OpenStreetMap works without any key. |
+
+   **backend/.env**
+
+   | Variable | Required | Description |
+   |----------|----------|-------------|
+   | `GOOGLE_CLIENT_ID` | Yes | Same Google OAuth Client ID as frontend (required for auth) |
+   | `MONGODB_URI` | Yes* | MongoDB connection string. Default: `mongodb://localhost:27017/pinit`. For Atlas: `mongodb+srv://user:pass@cluster.mongodb.net/pinit?retryWrites=true&w=majority` |
+   | `JWT_SECRET` | No | Secret for signing JWTs. Omit for dev (default used). **Must** set in production. Use `openssl rand -base64 32` to generate. |
+   | `CLOUDINARY_CLOUD_NAME` | Yes | From [Cloudinary Console](https://cloudinary.com/console) |
+   | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key |
+   | `CLOUDINARY_API_SECRET` | Yes | Cloudinary API secret |
+   | `CORS_ORIGIN` | No | Comma-separated list of allowed frontend origins. Leave unset to allow all (fine for dev). For production: `https://yoursite.com,https://www.yoursite.com` |
+   | `PORT` | No | Server port (default: 5000) |
+
+   \* Required if MongoDB is not running locally on default port.
 
 4. **Start MongoDB** (if running locally):
    ```bash
@@ -278,6 +289,19 @@ PinIt/
 │   └── package.json
 └── package.json
 ```
+
+## CORS
+
+The backend uses [cors](https://www.npmjs.com/package/cors) to control which frontend origins can call the API.
+
+- **Development** – Leave `CORS_ORIGIN` unset in `backend/.env`. All origins are allowed.
+- **Production** – Set `CORS_ORIGIN` to your frontend URL(s) to restrict access:
+
+  ```
+  CORS_ORIGIN=https://yoursite.com,https://www.yoursite.com
+  ```
+
+  Use comma-separated values for multiple origins. Restart the backend after changing this.
 
 ## Notes
 

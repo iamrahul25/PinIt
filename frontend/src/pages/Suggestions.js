@@ -83,7 +83,6 @@ export default function Suggestions() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [skip, setSkip] = useState(0);
-  const [voteState, setVoteState] = useState({}); // suggestionId -> { hasVoted, upvotes }
   const [form, setForm] = useState({ title: '', category: 'Feature Request', details: '' });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -146,25 +145,6 @@ export default function Suggestions() {
     fetchSuggestions(sort, 0, false, view);
   }, [isSignedIn, authLoading, sort, view, fetchSuggestions]);
 
-  // Fetch vote status for displayed suggestions
-  useEffect(() => {
-    if (!isSignedIn || suggestions.length === 0) return;
-    const fetchVoteStatus = async () => {
-      const next = {};
-      for (const s of suggestions) {
-        try {
-          const res = await authFetch(`${API_BASE_URL}/api/suggestions/${s._id}/vote-status`);
-          if (res.ok) {
-            const data = await res.json();
-            next[s._id] = { hasVoted: data.hasVoted, upvotes: data.upvotes };
-          }
-        } catch (_) {}
-      }
-      setVoteState((prev) => ({ ...prev, ...next }));
-    };
-    fetchVoteStatus();
-  }, [suggestions, authFetch, isSignedIn]);
-
   const handleSubmitSuggestion = async (e) => {
     e.preventDefault();
     setError('');
@@ -213,15 +193,12 @@ export default function Suggestions() {
       });
       if (!res.ok) return;
       const updated = await res.json();
-      setVoteState((prev) => ({
-        ...prev,
-        [suggestionId]: {
-          hasVoted: !prev[suggestionId]?.hasVoted,
-          upvotes: updated.upvotes
-        }
-      }));
       setSuggestions((prev) =>
-        prev.map((s) => (s._id === suggestionId ? { ...s, upvotes: updated.upvotes } : s))
+        prev.map((s) =>
+          s._id === suggestionId
+            ? { ...s, upvotes: updated.upvotes, hasVoted: !s.hasVoted }
+            : s
+        )
       );
     } catch (_) {}
   };
@@ -343,9 +320,8 @@ export default function Suggestions() {
             ) : (
               <div className="suggestions-list">
                 {suggestions.map((s) => {
-                  const vs = voteState[s._id];
-                  const upvotes = vs?.upvotes ?? s.upvotes ?? 0;
-                  const hasVoted = vs?.hasVoted ?? false;
+                  const upvotes = s.upvotes ?? 0;
+                  const hasVoted = s.hasVoted ?? false;
                   const isCompleted = s.status === 'completed';
                   const commentCount = s.comments?.length ?? 0;
                   return (

@@ -2,12 +2,13 @@ const express = require('express');
 const router = express.Router();
 const Suggestion = require('../models/Suggestion');
 
-// List suggestions (sort: top | new | planned)
+// List suggestions (sort: top | new | planned) – includes hasVoted for current user
 router.get('/', async (req, res) => {
   try {
     const sort = req.query.sort || 'top';
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+    const userId = req.auth?.userId;
 
     let query = {};
     if (sort === 'planned') {
@@ -23,11 +24,16 @@ router.get('/', async (req, res) => {
       sortOption = { upvotes: -1, createdAt: -1 };
     }
 
-    const suggestions = await Suggestion.find(query)
+    const raw = await Suggestion.find(query)
       .sort(sortOption)
       .skip(skip)
       .limit(limit)
       .lean();
+
+    const suggestions = raw.map(({ votes, ...s }) => ({
+      ...s,
+      hasVoted: userId && votes && votes.some((v) => v.userId === userId)
+    }));
 
     const total = await Suggestion.countDocuments(sort === 'planned' ? query : {});
     res.json({ suggestions, total });
@@ -68,16 +74,20 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get user's submissions (my suggestions) – must be before /:id
+// Get user's submissions (my suggestions) – must be before /:id, includes hasVoted
 router.get('/my/submissions', async (req, res) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const suggestions = await Suggestion.find({ authorId: userId })
+    const raw = await Suggestion.find({ authorId: userId })
       .sort({ createdAt: -1 })
       .lean();
+    const suggestions = raw.map(({ votes, ...s }) => ({
+      ...s,
+      hasVoted: votes && votes.some((v) => v.userId === userId)
+    }));
     res.json(suggestions);
   } catch (error) {
     res.status(500).json({ error: error.message });

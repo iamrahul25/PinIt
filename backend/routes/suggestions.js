@@ -52,7 +52,7 @@ router.post('/', async (req, res) => {
     if (wordCount > 1000) {
       return res.status(400).json({ error: 'Details must be 1000 words or fewer.' });
     }
-    const categoryList = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion'];
+    const categoryList = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion', 'Other'];
     const suggestion = new Suggestion({
       title: title.trim(),
       category: categoryList.includes(category) ? category : 'Feature Request',

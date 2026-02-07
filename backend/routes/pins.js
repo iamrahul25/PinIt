@@ -115,12 +115,16 @@ router.post('/', async (req, res) => {
     if (!heading) {
       return res.status(400).json({ error: 'Problem Heading is required.' });
     }
+    const imageList = Array.isArray(images) ? images : [];
+    if (imageList.length === 0) {
+      return res.status(400).json({ error: 'At least one image is required.' });
+    }
 
     const pin = new Pin({
       problemType,
       severity,
       location,
-      images: images || [],
+      images: imageList,
       problemHeading: heading,
       contributor_id: contributorId,
       contributor_name: contributor_name || '',

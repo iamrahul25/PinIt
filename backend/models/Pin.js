@@ -34,7 +34,7 @@ const pinSchema = new mongoose.Schema({
   }],
   problemHeading: {
     type: String,
-    required: true
+    default: ''
   },
   contributor_id: {
     type: String,

@@ -118,6 +118,10 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       setError('Problem Heading is required.');
       return;
     }
+    if (imageFiles.length === 0) {
+      setError('Please add at least one image.');
+      return;
+    }
 
     setLoading(true);
     setError('');
@@ -281,7 +285,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           </div>
 
           <div className="form-group">
-            <label>Attach Images <span className="optional">(Max 5)</span></label>
+            <label>Attach Images <span className="required">*</span> (at least 1 required, max 5)</label>
             <div
               role="button"
               tabIndex={0}

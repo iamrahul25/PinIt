@@ -4,13 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './Suggestions.css';
 
-const CATEGORIES = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion'];
+const CATEGORIES = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion', 'Other'];
 
 const CATEGORY_CONFIG = {
   'Bug Report': { icon: 'bug_report', color: '#dc2626', bg: '#fef2f2' },
-  'Feature Request': { icon: 'lightbulb', color: '#ca8a04', bg: '#fefce8' },
+  'Feature Request': { icon: 'lightbulb_outline', color: '#ca8a04', bg: '#fefce8' },
   'Improvement': { icon: 'trending_up', color: '#059669', bg: '#ecfdf5' },
-  'UI/UX Suggestion': { icon: 'palette', color: '#7c3aed', bg: '#f5f3ff' }
+  'UI/UX Suggestion': { icon: 'brush', color: '#7c3aed', bg: '#f5f3ff' },
+  'Other': { icon: 'apps', color: '#64748b', bg: '#f1f5f9' }
 };
 const SORT_OPTIONS = [
   { key: 'top', label: 'Top' },

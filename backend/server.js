@@ -26,9 +26,10 @@ app.use(express.urlencoded({ extended: true }));
 // Trust proxy to get real IP address (important for production)
 app.set('trust proxy', true);
 
-// Request logging – includeBody from .env SHOW_REQ_BODY (true/false)
+// Request logging – includeBody from .env SHOW_REQ_BODY, includeResponse from SHOW_RES_BODY (true/false)
 const showReqBody = process.env.SHOW_REQ_BODY === 'true';
-app.use(requestLogger({ includeQuery: true, includeBody: showReqBody }));
+const showResBody = process.env.SHOW_RES_BODY === 'true';
+app.use(requestLogger({ includeQuery: true, includeBody: showReqBody, includeResponse: showResBody }));
 
 // MongoDB connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pinit';

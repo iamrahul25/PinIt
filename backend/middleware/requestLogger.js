@@ -73,10 +73,11 @@ function methodColor(method) {
  * @param {Object} [options]
  * @param {boolean} [options.includeQuery=true] - Include query string in log
  * @param {boolean} [options.includeBody=false] - Include request body (avoid for sensitive data)
+ * @param {boolean} [options.includeResponse=false] - Include response body sent to frontend
  * @returns {Function} Express middleware
  */
 function requestLogger(options = {}) {
-  const { includeQuery = true, includeBody = false } = options;
+  const { includeQuery = true, includeBody = false, includeResponse = false } = options;
 
   const pad = (str, n) => String(str).slice(0, n).padEnd(n);
 
@@ -89,6 +90,13 @@ function requestLogger(options = {}) {
 
   return (req, res, next) => {
     const start = Date.now();
+    let responseData = null;
+    const originalJson = res.json.bind(res);
+    res.json = function (body) {
+      responseData = body;
+      return originalJson(body);
+    };
+
     res.on('finish', () => {
       if (!headerPrinted) {
         console.log(headerLine);
@@ -120,6 +128,11 @@ function requestLogger(options = {}) {
       if (hasBody) {
         console.log(`${colors.cyan}Body:${colors.reset}`);
         console.log(colorizeJson(req.body));
+      }
+
+      if (includeResponse && responseData !== null) {
+        console.log(`${colors.cyan}Response (data sent to frontend):${colors.reset}`);
+        console.log(colorizeJson(responseData));
       }
 
       console.log(separatorLine());

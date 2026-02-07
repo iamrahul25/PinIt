@@ -1,0 +1,174 @@
+const express = require('express');
+const router = express.Router();
+const Suggestion = require('../models/Suggestion');
+
+// List suggestions (sort: top | new | planned)
+router.get('/', async (req, res) => {
+  try {
+    const sort = req.query.sort || 'top';
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+
+    let query = {};
+    if (sort === 'planned') {
+      query.status = { $in: ['planned', 'in_progress', 'under_review'] };
+    }
+
+    let sortOption = { createdAt: -1 };
+    if (sort === 'top') {
+      sortOption = { upvotes: -1, createdAt: -1 };
+    } else if (sort === 'new') {
+      sortOption = { createdAt: -1 };
+    } else if (sort === 'planned') {
+      sortOption = { upvotes: -1, createdAt: -1 };
+    }
+
+    const suggestions = await Suggestion.find(query)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    const total = await Suggestion.countDocuments(sort === 'planned' ? query : {});
+    res.json({ suggestions, total });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create suggestion
+router.post('/', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { title, category, details } = req.body;
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+    const detailsStr = details ? String(details).trim() : '';
+    const wordCount = detailsStr ? detailsStr.split(/\s+/).filter(Boolean).length : 0;
+    if (wordCount > 1000) {
+      return res.status(400).json({ error: 'Details must be 1000 words or fewer.' });
+    }
+    const categoryList = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion'];
+    const suggestion = new Suggestion({
+      title: title.trim(),
+      category: categoryList.includes(category) ? category : 'Feature Request',
+      details: detailsStr,
+      authorId: userId,
+      authorName: req.body.authorName || 'Anonymous',
+      authorImageUrl: req.body.authorImageUrl || ''
+    });
+    await suggestion.save();
+    res.status(201).json(suggestion);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get user's submissions (my suggestions) – must be before /:id
+router.get('/my/submissions', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const suggestions = await Suggestion.find({ authorId: userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json(suggestions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single suggestion
+router.get('/:id', async (req, res) => {
+  try {
+    const suggestion = await Suggestion.findById(req.params.id).lean();
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    res.json(suggestion);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Vote (upvote) on suggestion
+router.post('/:id/vote', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const suggestion = await Suggestion.findById(req.params.id);
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    const existingIndex = suggestion.votes.findIndex((v) => v.userId === userId);
+    if (existingIndex !== -1) {
+      suggestion.votes.splice(existingIndex, 1);
+      suggestion.upvotes = Math.max(0, suggestion.upvotes - 1);
+    } else {
+      suggestion.votes.push({ userId, voteType: 'upvote' });
+      suggestion.upvotes += 1;
+    }
+    suggestion.updatedAt = new Date();
+    await suggestion.save();
+    res.json(suggestion);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Get vote status for current user
+router.get('/:id/vote-status', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const suggestion = await Suggestion.findById(req.params.id);
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    const hasVoted = suggestion.votes.some((v) => v.userId === userId);
+    res.json({ hasVoted, upvotes: suggestion.upvotes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add comment to suggestion
+router.post('/:id/comments', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const { text } = req.body;
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ error: 'Comment text is required' });
+    }
+    const suggestion = await Suggestion.findById(req.params.id);
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    suggestion.comments.push({
+      authorId: userId,
+      authorName: req.body.authorName || 'Anonymous',
+      authorImageUrl: req.body.authorImageUrl || '',
+      text: String(text).trim()
+    });
+    suggestion.updatedAt = new Date();
+    await suggestion.save();
+    res.status(201).json(suggestion);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+module.exports = router;

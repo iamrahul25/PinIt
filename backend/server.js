@@ -49,6 +49,7 @@ app.use('/api/pins', require('./routes/pins'));
 app.use('/api/comments', require('./routes/comments'));
 app.use('/api/votes', require('./routes/votes'));
 app.use('/api/images', require('./routes/images'));
+app.use('/api/suggestions', require('./routes/suggestions'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

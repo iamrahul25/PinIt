@@ -107,6 +107,25 @@
   color: #fff;
 }
 
+.header-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.header-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
 .logout-btn {
   display: inline-flex;
   align-items: center;

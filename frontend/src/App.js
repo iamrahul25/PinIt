@@ -7,6 +7,7 @@ import PinDetails from './components/PinDetails';
 import Toast from './components/Toast';
 import PinListPanel from './components/PinListPanel';
 import UserProfile from './pages/UserProfile';
+import Suggestions from './pages/Suggestions';
 import { reverseGeocode } from './utils/geocode';
 import { API_BASE_URL } from './config';
 import './App.css';
@@ -17,6 +18,7 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const isProfilePage = location.pathname === '/profile';
+  const isSuggestionsPage = location.pathname === '/suggestions';
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null);
@@ -310,6 +312,14 @@ function App() {
               </span>
             )}
           </button>
+          <button
+            type="button"
+            className="header-nav-btn"
+            onClick={() => navigate('/suggestions')}
+            title="Suggestions"
+          >
+            Suggestions
+          </button>
           <button type="button" className="logout-btn" onClick={handleSignOut}>
             <span className="logout-btn-icon" aria-hidden="true">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -325,6 +335,10 @@ function App() {
       {isProfilePage ? (
         <div className="app-profile-container">
           <UserProfile />
+        </div>
+      ) : isSuggestionsPage ? (
+        <div className="app-profile-container">
+          <Suggestions />
         </div>
       ) : (
       <div className="map-container">

@@ -18,6 +18,7 @@ root.render(
             <Route path="/profile" element={<App />} />
             <Route path="/suggestions" element={<App />} />
             <Route path="/ngos" element={<App />} />
+            <Route path="/events" element={<App />} />
             <Route path="/pin/:pinId" element={<App />} />
             <Route path="/" element={<App />} />
             <Route path="*" element={<Navigate to="/" replace />} />

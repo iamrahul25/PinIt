@@ -9,6 +9,7 @@ import PinListPanel from './components/PinListPanel';
 import UserProfile from './pages/UserProfile';
 import Suggestions from './pages/Suggestions';
 import NGOs from './pages/NGOs';
+import Events from './pages/Events';
 import { reverseGeocode } from './utils/geocode';
 import { API_BASE_URL } from './config';
 import './App.css';
@@ -21,6 +22,7 @@ function App() {
   const isProfilePage = location.pathname === '/profile';
   const isSuggestionsPage = location.pathname === '/suggestions';
   const isNgosPage = location.pathname === '/ngos';
+  const isEventsPage = location.pathname === '/events';
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null);
@@ -330,6 +332,14 @@ function App() {
           >
             NGO's
           </button>
+          <button
+            type="button"
+            className="header-nav-btn"
+            onClick={() => navigate('/events')}
+            title="Events"
+          >
+            Events
+          </button>
           <button type="button" className="logout-btn" onClick={handleSignOut}>
             <span className="logout-btn-icon" aria-hidden="true">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -353,6 +363,10 @@ function App() {
       ) : isNgosPage ? (
         <div className="app-profile-container">
           <NGOs />
+        </div>
+      ) : isEventsPage ? (
+        <div className="app-profile-container">
+          <Events />
         </div>
       ) : (
       <div className="map-container">

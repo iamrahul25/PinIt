@@ -69,6 +69,7 @@ const STATUS_CLASS = {
 
 const MAX_DETAILS_WORDS = 1000;
 const DETAILS_PREVIEW_LENGTH = 200;
+const FIRST_COMMENT_PREVIEW_LENGTH = 80;
 
 function SuggestionDescription({ text }) {
   const [expanded, setExpanded] = useState(false);
@@ -125,6 +126,10 @@ export default function Suggestions() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [expandedCommentsId, setExpandedCommentsId] = useState(null);
+  const [commentText, setCommentText] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [commentError, setCommentError] = useState('');
   const fetchIdRef = useRef(0);
   const imageInputRef = useRef(null);
 
@@ -346,6 +351,43 @@ export default function Suggestions() {
 
   const handleLoadMore = () => {
     fetchSuggestions(sort, skip, true, view, stateFilter);
+  };
+
+  const handleAddComment = async (suggestionId) => {
+    const text = commentText.trim();
+    if (!text) return;
+    setCommentError('');
+    setCommentSubmitting(true);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text,
+          authorName: user?.fullName || user?.email || 'Anonymous',
+          authorImageUrl: user?.imageUrl || ''
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to add comment');
+      }
+      const updated = await res.json();
+      setSuggestions((prev) =>
+        prev.map((s) => (s._id === suggestionId ? { ...s, comments: updated.comments || s.comments } : s))
+      );
+      setCommentText('');
+    } catch (err) {
+      setCommentError(err.message || 'Could not add comment');
+    } finally {
+      setCommentSubmitting(false);
+    }
+  };
+
+  const toggleComments = (suggestionId) => {
+    setExpandedCommentsId((prev) => (prev === suggestionId ? null : suggestionId));
+    setCommentError('');
+    setCommentText('');
   };
 
   if (authLoading) {
@@ -627,10 +669,15 @@ export default function Suggestions() {
                               </span>
                               {s.category}
                             </span>
-                            <span className="suggestions-comments-count">
+                            <button
+                              type="button"
+                              className={`suggestions-comments-count ${expandedCommentsId === s._id ? 'expanded' : ''}`}
+                              onClick={() => toggleComments(s._id)}
+                              aria-expanded={expandedCommentsId === s._id}
+                            >
                               <span className="material-icons-round" aria-hidden="true">chat_bubble</span>
                               {commentCount} comment{commentCount !== 1 ? 's' : ''}
-                            </span>
+                            </button>
                           </div>
                           <div className="suggestions-card-meta-right">
                             {s.authorImageUrl ? (
@@ -648,6 +695,119 @@ export default function Suggestions() {
                             <span className="suggestions-time">{formatTimeAgo(s.createdAt)}</span>
                           </div>
                         </div>
+
+                        {/* First comment preview on card – click to expand full comments */}
+                        {(s.comments || []).length > 0 && expandedCommentsId !== s._id && (() => {
+                          const first = s.comments[0];
+                          const previewText = (first.text || '').length > FIRST_COMMENT_PREVIEW_LENGTH
+                            ? (first.text || '').slice(0, FIRST_COMMENT_PREVIEW_LENGTH).trim() + '…'
+                            : (first.text || '');
+                          return (
+                            <button
+                              type="button"
+                              className="suggestions-first-comment-preview"
+                              onClick={() => toggleComments(s._id)}
+                              aria-expanded="false"
+                              aria-label={`View all ${commentCount} comments`}
+                            >
+                              <div className="suggestions-first-comment-inner">
+                                <div className="suggestions-first-comment-avatar-wrap">
+                                  {first.authorImageUrl ? (
+                                    <img
+                                      src={first.authorImageUrl}
+                                      alt=""
+                                      className="suggestions-first-comment-avatar"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                  ) : (
+                                    <span className="suggestions-first-comment-avatar-placeholder">
+                                      {(first.authorName || '?').charAt(0).toUpperCase()}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="suggestions-first-comment-body">
+                                  <div className="suggestions-first-comment-meta">
+                                    <span className="suggestions-first-comment-author">{first.authorName || 'Anonymous'}</span>
+                                    <span className="suggestions-first-comment-time">{formatTimeAgo(first.createdAt)}</span>
+                                  </div>
+                                  <p className="suggestions-first-comment-text">{previewText}</p>
+                                </div>
+                              </div>
+                              <span className="suggestions-expand-comments-label">
+                                <span className="material-icons-round" aria-hidden="true">expand_more</span>
+                                View all {commentCount} comment{commentCount !== 1 ? 's' : ''}
+                              </span>
+                            </button>
+                          );
+                        })()}
+
+                        {expandedCommentsId === s._id && (
+                          <div className="suggestions-card-comments">
+                            <button
+                              type="button"
+                              className="suggestions-comments-collapse-btn"
+                              onClick={() => toggleComments(s._id)}
+                              aria-label="Collapse comments"
+                            >
+                              <span className="material-icons-round" aria-hidden="true">expand_less</span>
+                              Collapse comments
+                            </button>
+                            <div className="suggestions-comments-list">
+                              {(s.comments || []).map((c, idx) => (
+                                <div key={idx} className="suggestions-comment">
+                                  <div className="suggestions-comment-avatar-wrap">
+                                    {c.authorImageUrl ? (
+                                      <img
+                                        src={c.authorImageUrl}
+                                        alt=""
+                                        className="suggestions-comment-avatar"
+                                        referrerPolicy="no-referrer"
+                                      />
+                                    ) : (
+                                      <span className="suggestions-comment-avatar-placeholder">
+                                        {(c.authorName || '?').charAt(0).toUpperCase()}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="suggestions-comment-body">
+                                    <div className="suggestions-comment-meta">
+                                      <span className="suggestions-comment-author">{c.authorName || 'Anonymous'}</span>
+                                      <span className="suggestions-comment-time">{formatTimeAgo(c.createdAt)}</span>
+                                    </div>
+                                    <p className="suggestions-comment-text">{c.text}</p>
+                                  </div>
+                                </div>
+                              ))}
+                              {(s.comments || []).length === 0 && (
+                                <p className="suggestions-comments-empty">No comments yet. Be the first to comment.</p>
+                              )}
+                            </div>
+                            <div className="suggestions-add-comment">
+                              {commentError && expandedCommentsId === s._id && (
+                                <div className="suggestions-msg suggestions-msg-error" role="alert">{commentError}</div>
+                              )}
+                              <div className="suggestions-add-comment-row">
+                                <textarea
+                                  className="suggestions-input suggestions-comment-input"
+                                  placeholder="Write a comment..."
+                                  rows={2}
+                                  value={expandedCommentsId === s._id ? commentText : ''}
+                                  onChange={(e) => setCommentText(e.target.value)}
+                                  aria-label="Comment text"
+                                />
+                                <button
+                                  type="button"
+                                  className="suggestions-comment-submit-btn"
+                                  onClick={() => handleAddComment(s._id)}
+                                  disabled={commentSubmitting || !commentText.trim()}
+                                >
+                                  <span className="material-icons-round" aria-hidden="true">send</span>
+                                  {commentSubmitting ? 'Posting...' : 'Post'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </article>
                   );

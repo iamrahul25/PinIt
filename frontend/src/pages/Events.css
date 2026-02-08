@@ -610,12 +610,19 @@
 .events-card-pin-link {
   font-size: 0.75rem;
   margin: 0 0 0.5rem 0;
+  word-break: break-word;
+}
+
+.events-card-pin-label {
+  font-weight: 600;
+  color: #334155;
 }
 
 .events-card-pin-link a {
   color: #4F46E5;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
+  word-break: break-all;
 }
 
 .events-card-pin-link a:hover {
@@ -647,6 +654,16 @@
   font-size: 0.6rem;
   font-weight: 700;
   color: #94a3b8;
+}
+
+.events-card-detail-link {
+  color: #4F46E5;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.events-card-detail-link:hover {
+  text-decoration: underline;
 }
 
 .events-load-more-wrap {

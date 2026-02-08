@@ -10,6 +10,7 @@ import UserProfile from './pages/UserProfile';
 import Suggestions from './pages/Suggestions';
 import NGOs from './pages/NGOs';
 import Events from './pages/Events';
+import EventDetail from './pages/EventDetail';
 import { reverseGeocode } from './utils/geocode';
 import { API_BASE_URL } from './config';
 import './App.css';
@@ -23,6 +24,7 @@ function App() {
   const isSuggestionsPage = location.pathname === '/suggestions';
   const isNgosPage = location.pathname === '/ngos';
   const isEventsPage = location.pathname === '/events';
+  const isEventDetailPage = location.pathname.startsWith('/events/') && location.pathname !== '/events';
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null);
@@ -363,6 +365,10 @@ function App() {
       ) : isNgosPage ? (
         <div className="app-profile-container">
           <NGOs />
+        </div>
+      ) : isEventDetailPage ? (
+        <div className="app-profile-container">
+          <EventDetail />
         </div>
       ) : isEventsPage ? (
         <div className="app-profile-container">

@@ -18,11 +18,16 @@ router.get('/', async (req, res) => {
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const city = (req.query.city || '').trim();
     const dateFilter = req.query.date; // YYYY-MM-DD optional
+    const pinId = (req.query.pinId || '').trim();
     const userId = req.auth?.userId;
 
     const query = {};
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
+
+    if (pinId) {
+      query.pinId = pinId;
+    }
 
     if (dateFilter) {
       const [y, m, d] = dateFilter.split('-').map(Number);
@@ -33,9 +38,10 @@ router.get('/', async (req, res) => {
       } else {
         query.date = { $gte: today };
       }
-    } else {
+    } else if (!pinId) {
       query.date = { $gte: today };
     }
+    // When filtering by pinId only, include all events (upcoming and past) for that pin
 
     if (city) {
       query['location.city'] = new RegExp(city, 'i');

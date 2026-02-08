@@ -768,22 +768,27 @@ export default function Events() {
                       )}
                       {ev.pinId && (
                         <p className="events-card-pin-link">
+                          <span className="events-card-pin-label">Pin URL: </span>
                           <a
                             href={`${window.location.origin}/pin/${ev.pinId}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => {
-                              if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                                e.preventDefault();
-                                window.open(`${window.location.origin}/pin/${ev.pinId}`, '_blank', 'noopener,noreferrer');
-                              }
-                            }}
                           >
-                            View Pin on Pin-it
+                            {`${window.location.origin}/pin/${ev.pinId}`}
                           </a>
                         </p>
                       )}
                       <div className="events-card-meta">
+                        <a
+                          href={`/events/${ev._id}`}
+                          className="events-card-detail-link"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            navigate(`/events/${ev._id}`);
+                          }}
+                        >
+                          View full event details
+                        </a>
                         <span>By {ev.authorName || 'Anonymous'}</span>
                       </div>
                     </div>

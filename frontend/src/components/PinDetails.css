@@ -509,6 +509,73 @@
   color: var(--pin-slate-500);
 }
 
+/* Scheduled events for this pin */
+.pin-details-events-section {
+  padding: 1rem;
+  background: rgba(238, 242, 255, 0.5);
+  border-radius: 12px;
+  border-left: 4px solid var(--pin-indigo-600, #4f46e5);
+}
+
+.pin-details-events-loading {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--pin-slate-500);
+}
+
+.pin-details-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pin-details-event-card {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--pin-slate-100);
+}
+
+.pin-details-event-card:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.pin-details-event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.pin-details-event-date {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pin-slate-700);
+}
+
+.pin-details-event-time {
+  font-size: 0.75rem;
+  color: var(--pin-slate-500);
+}
+
+.pin-details-event-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--pin-slate-800);
+}
+
+.pin-details-event-link {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--pin-indigo-600, #4f46e5);
+  text-decoration: none;
+}
+
+.pin-details-event-link:hover {
+  text-decoration: underline;
+}
+
 /* Comments */
 .pin-details-comments-section {
   padding-top: 1.5rem;

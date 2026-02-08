@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
@@ -7,6 +8,7 @@ import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import './PinDetails.css';
 
 const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, onUnsave }) => {
+  const navigate = useNavigate();
   const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
   const displayName = user?.fullName || user?.email || 'Anonymous';
@@ -18,6 +20,8 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [scheduledEvents, setScheduledEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
   const imageModalRef = useRef(null);
 
   useEffect(() => {
@@ -26,6 +30,28 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
     fetchVoteStatus();
     fetchImages();
   }, [authLoading, getToken, pin._id, userId]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    let cancelled = false;
+    const fetchEventsForPin = async () => {
+      setEventsLoading(true);
+      try {
+        const config = await getAuthConfig();
+        const response = await axios.get(`${API_BASE_URL}/api/events?pinId=${encodeURIComponent(pin._id)}&limit=20`, config);
+        const data = response.data;
+        if (!cancelled && data.events) {
+          setScheduledEvents(data.events);
+        }
+      } catch (err) {
+        if (!cancelled) setScheduledEvents([]);
+      } finally {
+        if (!cancelled) setEventsLoading(false);
+      }
+    };
+    fetchEventsForPin();
+    return () => { cancelled = true; };
+  }, [authLoading, pin._id]);
   useEffect(() => {
     setVoteStatus((prev) => ({ ...prev, upvotes: pin.upvotes, downvotes: pin.downvotes }));
   }, [pin.upvotes, pin.downvotes]);
@@ -222,6 +248,26 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
     });
   };
 
+  const formatEventDate = (dateStr) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatEventTime = (startTime, endTime, durationHours) => {
+    if (!startTime && (durationHours == null || durationHours < 1)) return '';
+    const format = (t) => {
+      if (!t || typeof t !== 'string') return '';
+      const [h, m] = t.trim().split(':').map((n) => parseInt(n, 10) || 0);
+      const hour = h % 24;
+      const ampm = hour < 12 ? 'AM' : 'PM';
+      const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+      return `${hour12}:${String(m).padStart(2, '0')} ${ampm}`;
+    };
+    if (startTime && endTime) return `${format(startTime)} – ${format(endTime)}`;
+    if (startTime && durationHours >= 1) return `${format(startTime)} · ${durationHours}h`;
+    return format(startTime) || '';
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -396,6 +442,45 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
                     </div>
                   )}
                 </div>
+              </section>
+            )}
+
+            {(eventsLoading || scheduledEvents.length > 0) && (
+              <section className="pin-details-section pin-details-events-section">
+                <h3 className="pin-details-section-title">
+                  <span className="material-icons-round">event</span>
+                  Event scheduled for this pin
+                </h3>
+                {eventsLoading ? (
+                  <p className="pin-details-events-loading">Loading events...</p>
+                ) : (
+                  <div className="pin-details-events-list">
+                    {scheduledEvents.map((ev) => (
+                      <div key={ev._id} className="pin-details-event-card">
+                        <div className="pin-details-event-meta">
+                          <span className="pin-details-event-date">{formatEventDate(ev.date)}</span>
+                          {(ev.startTime || ev.endTime || ev.durationHours) && (
+                            <span className="pin-details-event-time">
+                              {formatEventTime(ev.startTime, ev.endTime, ev.durationHours)}
+                            </span>
+                          )}
+                        </div>
+                        <p className="pin-details-event-title">{ev.title}</p>
+                        <a
+                          href={`/events/${ev._id}`}
+                          className="pin-details-event-link"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            onClose();
+                            navigate(`/events/${ev._id}`);
+                          }}
+                        >
+                          View full event details
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
 

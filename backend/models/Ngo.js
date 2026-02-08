@@ -38,6 +38,10 @@ const ngoSchema = new mongoose.Schema({
     name: { type: String, default: '', trim: true },
     city: { type: String, default: '', trim: true }
   },
+  foundInYear: { type: Number, default: null },
+  numberOfCities: { type: Number, default: null },
+  upvotes: { type: Number, default: 0 },
+  votes: [{ userId: String, voteType: { type: String, default: 'upvote' } }],
   logoUrl: {
     type: String,
     required: true
@@ -63,5 +67,6 @@ const ngoSchema = new mongoose.Schema({
 ngoSchema.index({ authorId: 1 });
 ngoSchema.index({ createdAt: -1 });
 ngoSchema.index({ level: 1 });
+ngoSchema.index({ upvotes: -1 });
 
 module.exports = mongoose.model('Ngo', ngoSchema);

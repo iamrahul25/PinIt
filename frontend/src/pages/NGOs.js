@@ -53,6 +53,8 @@ export default function NGOs() {
     name: '',
     email: '',
     level: 'City',
+    foundInYear: '',
+    numberOfCities: '',
     website: '',
     instagram: '',
     linkedin: '',
@@ -203,6 +205,10 @@ export default function NGOs() {
       }
       const whatTheyDoList = [...form.whatTheyDo];
       if (form.otherWhatTheyDo.trim()) whatTheyDoList.push(form.otherWhatTheyDo.trim());
+      const instagramInput = form.instagram.trim();
+      const instagramUsername = instagramInput.match(/instagram\.com\/([^/?]+)/i)
+        ? instagramInput.replace(/^.*instagram\.com\/([^/?]+).*$/i, '$1').replace(/^@/, '')
+        : instagramInput.replace(/^@/, '');
       const res = await authFetch(`${API_BASE_URL}/api/ngos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,9 +216,11 @@ export default function NGOs() {
           name: form.name.trim(),
           email: form.email.trim() || undefined,
           level: form.level,
+          foundInYear: form.foundInYear.trim() ? parseInt(form.foundInYear, 10) : undefined,
+          numberOfCities: form.numberOfCities.trim() ? Math.max(0, parseInt(form.numberOfCities, 10)) : undefined,
           socialMedia: {
             website: form.website.trim() || '',
-            instagram: form.instagram.trim() || '',
+            instagram: instagramUsername,
             linkedin: form.linkedin.trim() || '',
             facebook: form.facebook.trim() || '',
             other: form.otherSocial.trim() || ''
@@ -236,6 +244,8 @@ export default function NGOs() {
         name: '',
         email: '',
         level: 'City',
+        foundInYear: '',
+        numberOfCities: '',
         website: '',
         instagram: '',
         linkedin: '',
@@ -259,6 +269,27 @@ export default function NGOs() {
 
   const handleLoadMore = () => {
     fetchNgos(skip, true);
+  };
+
+  const handleVote = async (ngoId) => {
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/ngos/${ngoId}/vote`, { method: 'POST' });
+      if (!res.ok) throw new Error('Failed to vote');
+      const data = await res.json();
+      setNgos((prev) =>
+        prev.map((n) =>
+          n._id === ngoId ? { ...n, upvotes: data.upvotes, hasVoted: data.hasVoted } : n
+        )
+      );
+    } catch (err) {
+      setError(err.message || 'Could not update vote');
+    }
+  };
+
+  const instagramUrl = (username) => {
+    if (!username) return '';
+    const u = username.replace(/^@/, '').trim();
+    return u ? `https://www.instagram.com/${u}` : '';
   };
 
   if (authLoading) {
@@ -312,6 +343,30 @@ export default function NGOs() {
                   </select>
                 </div>
 
+                <div className="ngos-field">
+                  <label className="ngos-label">Found in Year <span className="ngos-optional">(optional)</span></label>
+                  <input
+                    type="number"
+                    className="ngos-input"
+                    placeholder="e.g. 2015"
+                    min="1900"
+                    max={new Date().getFullYear()}
+                    value={form.foundInYear}
+                    onChange={(e) => setForm((f) => ({ ...f, foundInYear: e.target.value }))}
+                  />
+                </div>
+                <div className="ngos-field">
+                  <label className="ngos-label">No. of cities it operates in <span className="ngos-optional">(optional)</span></label>
+                  <input
+                    type="number"
+                    className="ngos-input"
+                    placeholder="e.g. 10"
+                    min="0"
+                    value={form.numberOfCities}
+                    onChange={(e) => setForm((f) => ({ ...f, numberOfCities: e.target.value }))}
+                  />
+                </div>
+
                 <div className="ngos-field-group">
                   <span className="ngos-group-label">Social media</span>
                   <div className="ngos-field">
@@ -325,11 +380,11 @@ export default function NGOs() {
                     />
                   </div>
                   <div className="ngos-field">
-                    <label className="ngos-label">Instagram</label>
+                    <label className="ngos-label">Instagram username only</label>
                     <input
                       type="text"
                       className="ngos-input"
-                      placeholder="Username or URL"
+                      placeholder="e.g. vrikshitfoundation (link: https://www.instagram.com/vrikshitfoundation)"
                       value={form.instagram}
                       onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))}
                     />
@@ -369,7 +424,7 @@ export default function NGOs() {
                 <div className="ngos-field">
                   <label className="ngos-label">What they do</label>
                   <div className="ngos-checkbox-group">
-                    {WHAT_THEY_DO_OPTIONS.filter((o) => o !== 'Other').map((opt) => (
+                    {WHAT_THEY_DO_OPTIONS.map((opt) => (
                       <label key={opt} className="ngos-checkbox-wrap">
                         <input
                           type="checkbox"
@@ -521,22 +576,47 @@ export default function NGOs() {
               <div className="ngos-loading">Loading NGOs...</div>
             ) : (
               <div className="ngos-list">
-                {ngos.map((n) => (
+                {ngos.map((n) => {
+                  const hasVoted = n.hasVoted === true;
+                  const upvotes = n.upvotes ?? 0;
+                  return (
                   <article key={n._id} className="ngos-card">
-                    <div className="ngos-card-logo">
-                      {n.logoUrl ? (
-                        <img src={n.logoUrl} alt="" className="ngos-card-logo-img" />
-                      ) : (
-                        <span className="ngos-card-logo-placeholder">
-                          <span className="material-icons-round">business</span>
-                        </span>
-                      )}
+                    <div className="ngos-card-logo-wrap">
+                      <div className="ngos-card-logo">
+                        {n.logoUrl ? (
+                          <img src={n.logoUrl} alt="" className="ngos-card-logo-img" />
+                        ) : (
+                          <span className="ngos-card-logo-placeholder">
+                            <span className="material-icons-round">business</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="ngos-card-vote">
+                        <button
+                          type="button"
+                          className={`ngos-vote-btn ${hasVoted ? 'voted' : ''}`}
+                          onClick={() => handleVote(n._id)}
+                          aria-label={hasVoted ? 'Remove like' : 'Like this NGO'}
+                        >
+                          <span className="material-icons-round">favorite</span>
+                          <span className="ngos-vote-count">{upvotes}</span>
+                        </button>
+                      </div>
                     </div>
                     <div className="ngos-card-body">
                       <div className="ngos-card-head">
                         <h3 className="ngos-card-title">{n.name}</h3>
                         <span className="ngos-level-pill">{n.level}</span>
                       </div>
+                      {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0)) && (
+                        <p className="ngos-card-extra">
+                          {n.foundInYear != null && <span>Founded {n.foundInYear}</span>}
+                          {n.foundInYear != null && n.numberOfCities != null && n.numberOfCities > 0 && ' · '}
+                          {n.numberOfCities != null && n.numberOfCities > 0 && (
+                            <span>Operates in {n.numberOfCities} {n.numberOfCities === 1 ? 'city' : 'cities'}</span>
+                          )}
+                        </p>
+                      )}
                       {n.aboutDescription && (
                         <div className="ngos-card-desc-wrap">
                           <p className="ngos-card-desc">
@@ -591,7 +671,7 @@ export default function NGOs() {
                             <a href={n.socialMedia.website} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Website">🌐</a>
                           )}
                           {n.socialMedia?.instagram && (
-                            <a href={n.socialMedia.instagram.startsWith('http') ? n.socialMedia.instagram : `https://instagram.com/${n.socialMedia.instagram}`} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Instagram">📷</a>
+                            <a href={instagramUrl(n.socialMedia.instagram)} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Instagram">📷</a>
                           )}
                           {n.socialMedia?.linkedin && (
                             <a href={n.socialMedia.linkedin.startsWith('http') ? n.socialMedia.linkedin : `https://linkedin.com/company/${n.socialMedia.linkedin}`} target="_blank" rel="noopener noreferrer" className="ngos-link" title="LinkedIn">in</a>
@@ -604,7 +684,8 @@ export default function NGOs() {
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             )}
 

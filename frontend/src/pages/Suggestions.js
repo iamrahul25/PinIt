@@ -203,6 +203,23 @@ export default function Suggestions() {
     } catch (_) {}
   };
 
+  const handleDelete = async (suggestionId) => {
+    if (!window.confirm('Delete this suggestion? This cannot be undone.')) return;
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete');
+      }
+      setSuggestions((prev) => prev.filter((s) => s._id !== suggestionId));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err) {
+      setError(err.message || 'Could not delete suggestion');
+    }
+  };
+
   const handleLoadMore = () => {
     fetchSuggestions(sort, skip, true);
   };
@@ -348,9 +365,22 @@ export default function Suggestions() {
                       <div className="suggestions-card-body">
                         <div className="suggestions-card-head">
                           <h3 className="suggestions-card-title">{s.title}</h3>
-                          <span className={`suggestions-status suggestions-status-${STATUS_CLASS[s.status] || 'planned'}`}>
-                            {STATUS_LABELS[s.status] || 'Planned'}
-                          </span>
+                          <div className="suggestions-card-head-right">
+                            <span className={`suggestions-status suggestions-status-${STATUS_CLASS[s.status] || 'planned'}`}>
+                              {STATUS_LABELS[s.status] || 'Planned'}
+                            </span>
+                            {user?.role === 'admin' && (
+                              <button
+                                type="button"
+                                className="suggestions-delete-btn"
+                                onClick={() => handleDelete(s._id)}
+                                aria-label="Delete suggestion"
+                                title="Delete suggestion"
+                              >
+                                <span className="material-icons-round">delete</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <SuggestionDescription text={s.details} />
                         <div className="suggestions-card-meta">

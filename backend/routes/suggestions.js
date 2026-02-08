@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Suggestion = require('../models/Suggestion');
+const UserData = require('../models/UserData');
 
 // List suggestions (sort: top | new | planned) – includes hasVoted for current user
 router.get('/', async (req, res) => {
@@ -147,6 +148,28 @@ router.get('/:id/vote-status', async (req, res) => {
     }
     const hasVoted = suggestion.votes.some((v) => v.userId === userId);
     res.json({ hasVoted, upvotes: suggestion.upvotes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete suggestion (admin only) – role verified from DB to prevent tampering
+router.delete('/:id', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    // Double verification: always read role from DB, never trust client/body
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    if (!userDoc || userDoc.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required to delete suggestions' });
+    }
+    const suggestion = await Suggestion.findByIdAndDelete(req.params.id);
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

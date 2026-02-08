@@ -30,7 +30,7 @@ router.post('/google', async (req, res) => {
     const picture = payload.picture || '';
     const emailVerified = !!payload.email_verified;
 
-    await UserData.findOneAndUpdate(
+    const userDoc = await UserData.findOneAndUpdate(
       { userId },
       {
         $set: {
@@ -39,9 +39,9 @@ router.post('/google', async (req, res) => {
           emailVerified,
           updatedAt: new Date()
         },
-        $setOnInsert: { pinIds: [], createdAt: new Date() }
+        $setOnInsert: { pinIds: [], createdAt: new Date(), role: 'user' }
       },
-      { upsert: true }
+      { upsert: true, new: true }
     );
 
     const token = jwt.sign(
@@ -56,7 +56,8 @@ router.post('/google', async (req, res) => {
         id: userId,
         email,
         fullName: name,
-        imageUrl: picture
+        imageUrl: picture,
+        role: userDoc.role || 'user'
       }
     });
   } catch (error) {

@@ -23,7 +23,9 @@ const suggestionSchema = new mongoose.Schema({
     }
   },
   status: {
-    type: String
+    type: String,
+    enum: ['new', 'todo', 'in_progress', 'hold', 'in_review', 'done', 'cancelled'],
+    default: 'new'
   },
   authorId: {
     type: String,

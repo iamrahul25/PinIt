@@ -298,6 +298,62 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
+.suggestions-board-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.suggestions-board-header .suggestions-state-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.suggestions-state-filter-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.suggestions-state-select {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  min-width: 7rem;
+}
+
+.suggestions-state-select:focus {
+  outline: none;
+  border-color: #4F46E5;
+}
+
+.suggestions-state-dropdown {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  min-width: 6.5rem;
+}
+
+.suggestions-state-dropdown:focus {
+  outline: none;
+  border-color: #4F46E5;
+}
+
 .suggestions-loading {
   text-align: center;
   padding: 2.4rem;
@@ -459,7 +515,12 @@
   letter-spacing: 0.05em;
 }
 
-.suggestions-status-status-planned {
+.suggestions-status-status-new {
+  background: #E0E7FF;
+  color: #4338ca;
+}
+
+.suggestions-status-status-todo {
   background: #E0E7FF;
   color: #4338ca;
 }
@@ -469,14 +530,24 @@
   color: #b45309;
 }
 
+.suggestions-status-status-hold {
+  background: #F3E8FF;
+  color: #7c3aed;
+}
+
 .suggestions-status-status-review {
   background: #FEE2E2;
   color: #be123c;
 }
 
-.suggestions-status-status-completed {
+.suggestions-status-status-done {
   background: #DCFCE7;
   color: #15803d;
+}
+
+.suggestions-status-status-cancelled {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .suggestions-card-desc-wrap {

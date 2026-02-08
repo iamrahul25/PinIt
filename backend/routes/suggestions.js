@@ -3,26 +3,37 @@ const router = express.Router();
 const Suggestion = require('../models/Suggestion');
 const UserData = require('../models/UserData');
 
-// List suggestions (sort: top | new | planned) – includes hasVoted for current user
+// List suggestions (sort: top | new, optional state filter) – includes hasVoted for current user
+const VALID_STATES = ['new', 'todo', 'in_progress', 'hold', 'in_review', 'done', 'cancelled'];
+
 router.get('/', async (req, res) => {
   try {
     const sort = req.query.sort || 'top';
+    const state = req.query.state; // optional: filter by one state
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const userId = req.auth?.userId;
 
-    let query = {};
-    if (sort === 'planned') {
-      query.status = { $in: ['planned', 'in_progress', 'under_review'] };
+    const query = {};
+    if (state && VALID_STATES.includes(state)) {
+      // Support legacy status values for existing documents
+      const stateMap = {
+        new: ['new'],
+        todo: ['todo', 'planned'],
+        in_progress: ['in_progress'],
+        hold: ['hold'],
+        in_review: ['in_review', 'under_review'],
+        done: ['done', 'completed'],
+        cancelled: ['cancelled']
+      };
+      query.status = { $in: stateMap[state] };
     }
 
     let sortOption = { createdAt: -1 };
     if (sort === 'top') {
       sortOption = { upvotes: -1, createdAt: -1 };
-    } else if (sort === 'new') {
+    } else {
       sortOption = { createdAt: -1 };
-    } else if (sort === 'planned') {
-      sortOption = { upvotes: -1, createdAt: -1 };
     }
 
     const raw = await Suggestion.find(query)
@@ -36,7 +47,7 @@ router.get('/', async (req, res) => {
       hasVoted: userId && votes && votes.some((v) => v.userId === userId)
     }));
 
-    const total = await Suggestion.countDocuments(sort === 'planned' ? query : {});
+    const total = await Suggestion.countDocuments(query);
     res.json({ suggestions, total });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -64,6 +75,7 @@ router.post('/', async (req, res) => {
       title: title.trim(),
       category: categoryList.includes(category) ? category : 'Feature Request',
       details: detailsStr,
+      status: 'new',
       authorId: userId,
       authorName: req.body.authorName || 'Anonymous',
       authorImageUrl: req.body.authorImageUrl || ''
@@ -148,6 +160,35 @@ router.get('/:id/vote-status', async (req, res) => {
     }
     const hasVoted = suggestion.votes.some((v) => v.userId === userId);
     res.json({ hasVoted, upvotes: suggestion.upvotes });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update suggestion state (admin only)
+router.patch('/:id/state', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    if (!userDoc || userDoc.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required to update suggestion state' });
+    }
+    const { state } = req.body;
+    if (!state || !VALID_STATES.includes(state)) {
+      return res.status(400).json({ error: 'Valid state is required: new, todo, in_progress, hold, in_review, done, cancelled' });
+    }
+    const suggestion = await Suggestion.findByIdAndUpdate(
+      req.params.id,
+      { status: state, updatedAt: new Date() },
+      { new: true }
+    ).lean();
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+    res.json(suggestion);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

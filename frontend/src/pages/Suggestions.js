@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
@@ -13,24 +13,47 @@ const CATEGORY_CONFIG = {
   'UI/UX Suggestion': { icon: 'brush', color: '#7c3aed', bg: '#f5f3ff' },
   'Other': { icon: 'apps', color: '#64748b', bg: '#f1f5f9' }
 };
-const SORT_OPTIONS = [
-  { key: 'top', label: 'Top' },
+const VIEW_FILTERS = [
+  { key: 'all', label: 'All', sort: 'top', state: '' },
+  { key: 'new', label: 'New', sort: 'new', state: '' },
+  { key: 'done', label: 'Done', sort: 'new', state: 'done' }
+];
+
+const SUGGESTION_STATES = [
+  { key: '', label: 'All' },
   { key: 'new', label: 'New' },
-  { key: 'planned', label: 'Planned' }
+  { key: 'todo', label: 'To-do' },
+  { key: 'in_progress', label: 'In-progress' },
+  { key: 'hold', label: 'Hold' },
+  { key: 'in_review', label: 'In-Review' },
+  { key: 'done', label: 'Done' },
+  { key: 'cancelled', label: 'Cancelled' }
 ];
 
 const STATUS_LABELS = {
-  planned: 'Planned',
-  in_progress: 'In Progress',
-  under_review: 'Under Review',
-  completed: 'Completed'
+  new: 'New',
+  todo: 'To-do',
+  in_progress: 'In-progress',
+  hold: 'Hold',
+  in_review: 'In-Review',
+  done: 'Done',
+  cancelled: 'Cancelled',
+  planned: 'To-do',
+  under_review: 'In-Review',
+  completed: 'Done'
 };
 
 const STATUS_CLASS = {
-  planned: 'status-planned',
+  new: 'status-new',
+  todo: 'status-todo',
   in_progress: 'status-progress',
+  hold: 'status-hold',
+  in_review: 'status-review',
+  done: 'status-done',
+  cancelled: 'status-cancelled',
+  planned: 'status-todo',
   under_review: 'status-review',
-  completed: 'status-completed'
+  completed: 'status-done'
 };
 
 const MAX_DETAILS_WORDS = 1000;
@@ -79,6 +102,7 @@ export default function Suggestions() {
   const [suggestions, setSuggestions] = useState([]);
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState('top');
+  const [stateFilter, setStateFilter] = useState('');
   const [view, setView] = useState('board'); // 'board' | 'my'
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -87,6 +111,7 @@ export default function Suggestions() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const fetchIdRef = useRef(0);
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -99,23 +124,27 @@ export default function Suggestions() {
     return fetch(url, { ...options, headers });
   }, [getAuthHeaders]);
 
-  const fetchSuggestions = useCallback(async (sortBy, skipCount = 0, append = false, viewMode = 'board') => {
+  const fetchSuggestions = useCallback(async (sortBy, skipCount = 0, append = false, viewMode = 'board', filterState = '') => {
+    const currentId = ++fetchIdRef.current;
     try {
       if (skipCount === 0) setLoading(true);
       else setLoadingMore(true);
       if (viewMode === 'my') {
         const res = await authFetch(`${API_BASE_URL}/api/suggestions/my/submissions`);
+        if (currentId !== fetchIdRef.current) return;
         if (!res.ok) throw new Error('Failed to fetch your submissions');
         const list = await res.json();
         setSuggestions(Array.isArray(list) ? list : []);
         setTotal(Array.isArray(list) ? list.length : 0);
         setSkip(list.length);
       } else {
-        const res = await authFetch(
-          `${API_BASE_URL}/api/suggestions?sort=${sortBy}&limit=10&skip=${skipCount}`
-        );
+        const params = new URLSearchParams({ sort: sortBy, limit: 20, skip: skipCount });
+        if (filterState) params.set('state', filterState);
+        const res = await authFetch(`${API_BASE_URL}/api/suggestions?${params.toString()}`);
+        if (currentId !== fetchIdRef.current) return;
         if (!res.ok) throw new Error('Failed to fetch suggestions');
         const data = await res.json();
+        if (currentId !== fetchIdRef.current) return;
         if (append) {
           setSuggestions((prev) => [...prev, ...(data.suggestions || [])]);
         } else {
@@ -125,8 +154,10 @@ export default function Suggestions() {
         setSkip(skipCount + (data.suggestions?.length || 0));
       }
     } catch (err) {
+      if (currentId !== fetchIdRef.current) return;
       setError(err.message || 'Could not load suggestions');
     } finally {
+      if (currentId !== fetchIdRef.current) return;
       setLoading(false);
       setLoadingMore(false);
     }
@@ -142,8 +173,8 @@ export default function Suggestions() {
   useEffect(() => {
     if (!isSignedIn || authLoading) return;
     setSkip(0);
-    fetchSuggestions(sort, 0, false, view);
-  }, [isSignedIn, authLoading, sort, view, fetchSuggestions]);
+    fetchSuggestions(sort, 0, false, view, stateFilter);
+  }, [isSignedIn, authLoading, sort, view, stateFilter, fetchSuggestions]);
 
   const handleSubmitSuggestion = async (e) => {
     e.preventDefault();
@@ -178,7 +209,7 @@ export default function Suggestions() {
       setSuccess('Suggestion submitted!');
       setForm({ title: '', category: 'Feature Request', details: '' });
       setSkip(0);
-      fetchSuggestions(sort, 0, false, view);
+      fetchSuggestions(sort, 0, false, view, stateFilter);
     } catch (err) {
       setError(err.message || 'Failed to submit');
     } finally {
@@ -203,6 +234,26 @@ export default function Suggestions() {
     } catch (_) {}
   };
 
+  const handleStateChange = async (suggestionId, newState) => {
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}/state`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state: newState })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update state');
+      }
+      const updated = await res.json();
+      setSuggestions((prev) =>
+        prev.map((s) => (s._id === suggestionId ? { ...s, status: updated.status } : s))
+      );
+    } catch (err) {
+      setError(err.message || 'Could not update state');
+    }
+  };
+
   const handleDelete = async (suggestionId) => {
     if (!window.confirm('Delete this suggestion? This cannot be undone.')) return;
     try {
@@ -221,7 +272,7 @@ export default function Suggestions() {
   };
 
   const handleLoadMore = () => {
-    fetchSuggestions(sort, skip, true);
+    fetchSuggestions(sort, skip, true, view, stateFilter);
   };
 
   if (authLoading) {
@@ -317,17 +368,38 @@ export default function Suggestions() {
                 <span className="suggestions-board-count">{total}</span>
               </div>
               {view === 'board' && (
-                <div className="suggestions-sort-tabs">
-                  {SORT_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      className={`suggestions-sort-tab ${sort === opt.key ? 'active' : ''}`}
-                      onClick={() => setSort(opt.key)}
+                <div className="suggestions-board-controls">
+                  <div className="suggestions-sort-tabs">
+                    {VIEW_FILTERS.map((opt) => {
+                      const isActive = opt.key === 'done' ? stateFilter === 'done' : (opt.key === 'new' ? (stateFilter === '' && sort === 'new') : (stateFilter === '' && sort === 'top'));
+                      return (
+                        <button
+                          key={opt.key}
+                          type="button"
+                          className={`suggestions-sort-tab ${isActive ? 'active' : ''}`}
+                          onClick={() => {
+                            setSort(opt.sort);
+                            setStateFilter(opt.state);
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="suggestions-state-filter">
+                    <label className="suggestions-state-filter-label">State:</label>
+                    <select
+                      className="suggestions-state-select"
+                      value={stateFilter}
+                      onChange={(e) => setStateFilter(e.target.value)}
+                      aria-label="Filter by state"
                     >
-                      {opt.label}
-                    </button>
-                  ))}
+                      {SUGGESTION_STATES.map((opt) => (
+                        <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
@@ -339,22 +411,24 @@ export default function Suggestions() {
                 {suggestions.map((s) => {
                   const upvotes = s.upvotes ?? 0;
                   const hasVoted = s.hasVoted ?? false;
-                  const isCompleted = s.status === 'completed';
+                  const isClosed = s.status === 'done' || s.status === 'cancelled' || s.status === 'completed';
                   const commentCount = s.comments?.length ?? 0;
+                  const currentStatus = s.status || 'new';
+                  const dropdownValue = { planned: 'todo', under_review: 'in_review', completed: 'done' }[currentStatus] || currentStatus;
                   return (
                     <article
                       key={s._id}
-                      className={`suggestions-card ${isCompleted ? 'suggestions-card-completed' : ''}`}
+                      className={`suggestions-card ${isClosed ? 'suggestions-card-completed' : ''}`}
                     >
                       <div className="suggestions-card-vote">
                         <button
                           type="button"
-                          className={`suggestions-vote-btn ${hasVoted ? 'voted' : ''} ${isCompleted ? 'completed' : ''}`}
-                          onClick={() => !isCompleted && handleVote(s._id)}
-                          disabled={isCompleted}
+                          className={`suggestions-vote-btn ${hasVoted ? 'voted' : ''} ${isClosed ? 'completed' : ''}`}
+                          onClick={() => !isClosed && handleVote(s._id)}
+                          disabled={isClosed}
                           aria-label={hasVoted ? 'Remove vote' : 'Upvote'}
                         >
-                          {isCompleted ? (
+                          {isClosed ? (
                             <span className="material-icons-round">check_circle</span>
                           ) : (
                             <span className="material-icons-round">expand_less</span>
@@ -366,9 +440,27 @@ export default function Suggestions() {
                         <div className="suggestions-card-head">
                           <h3 className="suggestions-card-title">{s.title}</h3>
                           <div className="suggestions-card-head-right">
-                            <span className={`suggestions-status suggestions-status-${STATUS_CLASS[s.status] || 'planned'}`}>
-                              {STATUS_LABELS[s.status] || 'Planned'}
-                            </span>
+                            {user?.role === 'admin' ? (
+                              <select
+                                className="suggestions-state-dropdown"
+                                value={dropdownValue}
+                                onChange={(e) => handleStateChange(s._id, e.target.value)}
+                                aria-label="Change state"
+                                title="Change state"
+                              >
+                                <option value="new">New</option>
+                                <option value="todo">To-do</option>
+                                <option value="in_progress">In-progress</option>
+                                <option value="hold">Hold</option>
+                                <option value="in_review">In-Review</option>
+                                <option value="done">Done</option>
+                                <option value="cancelled">Cancelled</option>
+                              </select>
+                            ) : (
+                              <span className={`suggestions-status suggestions-status-${STATUS_CLASS[currentStatus] || 'status-new'}`}>
+                                {STATUS_LABELS[currentStatus] || 'New'}
+                              </span>
+                            )}
                             {user?.role === 'admin' && (
                               <button
                                 type="button"

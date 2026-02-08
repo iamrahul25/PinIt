@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
+import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
@@ -6,15 +8,48 @@ import './Events.css';
 
 const DRIVE_TYPES = ['Cleanup', 'Plantation', 'Painting', 'Awareness', 'Other'];
 
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.5,
+  maxWidthOrHeight: 1200,
+  useWebWorker: true,
+  initialQuality: 0.8
+};
+
+/** Extract pin ID from a Pin-it pin URL (e.g. https://example.com/pin/abc123 or /pin/abc123) */
+function extractPinIdFromLink(link) {
+  if (!link || typeof link !== 'string') return null;
+  const trimmed = link.trim();
+  const match = trimmed.match(/\/pin\/([a-zA-Z0-9_-]+)/i);
+  return match ? match[1] : null;
+}
+
+const DURATION_HOURS_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
 function formatEventDate(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function formatEventTime(start, end) {
-  if (!start && !end) return '';
-  if (start && end) return `${start} – ${end}`;
-  return start || end || '';
+/** Format 24h time string (e.g. "14:30") to AM/PM (e.g. "2:30 PM") */
+function formatTimeToAMPM(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return '';
+  const trimmed = timeStr.trim();
+  const [h, m] = trimmed.split(':').map((n) => parseInt(n, 10) || 0);
+  const hour = h % 24;
+  const ampm = hour < 12 ? 'AM' : 'PM';
+  const hour12 = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  const minStr = String(m).padStart(2, '0');
+  return `${hour12}:${minStr} ${ampm}`;
+}
+
+function formatEventTime(start, durationHours) {
+  if (!start && durationHours == null) return '';
+  const startFormatted = start ? formatTimeToAMPM(start) : '';
+  if (durationHours != null && durationHours >= 1) {
+    const durationText = durationHours === 1 ? '1 hour' : `${durationHours} hours`;
+    return startFormatted ? `${startFormatted} · ${durationText}` : durationText;
+  }
+  return startFormatted;
 }
 
 export default function Events() {
@@ -23,27 +58,49 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [total, setTotal] = useState(0);
   const [view, setView] = useState('board');
-  const [filterDate, setFilterDate] = useState('');
-  const [filterCity, setFilterCity] = useState('');
+  const [dateInput, setDateInput] = useState('');
+  const [cityInput, setCityInput] = useState('');
+  const [appliedDate, setAppliedDate] = useState('');
+  const [appliedCity, setAppliedCity] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [skip, setSkip] = useState(0);
   const [form, setForm] = useState({
     title: '',
     description: '',
+    foundationName: '',
     address: '',
     city: '',
     state: '',
     mapUrl: '',
     driveType: '',
     otherDriveName: '',
+    pinLink: '',
     date: '',
     startTime: '',
-    endTime: ''
+    durationHours: ''
   });
+  const [foundationVerified, setFoundationVerified] = useState(null);
+  const [verifyingFoundation, setVerifyingFoundation] = useState(false);
+  const [pinVerified, setPinVerified] = useState(false);
+  const [verifyingPin, setVerifyingPin] = useState(false);
+  const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState('');
+  const bannerInputRef = useRef(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [expandedDescIds, setExpandedDescIds] = useState(new Set());
+
+  const DESC_PREVIEW_LEN = 180;
+  const toggleDesc = (id) => {
+    setExpandedDescIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -69,8 +126,8 @@ export default function Events() {
         setSkip(list.length);
       } else {
         const params = new URLSearchParams({ limit: 10, skip: skipCount });
-        if (filterCity.trim()) params.set('city', filterCity.trim());
-        if (filterDate) params.set('date', filterDate);
+        if (appliedCity.trim()) params.set('city', appliedCity.trim());
+        if (appliedDate) params.set('date', appliedDate);
         const res = await authFetch(`${API_BASE_URL}/api/events?${params}`);
         if (!res.ok) throw new Error('Failed to fetch events');
         const data = await res.json();
@@ -88,7 +145,7 @@ export default function Events() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [authFetch, filterCity, filterDate]);
+  }, [authFetch, appliedCity, appliedDate]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -99,7 +156,99 @@ export default function Events() {
     if (!isSignedIn || authLoading) return;
     setSkip(0);
     fetchEvents(0, false, view);
-  }, [isSignedIn, authLoading, view, filterCity, filterDate, fetchEvents]);
+  }, [isSignedIn, authLoading, view, appliedCity, appliedDate, fetchEvents]);
+
+  const handleFilterSearch = () => {
+    setAppliedCity(cityInput);
+    setAppliedDate(dateInput);
+    setSkip(0);
+  };
+
+  const handleFilterReset = () => {
+    setCityInput('');
+    setDateInput('');
+    setAppliedCity('');
+    setAppliedDate('');
+    setSkip(0);
+  };
+
+  const handleVerifyFoundation = async () => {
+    const name = form.foundationName.trim();
+    if (!name) {
+      setError('Enter foundation name.');
+      setFoundationVerified(null);
+      return;
+    }
+    setError('');
+    setVerifyingFoundation(true);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/ngos/verify?name=${encodeURIComponent(name)}`);
+      const data = await res.json();
+      if (data.found && data.ngo) {
+        setFoundationVerified({ id: data.ngo._id, name: data.ngo.name, logoUrl: data.ngo.logoUrl });
+        setSuccess('Foundation verified.');
+      } else {
+        setFoundationVerified(null);
+        setError('Foundation not found. Add the NGO/foundation on the NGO\'s page first.');
+      }
+    } catch {
+      setFoundationVerified(null);
+      setError('Could not verify foundation.');
+    } finally {
+      setVerifyingFoundation(false);
+    }
+  };
+
+  const handleVerifyPinLink = async () => {
+    const pinId = extractPinIdFromLink(form.pinLink);
+    if (!pinId) {
+      setError('Enter a valid Pin-it link (e.g. https://yoursite.com/pin/abc123).');
+      setPinVerified(false);
+      return;
+    }
+    setError('');
+    setVerifyingPin(true);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/pins/${pinId}`);
+      if (res.ok) {
+        setPinVerified(true);
+        setSuccess('Pin link is valid.');
+      } else {
+        setPinVerified(false);
+        setError('This pin was not found. Check the link and try again.');
+      }
+    } catch {
+      setPinVerified(false);
+      setError('Could not verify pin link. Check the link and try again.');
+    } finally {
+      setVerifyingPin(false);
+    }
+  };
+
+  const handleBannerChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (e.g. JPG, PNG).');
+      return;
+    }
+    setError('');
+    try {
+      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      setBannerFile(compressed);
+      const reader = new FileReader();
+      reader.onloadend = () => setBannerPreview(reader.result);
+      reader.readAsDataURL(compressed);
+    } catch {
+      setError('Failed to process image.');
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const removeBanner = () => {
+    setBannerFile(null);
+    setBannerPreview('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,8 +262,28 @@ export default function Events() {
       setError('Event date is required.');
       return;
     }
+    if (!foundationVerified) {
+      setError('Foundation name is required. Please enter and verify a foundation.');
+      return;
+    }
+    if (form.pinLink.trim() && !pinVerified) {
+      setError('Please verify the pin link before submitting, or remove it.');
+      return;
+    }
     setSubmitting(true);
     try {
+      let bannerUrl = '';
+      if (bannerFile) {
+        const formData = new FormData();
+        formData.append('image', bannerFile);
+        const uploadRes = await axios.post(
+          `${API_BASE_URL}/api/images/upload`,
+          formData,
+          { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
+        );
+        bannerUrl = uploadRes.data?.url || '';
+      }
+      const pinId = extractPinIdFromLink(form.pinLink.trim()) || undefined;
       const res = await authFetch(`${API_BASE_URL}/api/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,9 +298,15 @@ export default function Events() {
           },
           driveType: form.driveType.trim(),
           otherDriveName: form.driveType === 'Other' ? form.otherDriveName.trim() : '',
+          foundationId: foundationVerified.id,
+          foundationName: foundationVerified.name,
+          foundationLogoUrl: foundationVerified.logoUrl || undefined,
+          pinId,
+          pinLink: form.pinLink.trim() || undefined,
+          bannerUrl: bannerUrl || undefined,
           date: form.date,
           startTime: form.startTime.trim(),
-          endTime: form.endTime.trim(),
+          durationHours: form.durationHours !== '' ? Number(form.durationHours) : undefined,
           authorName: user?.fullName || user?.email || 'Anonymous'
         })
       });
@@ -143,16 +318,21 @@ export default function Events() {
       setForm({
         title: '',
         description: '',
+        foundationName: '',
         address: '',
         city: '',
         state: '',
         mapUrl: '',
         driveType: '',
         otherDriveName: '',
+        pinLink: '',
         date: '',
         startTime: '',
-        endTime: ''
+        durationHours: ''
       });
+      setFoundationVerified(null);
+      setPinVerified(false);
+      removeBanner();
       setSkip(0);
       fetchEvents(0, false, view);
     } catch (err) {
@@ -212,6 +392,31 @@ export default function Events() {
                     value={form.title}
                     onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                   />
+                </div>
+                <div className="events-field">
+                  <label className="events-label">Foundation Name <span className="events-required">*</span></label>
+                  <p className="events-field-hint">NGO / foundation conducting the event. Must exist in the NGO list.</p>
+                  <div className="events-pin-link-row">
+                    <input
+                      type="text"
+                      className="events-input"
+                      placeholder="e.g. Green Earth Foundation"
+                      value={form.foundationName}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, foundationName: e.target.value }));
+                        setFoundationVerified(null);
+                        setSuccess('');
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="events-verify-btn"
+                      onClick={handleVerifyFoundation}
+                      disabled={verifyingFoundation || !form.foundationName.trim()}
+                    >
+                      {verifyingFoundation ? 'Checking…' : foundationVerified ? 'Verified ✓' : 'Verify'}
+                    </button>
+                  </div>
                 </div>
                 <div className="events-field">
                   <label className="events-label">Description of Event</label>
@@ -291,6 +496,63 @@ export default function Events() {
                   )}
                 </div>
                 <div className="events-field">
+                  <label className="events-label">Link to Pin (optional)</label>
+                  <p className="events-field-hint">Full URL of a Pin on Pin-it, e.g. https://yoursite.com/pin/abc123</p>
+                  <div className="events-pin-link-row">
+                    <input
+                      type="url"
+                      className="events-input"
+                      placeholder="https://.../pin/pin-id"
+                      value={form.pinLink}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, pinLink: e.target.value }));
+                        setPinVerified(false);
+                        setSuccess('');
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="events-verify-btn"
+                      onClick={handleVerifyPinLink}
+                      disabled={verifyingPin || !form.pinLink.trim()}
+                    >
+                      {verifyingPin ? 'Checking…' : pinVerified ? 'Verified ✓' : 'Verify'}
+                    </button>
+                  </div>
+                </div>
+                <div className="events-field">
+                  <label className="events-label">Banner / drive location photo (max 1)</label>
+                  <div className="events-banner-upload">
+                    {bannerPreview ? (
+                      <div className="events-banner-preview-wrap">
+                        <img src={bannerPreview} alt="Banner preview" className="events-banner-preview" />
+                        <button type="button" className="events-banner-remove" onClick={removeBanner} aria-label="Remove banner">
+                          <span className="material-icons-round">close</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          ref={bannerInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={handleBannerChange}
+                          className="events-file-input"
+                          aria-label="Upload banner"
+                        />
+                        <button
+                          type="button"
+                          className="events-upload-banner-btn"
+                          onClick={() => bannerInputRef.current?.click()}
+                        >
+                          <span className="material-icons-round">add_photo_alternate</span>
+                          Add banner image
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="events-field">
                   <label className="events-label">Date <span className="events-required">*</span></label>
                   <input
                     type="date"
@@ -301,9 +563,9 @@ export default function Events() {
                 </div>
                 <div className="events-field-group">
                   <span className="events-group-label">Time</span>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <div className="events-field" style={{ flex: 1 }}>
-                      <label className="events-label">Start time</label>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div className="events-field" style={{ flex: '1 1 120px' }}>
+                      <label className="events-label">Start time (24h format)</label>
                       <input
                         type="time"
                         className="events-input"
@@ -311,14 +573,18 @@ export default function Events() {
                         onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
                       />
                     </div>
-                    <div className="events-field" style={{ flex: 1 }}>
-                      <label className="events-label">End time</label>
-                      <input
-                        type="time"
-                        className="events-input"
-                        value={form.endTime}
-                        onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-                      />
+                    <div className="events-field" style={{ flex: '1 1 120px' }}>
+                      <label className="events-label">Duration (hours)</label>
+                      <select
+                        className="events-input events-select"
+                        value={form.durationHours}
+                        onChange={(e) => setForm((f) => ({ ...f, durationHours: e.target.value }))}
+                      >
+                        <option value="">Select</option>
+                        {DURATION_HOURS_OPTIONS.map((h) => (
+                          <option key={h} value={h}>{h} {h === 1 ? 'hour' : 'hours'}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -366,8 +632,8 @@ export default function Events() {
                     <input
                       type="date"
                       className="events-filter-input"
-                      value={filterDate}
-                      onChange={(e) => setFilterDate(e.target.value)}
+                      value={dateInput}
+                      onChange={(e) => setDateInput(e.target.value)}
                       style={{ marginLeft: '0.4rem' }}
                     />
                   </label>
@@ -377,11 +643,27 @@ export default function Events() {
                       type="text"
                       className="events-filter-input"
                       placeholder="Filter by city"
-                      value={filterCity}
-                      onChange={(e) => setFilterCity(e.target.value)}
+                      value={cityInput}
+                      onChange={(e) => setCityInput(e.target.value)}
                       style={{ marginLeft: '0.4rem', minWidth: '120px' }}
                     />
                   </label>
+                  <button
+                    type="button"
+                    className="events-filter-btn"
+                    onClick={handleFilterSearch}
+                  >
+                    <span className="material-icons-round" aria-hidden="true">search</span>
+                    Search
+                  </button>
+                  <button
+                    type="button"
+                    className="events-filter-btn events-filter-reset-btn"
+                    onClick={handleFilterReset}
+                  >
+                    <span className="material-icons-round" aria-hidden="true">refresh</span>
+                    Reset
+                  </button>
                 </div>
               )}
             </div>
@@ -396,9 +678,12 @@ export default function Events() {
               <div className="events-list">
                 {events.map((ev) => (
                   <article key={ev._id} className="events-card">
-                    <div className="events-card-icon-wrap">
-                      <span className="material-icons-round">event</span>
-                    </div>
+                    {ev.bannerUrl && (
+                      <div className="events-card-banner-wrap">
+                        <img src={ev.bannerUrl} alt="" className="events-card-banner" />
+                      </div>
+                    )}
+                    <div className="events-card-row">
                     <div className="events-card-attend-wrap">
                       <button
                         type="button"
@@ -416,8 +701,46 @@ export default function Events() {
                         <h3 className="events-card-title">{ev.title}</h3>
                         <span className="events-card-date-pill">{formatEventDate(ev.date)}</span>
                       </div>
+                      {(ev.foundationName || ev.foundationLogoUrl) && (
+                        <div className="events-card-foundation">
+                          {ev.foundationLogoUrl && (
+                            <img src={ev.foundationLogoUrl} alt="" className="events-card-foundation-logo" />
+                          )}
+                          <span className="events-card-foundation-name">{ev.foundationName}</span>
+                        </div>
+                      )}
                       {ev.description && (
-                        <p className="events-card-desc">{ev.description}</p>
+                        <div className="events-card-desc-wrap">
+                          <p className="events-card-desc">
+                            {expandedDescIds.has(ev._id) || ev.description.length <= DESC_PREVIEW_LEN ? (
+                              ev.description
+                            ) : (
+                              <>
+                                {ev.description.slice(0, DESC_PREVIEW_LEN).trim()}
+                                …{' '}
+                                <button
+                                  type="button"
+                                  className="events-show-more-btn"
+                                  onClick={() => toggleDesc(ev._id)}
+                                >
+                                  Show more
+                                </button>
+                              </>
+                            )}
+                            {ev.description.length > DESC_PREVIEW_LEN && expandedDescIds.has(ev._id) && (
+                              <>
+                                {' '}
+                                <button
+                                  type="button"
+                                  className="events-show-more-btn"
+                                  onClick={() => toggleDesc(ev._id)}
+                                >
+                                  Show less
+                                </button>
+                              </>
+                            )}
+                          </p>
+                        </div>
                       )}
                       {(ev.location?.address || ev.location?.city || ev.location?.state) && (
                         <p className="events-card-location">
@@ -427,8 +750,14 @@ export default function Events() {
                           )}
                         </p>
                       )}
-                      {(ev.startTime || ev.endTime) && (
-                        <p className="events-card-time">🕐 {formatEventTime(ev.startTime, ev.endTime)}</p>
+                      {(ev.startTime || ev.durationHours != null || ev.endTime) && (
+                        <p className="events-card-time">
+                          🕐 {ev.durationHours != null
+                            ? formatEventTime(ev.startTime, ev.durationHours)
+                            : ev.startTime && ev.endTime
+                              ? `${formatTimeToAMPM(ev.startTime)} – ${formatTimeToAMPM(ev.endTime)}`
+                              : formatEventTime(ev.startTime, ev.durationHours)}
+                        </p>
                       )}
                       {(ev.driveType || ev.otherDriveName) && (
                         <div className="events-card-tags">
@@ -437,9 +766,27 @@ export default function Events() {
                           </span>
                         </div>
                       )}
+                      {ev.pinId && (
+                        <p className="events-card-pin-link">
+                          <a
+                            href={`${window.location.origin}/pin/${ev.pinId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => {
+                              if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                                e.preventDefault();
+                                window.open(`${window.location.origin}/pin/${ev.pinId}`, '_blank', 'noopener,noreferrer');
+                              }
+                            }}
+                          >
+                            View Pin on Pin-it
+                          </a>
+                        </p>
+                      )}
                       <div className="events-card-meta">
                         <span>By {ev.authorName || 'Anonymous'}</span>
                       </div>
+                    </div>
                     </div>
                   </article>
                 ))}

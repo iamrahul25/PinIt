@@ -8,6 +8,7 @@ const colors = {
   dim: '\x1b[2m',
   orange: '\x1b[38;5;208m',
   red: '\x1b[31m',
+  purple: '\x1b[35m',
 };
 
 /** Display mode: full_expanded | full_collapsed | summary. Toggled by keypress (E/C/F/L). Default: summary (entry counts only). */
@@ -198,7 +199,7 @@ function requestLogger(options = {}) {
       }
 
       if (includeResponse && responseData !== null) {
-        console.log(`${colors.cyan}Response (data sent to frontend):${colors.reset}`);
+        console.log(`${colors.purple}Response (data sent to frontend):${colors.reset}`);
         if (jsonDisplayMode === 'summary') {
           console.log(summarizeJson(responseData));
         } else {

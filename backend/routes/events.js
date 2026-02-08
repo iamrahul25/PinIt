@@ -67,14 +67,25 @@ router.post('/', async (req, res) => {
       location,
       driveType,
       otherDriveName,
+      foundationId,
+      foundationName,
+      foundationLogoUrl,
+      pinId,
+      pinLink,
+      bannerUrl,
       date,
       startTime,
       endTime,
+      durationHours,
       authorName
     } = req.body;
 
     if (!title || !String(title).trim()) {
       return res.status(400).json({ error: 'Event title is required' });
+    }
+    const foundationNameVal = (foundationName && String(foundationName).trim()) || '';
+    if (!foundationNameVal) {
+      return res.status(400).json({ error: 'Foundation name is required. Please verify a foundation.' });
     }
     if (!date) {
       return res.status(400).json({ error: 'Event date is required' });
@@ -87,10 +98,19 @@ router.post('/', async (req, res) => {
 
     const driveTypeVal = (driveType && String(driveType).trim()) || '';
     const otherName = (otherDriveName && String(otherDriveName).trim()) || '';
+    let pinIdVal = (pinId && String(pinId).trim()) || '';
+    if (!pinIdVal && pinLink && String(pinLink).trim()) {
+      const match = String(pinLink).trim().match(/\/pin\/([a-zA-Z0-9_-]+)/i);
+      if (match) pinIdVal = match[1];
+    }
+    const bannerUrlVal = (bannerUrl && String(bannerUrl).trim()) || '';
 
     const event = new Event({
       title: String(title).trim(),
       description: description ? String(description).trim() : '',
+      foundationId: (foundationId && String(foundationId).trim()) || '',
+      foundationName: foundationNameVal,
+      foundationLogoUrl: (foundationLogoUrl && String(foundationLogoUrl).trim()) || '',
       location: {
         address: (location?.address || '').trim(),
         city: (location?.city || '').trim(),
@@ -99,9 +119,12 @@ router.post('/', async (req, res) => {
       },
       driveType: driveTypeVal,
       otherDriveName: otherName,
+      pinId: pinIdVal,
+      bannerUrl: bannerUrlVal,
       date: eventDate,
       startTime: (startTime != null && startTime !== '') ? String(startTime).trim() : '',
       endTime: (endTime != null && endTime !== '') ? String(endTime).trim() : '',
+      durationHours: durationHours != null && durationHours >= 1 && durationHours <= 10 ? parseInt(durationHours, 10) : null,
       attendees: [],
       authorId: userId,
       authorName: authorName || 'Anonymous'

@@ -6,6 +6,21 @@ const eventSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  foundationId: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  foundationName: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  foundationLogoUrl: {
+    type: String,
+    default: '',
+    trim: true
+  },
   description: {
     type: String,
     default: '',
@@ -27,6 +42,16 @@ const eventSchema = new mongoose.Schema({
     default: '',
     trim: true
   },
+  pinId: {
+    type: String,
+    default: '',
+    trim: true
+  },
+  bannerUrl: {
+    type: String,
+    default: '',
+    trim: true
+  },
   date: {
     type: Date,
     required: true
@@ -40,6 +65,12 @@ const eventSchema = new mongoose.Schema({
     type: String,
     default: '',
     trim: true
+  },
+  durationHours: {
+    type: Number,
+    default: null,
+    min: 1,
+    max: 10
   },
   attendees: [{ userId: String }],
   authorId: {

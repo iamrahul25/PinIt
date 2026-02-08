@@ -42,6 +42,32 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Verify foundation/NGO by name (for Events) – returns one match by case-insensitive name
+router.get('/verify', async (req, res) => {
+  try {
+    const name = (req.query.name || '').trim();
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required', found: false });
+    }
+    const ngo = await Ngo.findOne({ name: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') })
+      .select('_id name logoUrl')
+      .lean();
+    if (!ngo) {
+      return res.status(200).json({ found: false });
+    }
+    res.json({
+      found: true,
+      ngo: {
+        _id: ngo._id,
+        name: ngo.name,
+        logoUrl: ngo.logoUrl
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message, found: false });
+  }
+});
+
 // Create NGO
 router.post('/', async (req, res) => {
   try {

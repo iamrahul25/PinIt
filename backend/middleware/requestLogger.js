@@ -10,12 +10,18 @@ const colors = {
   red: '\x1b[31m',
 };
 
+/** Display mode: full_expanded | full_collapsed | summary. Toggled by keypress (E/C/F/L). Default: summary (entry counts only). */
+let jsonDisplayMode = 'summary';
+
 /**
- * Pretty-print JSON with color coding: keys blue, strings green, numbers cyan, booleans/null orange
+ * Pretty-print JSON with color coding: keys blue, strings green, numbers cyan, booleans/null orange.
+ * @param {*} obj - Object to stringify and colorize
+ * @param {boolean} [expanded] - If true, pretty-print; if false, single line. Defaults from jsonDisplayMode.
  */
-function colorizeJson(obj) {
+function colorizeJson(obj, expanded) {
   try {
-    const raw = JSON.stringify(obj, null, 2);
+    const useExpanded = expanded !== undefined ? expanded : jsonDisplayMode === 'full_expanded';
+    const raw = JSON.stringify(obj, null, useExpanded ? 2 : 0);
     return raw
       .replace(/"([^"]+)":/g, `${colors.blue}"$1"${colors.reset}:`)
       .replace(/:\s*"([^"]*)"/g, (_, s) => `: ${colors.green}"${s}"${colors.reset}`)
@@ -24,6 +30,59 @@ function colorizeJson(obj) {
   } catch (e) {
     return String(obj);
   }
+}
+
+/**
+ * Return a short summary of JSON structure: entry counts only (no full payload).
+ * e.g. "2 keys (suggestions: 5 items, total: 5)"
+ */
+function summarizeJson(obj) {
+  try {
+    if (obj === null || obj === undefined) return `${colors.dim}empty${colors.reset}`;
+    if (Array.isArray(obj)) return `${colors.cyan}${obj.length}${colors.reset} items`;
+    if (typeof obj !== 'object') return `${colors.dim}1 value${colors.reset}`;
+    const keys = Object.keys(obj);
+    if (keys.length === 0) return `${colors.dim}0 keys${colors.reset}`;
+    const parts = keys.map((k) => {
+      const v = obj[k];
+      if (Array.isArray(v)) return `${colors.blue}${k}${colors.reset}: ${colors.cyan}${v.length}${colors.reset} items`;
+      if (v !== null && typeof v === 'object' && !(v instanceof Date)) return `${colors.blue}${k}${colors.reset}: ${Object.keys(v).length} keys`;
+      return `${colors.blue}${k}${colors.reset}: 1 value`;
+    });
+    return `${colors.cyan}${keys.length}${colors.reset} keys (${parts.join(', ')})`;
+  } catch (e) {
+    return String(obj);
+  }
+}
+
+/**
+ * Set up stdin keypress listener: E = expand, C = collapse, F = full expanded, L = summary (entry counts only).
+ * Call once after server starts (e.g. in app.listen callback).
+ */
+function setupKeypressToggle() {
+  if (!process.stdin.isTTY) return;
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.setEncoding('utf8');
+  process.stdin.on('data', (key) => {
+    if (key === '\u0003') process.exit(); // Ctrl+C
+    if (key === 'e' || key === 'E') {
+      jsonDisplayMode = 'full_expanded';
+      console.log(`\n${colors.cyan}[Logger]${colors.reset} Full JSON ${colors.green}expanded${colors.reset}. Keys: ${colors.blue}E${colors.reset}/${colors.blue}F${colors.reset}=full expanded, ${colors.blue}C${colors.reset}=collapse, ${colors.blue}L${colors.reset}=entry counts only.\n`);
+    }
+    if (key === 'c' || key === 'C') {
+      jsonDisplayMode = 'full_collapsed';
+      console.log(`\n${colors.cyan}[Logger]${colors.reset} Full JSON ${colors.yellow}collapsed${colors.reset}. Keys: ${colors.blue}F${colors.reset}=full expanded, ${colors.blue}L${colors.reset}=entry counts only.\n`);
+    }
+    if (key === 'f' || key === 'F') {
+      jsonDisplayMode = 'full_expanded';
+      console.log(`\n${colors.cyan}[Logger]${colors.reset} ${colors.green}Full details${colors.reset} of sent/received JSON in expanded form.\n`);
+    }
+    if (key === 'l' || key === 'L') {
+      jsonDisplayMode = 'summary';
+      console.log(`\n${colors.cyan}[Logger]${colors.reset} ${colors.yellow}Summary only${colors.reset}: showing number of entries (no full JSON). Press ${colors.blue}F${colors.reset} for full expanded.\n`);
+    }
+  });
 }
 
 /**
@@ -121,18 +180,30 @@ function requestLogger(options = {}) {
       const hasQuery = includeQuery && req.query && Object.keys(req.query).length > 0;
       if (hasQuery) {
         console.log(`${colors.cyan}Query:${colors.reset}`);
-        console.log(colorizeJson(req.query));
+        if (jsonDisplayMode === 'summary') {
+          console.log(summarizeJson(req.query));
+        } else {
+          console.log(colorizeJson(req.query));
+        }
       }
 
       const hasBody = includeBody && req.body && Object.keys(req.body).length > 0;
       if (hasBody) {
         console.log(`${colors.cyan}Body:${colors.reset}`);
-        console.log(colorizeJson(req.body));
+        if (jsonDisplayMode === 'summary') {
+          console.log(summarizeJson(req.body));
+        } else {
+          console.log(colorizeJson(req.body));
+        }
       }
 
       if (includeResponse && responseData !== null) {
         console.log(`${colors.cyan}Response (data sent to frontend):${colors.reset}`);
-        console.log(colorizeJson(responseData));
+        if (jsonDisplayMode === 'summary') {
+          console.log(summarizeJson(responseData));
+        } else {
+          console.log(colorizeJson(responseData));
+        }
       }
 
       console.log(separatorLine());
@@ -142,3 +213,4 @@ function requestLogger(options = {}) {
 }
 
 module.exports = requestLogger;
+module.exports.setupKeypressToggle = setupKeypressToggle;

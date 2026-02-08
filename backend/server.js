@@ -60,4 +60,8 @@ app.use('/api/suggestions', require('./routes/suggestions'));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  requestLogger.setupKeypressToggle();
+  if (process.stdin.isTTY) {
+    console.log('Keys: E/F=full expanded, C=collapse, L=entry counts only.');
+  }
 });

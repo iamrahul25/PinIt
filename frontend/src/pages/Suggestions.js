@@ -1,8 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
+import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './Suggestions.css';
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.5,
+  maxWidthOrHeight: 1200,
+  useWebWorker: true,
+  initialQuality: 0.8
+};
+
+const MAX_IMAGES = 3;
 
 const CATEGORIES = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion', 'Other'];
 
@@ -108,10 +119,14 @@ export default function Suggestions() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [skip, setSkip] = useState(0);
   const [form, setForm] = useState({ title: '', category: 'Feature Request', details: '' });
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [compressingImages, setCompressingImages] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const fetchIdRef = useRef(0);
+  const imageInputRef = useRef(null);
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -176,6 +191,48 @@ export default function Suggestions() {
     fetchSuggestions(sort, 0, false, view, stateFilter);
   }, [isSignedIn, authLoading, sort, view, stateFilter, fetchSuggestions]);
 
+  const handleImageChange = useCallback(async (e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_IMAGES - imageFiles.length;
+    const toAdd = files.slice(0, remaining);
+    if (toAdd.length === 0) return;
+    setError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES} images allowed. Only the first allowed slots were added.` : '');
+    if (e.target) e.target.value = '';
+
+    setCompressingImages(true);
+    try {
+      const compressed = await Promise.all(
+        toAdd.map((file) => imageCompression(file, COMPRESSION_OPTIONS))
+      );
+      const newFiles = [...imageFiles, ...compressed];
+      setImageFiles(newFiles);
+
+      const newPreviews = new Array(newFiles.length);
+      let loaded = 0;
+      newFiles.forEach((file, i) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPreviews[i] = reader.result;
+          loaded += 1;
+          if (loaded === newFiles.length) {
+            setImagePreviews([...newPreviews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    } catch (err) {
+      setError('Failed to process images. Please try again.');
+    } finally {
+      setCompressingImages(false);
+    }
+  }, [imageFiles]);
+
+  const removeSuggestionImage = (index) => {
+    setImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    setError('');
+  };
+
   const handleSubmitSuggestion = async (e) => {
     e.preventDefault();
     setError('');
@@ -191,6 +248,19 @@ export default function Suggestions() {
     }
     setSubmitting(true);
     try {
+      const imageUrls = [];
+      for (const file of imageFiles) {
+        const multipart = new FormData();
+        multipart.append('image', file);
+        const uploadRes = await axios.post(
+          `${API_BASE_URL}/api/images/upload`,
+          multipart,
+          { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
+        );
+        const url = uploadRes.data?.url;
+        if (url) imageUrls.push(url);
+      }
+
       const res = await authFetch(`${API_BASE_URL}/api/suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -198,6 +268,7 @@ export default function Suggestions() {
           title: form.title.trim(),
           category: form.category,
           details: form.details.trim(),
+          images: imageUrls,
           authorName: user?.fullName || user?.email || 'Anonymous',
           authorImageUrl: user?.imageUrl || ''
         })
@@ -208,6 +279,8 @@ export default function Suggestions() {
       }
       setSuccess('Suggestion submitted!');
       setForm({ title: '', category: 'Feature Request', details: '' });
+      setImageFiles([]);
+      setImagePreviews([]);
       setSkip(0);
       fetchSuggestions(sort, 0, false, view, stateFilter);
     } catch (err) {
@@ -330,9 +403,59 @@ export default function Suggestions() {
                     onChange={(e) => setForm((f) => ({ ...f, details: e.target.value }))}
                   />
                 </div>
+                <div className="suggestions-field">
+                  <label className="suggestions-label">
+                    Images
+                    <span className="suggestions-word-count">{imageFiles.length} / {MAX_IMAGES} max</span>
+                  </label>
+                  <div
+                    className={`suggestions-upload-area ${imageFiles.length >= MAX_IMAGES || compressingImages ? 'disabled' : ''}`}
+                    onClick={() => (imageFiles.length < MAX_IMAGES && !compressingImages) && imageInputRef.current?.click()}
+                    onKeyDown={(e) => {
+                      if ((e.key === 'Enter' || e.key === ' ') && imageFiles.length < MAX_IMAGES && !compressingImages) {
+                        e.preventDefault();
+                        imageInputRef.current?.click();
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Click to upload images"
+                  >
+                    <span className="material-icons-round suggestions-upload-icon">cloud_upload</span>
+                    <span className="suggestions-upload-text">
+                      {compressingImages ? 'Compressing...' : 'Click to add images (max 3)'}
+                    </span>
+                  </div>
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                    className="suggestions-file-input"
+                    aria-label="Choose image files"
+                  />
+                  {imagePreviews.length > 0 && (
+                    <div className="suggestions-image-previews">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="suggestions-image-preview">
+                          <img src={preview} alt={`Preview ${index + 1}`} />
+                          <button
+                            type="button"
+                            className="suggestions-remove-image"
+                            onClick={() => removeSuggestionImage(index)}
+                            aria-label={`Remove image ${index + 1}`}
+                          >
+                            <span className="material-icons-round">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {error && <div className="suggestions-msg suggestions-msg-error" role="alert">{error}</div>}
                 {success && <div className="suggestions-msg suggestions-msg-success">{success}</div>}
-                <button type="submit" className="suggestions-submit-btn" disabled={submitting}>
+                <button type="submit" className="suggestions-submit-btn" disabled={submitting || compressingImages}>
                   <span className="material-icons-round" aria-hidden="true">add_box</span>
                   Submit Suggestion
                 </button>
@@ -475,6 +598,21 @@ export default function Suggestions() {
                           </div>
                         </div>
                         <SuggestionDescription text={s.details} />
+                        {s.images && s.images.length > 0 && (
+                          <div className="suggestions-card-images">
+                            {s.images.slice(0, 3).map((url, idx) => (
+                              <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="suggestions-card-image-link"
+                              >
+                                <img src={url} alt={`Suggestion ${idx + 1}`} className="suggestions-card-image" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
                         <div className="suggestions-card-meta">
                           <div className="suggestions-card-meta-left">
                             <span

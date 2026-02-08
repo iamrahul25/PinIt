@@ -61,7 +61,7 @@ router.post('/', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const { title, category, details } = req.body;
+    const { title, category, details, images } = req.body;
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
@@ -70,11 +70,16 @@ router.post('/', async (req, res) => {
     if (wordCount > 1000) {
       return res.status(400).json({ error: 'Details must be 1000 words or fewer.' });
     }
+    const imageList = Array.isArray(images) ? images.filter((u) => typeof u === 'string' && u.trim()) : [];
+    if (imageList.length > 3) {
+      return res.status(400).json({ error: 'Maximum 3 images allowed.' });
+    }
     const categoryList = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion', 'Other'];
     const suggestion = new Suggestion({
       title: title.trim(),
       category: categoryList.includes(category) ? category : 'Feature Request',
       details: detailsStr,
+      images: imageList,
       status: 'new',
       authorId: userId,
       authorName: req.body.authorName || 'Anonymous',

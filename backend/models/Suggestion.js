@@ -39,6 +39,10 @@ const suggestionSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  images: {
+    type: [String],
+    default: []
+  },
   upvotes: {
     type: Number,
     default: 0

@@ -56,6 +56,7 @@ app.use('/api/comments', require('./routes/comments'));
 app.use('/api/votes', require('./routes/votes'));
 app.use('/api/images', require('./routes/images'));
 app.use('/api/suggestions', require('./routes/suggestions'));
+app.use('/api/ngos', require('./routes/ngos'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

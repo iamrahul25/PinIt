@@ -138,12 +138,26 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update pin
+// Update pin (admin only)
+const ALLOWED_UPDATE_FIELDS = ['problemType', 'severity', 'location', 'images', 'problemHeading', 'contributor_name', 'description'];
 router.put('/:id', async (req, res) => {
   try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    if (!userDoc || userDoc.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required to update pins' });
+    }
+    const updates = {};
+    for (const key of ALLOWED_UPDATE_FIELDS) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    updates.updatedAt = new Date();
     const pin = await Pin.findByIdAndUpdate(
       req.params.id,
-      { ...req.body, updatedAt: Date.now() },
+      updates,
       { new: true, runValidators: true }
     );
     if (!pin) {
@@ -155,9 +169,17 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete pin
+// Delete pin (admin only)
 router.delete('/:id', async (req, res) => {
   try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    if (!userDoc || userDoc.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required to delete pins' });
+    }
     const pin = await Pin.findByIdAndDelete(req.params.id);
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });

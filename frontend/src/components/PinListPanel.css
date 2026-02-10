@@ -672,6 +672,33 @@
   gap: 0.25rem;
 }
 
+/* Small full details link in list view */
+.pin-card-compact-full-details {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--pins-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, opacity 0.2s;
+}
+.pin-card-compact-full-details:hover {
+  color: #4f46e5;
+  text-decoration: underline;
+}
+.pin-card-compact-full-details:active {
+  opacity: 0.8;
+}
+.pin-card-compact-full-details-icon {
+  font-size: 0.625rem;
+  opacity: 0.9;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
   .pins-sidebar {

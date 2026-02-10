@@ -361,6 +361,16 @@ const PinListPanel = ({
                             <span><FaThumbsUp /> {pin.upvotes ?? 0}</span>
                             <span><FaComment /> {pin.comments?.length ?? 0}</span>
                           </div>
+                          <button
+                            type="button"
+                            className="pin-card-compact-full-details"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onShowDetails(pin);
+                            }}
+                          >
+                            Full details <FaChevronRight className="pin-card-compact-full-details-icon" />
+                          </button>
                         </div>
                       </>
                     )}

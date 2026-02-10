@@ -417,6 +417,7 @@ function App() {
             onClose={handleDetailsClose}
             user={user}
             onUpdate={fetchPins}
+            onPinUpdated={setSelectedPin}
             shareUrl={`${window.location.origin}/pin/${selectedPin._id}`}
             isSaved={savedPinIds.includes(selectedPin._id)}
             onSave={handleSavePin}

@@ -191,6 +191,34 @@
   background: var(--pin-slate-200);
 }
 
+.pin-details-btn-danger {
+  background: var(--pin-red-400);
+  color: white;
+}
+
+.pin-details-btn-danger:hover:not(:disabled) {
+  background: var(--pin-red-600);
+}
+
+.pin-details-btn-danger:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.pin-details-btn-edit {
+  background: var(--pin-indigo-600);
+  color: white;
+}
+
+.pin-details-btn-edit:hover:not(:disabled) {
+  background: var(--pin-indigo-700);
+}
+
+.pin-details-btn-edit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .pin-details-close {
   padding: 0.5rem;
   background: none;
@@ -208,6 +236,198 @@
 
 .pin-details-close .material-icons-round {
   font-size: 1.25rem;
+}
+
+/* Edit form (admin) */
+.pin-details-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.5rem 0;
+}
+
+.pin-details-edit-error {
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  color: var(--pin-red-600);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pin-details-edit-group label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--pin-slate-700);
+  margin-bottom: 0.375rem;
+}
+
+.pin-details-edit-group .required {
+  color: var(--pin-red-600);
+}
+
+.pin-details-edit-optional {
+  font-weight: 400;
+  color: var(--pin-slate-500);
+  font-size: 0.75rem;
+}
+
+.pin-details-edit-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--pin-slate-200);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--pin-slate-800);
+  background: white;
+}
+
+.pin-details-edit-input:focus {
+  outline: none;
+  border-color: var(--pin-primary);
+  box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
+}
+
+.pin-details-edit-input[readonly] {
+  background: var(--pin-slate-50);
+  color: var(--pin-slate-600);
+}
+
+.pin-details-edit-select {
+  cursor: pointer;
+  appearance: none;
+  padding-right: 2rem;
+}
+
+.pin-details-edit-textarea {
+  resize: vertical;
+  min-height: 4rem;
+}
+
+.pin-details-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.pin-details-edit-severity-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pin-details-edit-severity {
+  flex: 1;
+  height: 6px;
+  accent-color: var(--pin-primary);
+}
+
+.pin-details-edit-severity-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--pin-slate-700);
+  min-width: 2.5rem;
+}
+
+.pin-details-edit-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.pin-details-edit-thumb-wrap {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--pin-slate-100);
+}
+
+.pin-details-edit-thumb-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pin-details-edit-thumb-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s;
+}
+
+.pin-details-edit-thumb-remove:hover {
+  background: var(--pin-red-600);
+}
+
+.pin-details-edit-add-thumb {
+  width: 72px;
+  height: 72px;
+  border: 2px dashed var(--pin-slate-300);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  color: var(--pin-slate-500);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.pin-details-edit-add-thumb:hover:not(.disabled) {
+  border-color: var(--pin-primary);
+  color: var(--pin-primary);
+}
+
+.pin-details-edit-add-thumb.disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.pin-details-edit-add-thumb .material-icons-round {
+  font-size: 1.5rem;
+}
+
+.pin-details-edit-file-hidden {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pin-details-edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--pin-slate-100);
+}
+
+@media (max-width: 480px) {
+  .pin-details-edit-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Main content */

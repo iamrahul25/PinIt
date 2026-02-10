@@ -1,13 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import './PinDetails.css';
 
-const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, onUnsave }) => {
+const PROBLEM_TYPES = [
+  { value: 'Trash Pile', label: 'Trash Pile' },
+  { value: 'Pothole', label: 'Pothole' },
+  { value: 'Broken Pipe', label: 'Broken Pipe' },
+  { value: 'Fuse Street Light', label: 'Street Light' },
+  { value: 'Other', label: 'Other' }
+];
+
+const COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.6,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+  initialQuality: 0.75
+};
+
+const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
   const navigate = useNavigate();
   const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
@@ -20,9 +36,20 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [scheduledEvents, setScheduledEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const imageModalRef = useRef(null);
+  // Edit mode (admin only)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editImages, setEditImages] = useState([]); // URLs to keep
+  const [newImageFiles, setNewImageFiles] = useState([]);
+  const [newImagePreviews, setNewImagePreviews] = useState([]);
+  const [editError, setEditError] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [compressingNewImages, setCompressingNewImages] = useState(false);
+  const editFileInputRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -232,6 +259,148 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this pin? This cannot be undone.')) return;
+    if (authLoading) return;
+    setDeleting(true);
+    try {
+      const config = await getAuthConfig();
+      await axios.delete(`${API_BASE_URL}/api/pins/${pin._id}`, config);
+      onClose();
+      onUpdate?.();
+    } catch (error) {
+      console.error('Error deleting pin:', error);
+      const msg = error.response?.data?.error || 'Failed to delete pin.';
+      alert(msg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const startEditing = useCallback(() => {
+    setEditForm({
+      problemType: pin.problemType || 'Other',
+      severity: pin.severity ?? 5,
+      problemHeading: pin.problemHeading || '',
+      description: pin.description || '',
+      contributor_name: pin.contributor_name || ''
+    });
+    setEditImages(pin.images && Array.isArray(pin.images) ? [...pin.images] : []);
+    setNewImageFiles([]);
+    setNewImagePreviews([]);
+    setEditError('');
+    setIsEditing(true);
+  }, [pin]);
+
+  const cancelEditing = useCallback(() => {
+    setIsEditing(false);
+    setEditForm(null);
+    setEditImages([]);
+    setNewImageFiles([]);
+    setNewImagePreviews([]);
+    setEditError('');
+  }, []);
+
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({
+      ...prev,
+      [name]: name === 'severity' ? parseInt(value, 10) : value
+    }));
+  };
+
+  const removeEditImage = (index) => {
+    setEditImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewEditImage = (index) => {
+    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleNewEditImages = useCallback(async (e) => {
+    const files = Array.from(e.target.files || []);
+    const totalSlots = 5 - editImages.length - newImageFiles.length;
+    const toAdd = files.slice(0, Math.max(0, totalSlots));
+    if (toAdd.length === 0) return;
+    if (e.target) e.target.value = '';
+    setCompressingNewImages(true);
+    try {
+      const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
+      setNewImageFiles((prev) => [...prev, ...compressed]);
+      const start = newImageFiles.length;
+      const newPreviews = await Promise.all(
+        compressed.map((file) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      setNewImagePreviews((prev) => [...prev.slice(0, start), ...newPreviews]);
+    } catch (err) {
+      setEditError('Failed to process new images.');
+    } finally {
+      setCompressingNewImages(false);
+    }
+  }, [editImages.length, newImageFiles.length]);
+
+  const getEditImageUrl = (url) => {
+    if (!url) return '';
+    return url.startsWith('http') ? getFullImageUrl(url) : `${API_BASE_URL}/api/images/${url}`;
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    if (!editForm || authLoading) return;
+    const heading = (editForm.problemHeading || '').trim();
+    if (!heading) {
+      setEditError('Problem heading is required.');
+      return;
+    }
+    const totalImages = editImages.length + newImageFiles.length;
+    if (totalImages === 0) {
+      setEditError('At least one image is required.');
+      return;
+    }
+    setSavingEdit(true);
+    setEditError('');
+    try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
+      const newUrls = [];
+      for (const file of newImageFiles) {
+        const formData = new FormData();
+        formData.append('image', file);
+        const uploadRes = await axios.post(
+          `${API_BASE_URL}/api/images/upload`,
+          formData,
+          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
+        );
+        newUrls.push(uploadRes.data.url);
+      }
+      const allImages = [...editImages, ...newUrls];
+      const payload = {
+        problemType: editForm.problemType,
+        severity: parseInt(editForm.severity, 10),
+        problemHeading: heading,
+        description: editForm.description || '',
+        contributor_name: pin.contributor_name || '',
+        location: pin.location || { latitude: 0, longitude: 0, address: '' },
+        images: allImages
+      };
+      const response = await axios.put(`${API_BASE_URL}/api/pins/${pin._id}`, payload, config);
+      const updatedPin = response.data;
+      onUpdate?.();
+      onPinUpdated?.(updatedPin);
+      cancelEditing();
+    } catch (err) {
+      setEditError(err.response?.data?.error || 'Failed to save changes.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   const copyToClipboard = (url) => {
     navigator.clipboard.writeText(url).then(() => {
       setShareCopied(true);
@@ -333,6 +502,30 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
                 <span className="material-icons-round">share</span>
                 {shareCopied ? 'Copied!' : 'Share'}
               </button>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  className="pin-details-btn pin-details-btn-edit"
+                  onClick={isEditing ? cancelEditing : startEditing}
+                  disabled={savingEdit}
+                  title={isEditing ? 'Cancel edit' : 'Edit this pin (admin only)'}
+                >
+                  <span className="material-icons-round">edit</span>
+                  {isEditing ? 'Cancel' : 'Edit'}
+                </button>
+              )}
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  className="pin-details-btn pin-details-btn-danger"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  title="Delete this pin (admin only)"
+                >
+                  <span className="material-icons-round">delete</span>
+                  {deleting ? 'Deleting…' : 'Delete'}
+                </button>
+              )}
               <button className="pin-details-close" onClick={onClose} aria-label="Close">
                 <span className="material-icons-round">close</span>
               </button>
@@ -340,6 +533,122 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
           </header>
 
           <main className="pin-details-main">
+            {isEditing && editForm ? (
+              <form onSubmit={handleSaveEdit} className="pin-details-edit-form">
+                {editError && <div className="pin-details-edit-error" role="alert">{editError}</div>}
+                <div className="pin-details-edit-group">
+                  <label>Address <span className="pin-details-edit-optional">(read-only)</span></label>
+                  <input
+                    type="text"
+                    className="pin-details-edit-input"
+                    value={pin.location?.address ?? '—'}
+                    readOnly
+                    aria-readonly="true"
+                  />
+                </div>
+                <div className="pin-details-edit-row">
+                  <div className="pin-details-edit-group">
+                    <label>Problem Type <span className="required">*</span></label>
+                    <select
+                      name="problemType"
+                      value={editForm.problemType}
+                      onChange={handleEditInputChange}
+                      className="pin-details-edit-input pin-details-edit-select"
+                    >
+                      {PROBLEM_TYPES.map(({ value, label }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="pin-details-edit-group">
+                    <label>Severity (1–10) <span className="required">*</span></label>
+                    <div className="pin-details-edit-severity-wrap">
+                      <input
+                        type="range"
+                        name="severity"
+                        min="1"
+                        max="10"
+                        value={editForm.severity}
+                        onChange={handleEditInputChange}
+                        className="pin-details-edit-severity"
+                      />
+                      <span className="pin-details-edit-severity-value">{editForm.severity}/10</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="pin-details-edit-group">
+                  <label>Problem Heading <span className="required">*</span></label>
+                  <input
+                    type="text"
+                    name="problemHeading"
+                    value={editForm.problemHeading}
+                    onChange={handleEditInputChange}
+                    placeholder="e.g. Garbage pile near the park"
+                    className="pin-details-edit-input"
+                    required
+                  />
+                </div>
+                <div className="pin-details-edit-group">
+                  <label>Description <span className="pin-details-edit-optional">(optional)</span></label>
+                  <textarea
+                    name="description"
+                    value={editForm.description}
+                    onChange={handleEditInputChange}
+                    placeholder="Describe the problem..."
+                    rows={3}
+                    className="pin-details-edit-input pin-details-edit-textarea"
+                  />
+                </div>
+                <div className="pin-details-edit-group">
+                  <label>Images <span className="required">*</span> (at least 1, max 5)</label>
+                  <div className="pin-details-edit-images">
+                    {editImages.map((url, index) => (
+                      <div key={`existing-${index}`} className="pin-details-edit-thumb-wrap">
+                        <img src={getEditImageUrl(url)} alt="" />
+                        <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeEditImage(index)} aria-label="Remove image">×</button>
+                      </div>
+                    ))}
+                    {newImagePreviews.map((src, index) => (
+                      <div key={`new-${index}`} className="pin-details-edit-thumb-wrap">
+                        <img src={src} alt="" />
+                        <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImage(index)} aria-label="Remove image">×</button>
+                      </div>
+                    ))}
+                    {editImages.length + newImageFiles.length < 5 && (
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
+                        onClick={() => !compressingNewImages && editFileInputRef.current?.click()}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileInputRef.current?.click()}
+                        aria-label="Add image"
+                      >
+                        <span className="material-icons-round">add_photo_alternate</span>
+                        {compressingNewImages ? 'Compressing...' : 'Add'}
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    ref={editFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleNewEditImages}
+                    className="pin-details-edit-file-hidden"
+                    aria-hidden="true"
+                  />
+                </div>
+                <div className="pin-details-edit-actions">
+                  <button type="button" className="pin-details-btn pin-details-btn-secondary" onClick={cancelEditing} disabled={savingEdit}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="pin-details-btn pin-details-btn-primary" disabled={savingEdit}>
+                    {savingEdit ? 'Saving…' : 'Save changes'}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
             <div className="pin-details-stats">
               <div className="pin-details-stat-card">
                 <p className="pin-details-stat-label">Severity Score</p>
@@ -512,8 +821,11 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
                 )}
               </div>
             </section>
+              </>
+            )}
           </main>
 
+          {!isEditing && (
           <footer className="pin-details-footer">
             <p className="pin-details-footer-label">
               Posting as <span className="primary-text">{displayName}</span>
@@ -535,6 +847,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, shareUrl, isSaved, onSave, o
               </button>
             </form>
           </footer>
+          )}
         </div>
       </div>
 

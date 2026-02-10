@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,7 @@ const CATEGORY_CONFIG = {
 };
 const VIEW_FILTERS = [
   { key: 'all', label: 'All', sort: 'top', state: '' },
-  { key: 'new', label: 'New', sort: 'new', state: '' },
+  { key: 'new', label: 'New', sort: 'new', state: 'new' },
   { key: 'done', label: 'Done', sort: 'new', state: 'done' }
 ];
 
@@ -38,7 +38,13 @@ const SUGGESTION_STATES = [
   { key: 'hold', label: 'Hold' },
   { key: 'in_review', label: 'In-Review' },
   { key: 'done', label: 'Done' },
-  { key: 'cancelled', label: 'Cancelled' }
+  { key: 'cancelled', label: 'Cancelled' },
+  { key: 'main_issue', label: '- Main Issues' },
+];
+
+const CATEGORY_FILTER_OPTIONS = [
+  { key: '', label: 'All categories' },
+  ...CATEGORIES.map((c) => ({ key: c, label: c }))
 ];
 
 const STATUS_LABELS = {
@@ -67,9 +73,35 @@ const STATUS_CLASS = {
   completed: 'status-done'
 };
 
+const PAGE_SIZE = 50;
 const MAX_DETAILS_WORDS = 1000;
 const DETAILS_PREVIEW_LENGTH = 200;
 const FIRST_COMMENT_PREVIEW_LENGTH = 80;
+
+// Client-side filter: match backend stateMap (including legacy status values)
+function matchesState(s, stateFilter) {
+  if (!stateFilter) return true;
+  const status = s.status || 'new';
+  if (stateFilter === 'main_issue') {
+    const closedStatuses = ['done', 'completed', 'cancelled','in_review','hold'];
+    return !closedStatuses.includes(status);
+  }
+  const stateMap = {
+    new: ['new'],
+    todo: ['todo', 'planned'],
+    in_progress: ['in_progress'],
+    hold: ['hold'],
+    in_review: ['in_review', 'under_review'],
+    done: ['done', 'completed'],
+    cancelled: ['cancelled']
+  };
+  return stateMap[stateFilter] && stateMap[stateFilter].includes(status);
+}
+
+function matchesCategory(s, categoryFilter) {
+  if (!categoryFilter) return true;
+  return (s.category || '') === categoryFilter;
+}
 
 function SuggestionDescription({ text }) {
   const [expanded, setExpanded] = useState(false);
@@ -115,10 +147,10 @@ export default function Suggestions() {
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState('top');
   const [stateFilter, setStateFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [view, setView] = useState('board'); // 'board' | 'my'
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [skip, setSkip] = useState(0);
   const [form, setForm] = useState({ title: '', category: 'Feature Request', details: '' });
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -144,7 +176,7 @@ export default function Suggestions() {
     return fetch(url, { ...options, headers });
   }, [getAuthHeaders]);
 
-  const fetchSuggestions = useCallback(async (sortBy, skipCount = 0, append = false, viewMode = 'board', filterState = '') => {
+  const fetchSuggestions = useCallback(async (sortBy, skipCount = 0, append = false, viewMode = 'board') => {
     const currentId = ++fetchIdRef.current;
     try {
       if (skipCount === 0) setLoading(true);
@@ -156,10 +188,8 @@ export default function Suggestions() {
         const list = await res.json();
         setSuggestions(Array.isArray(list) ? list : []);
         setTotal(Array.isArray(list) ? list.length : 0);
-        setSkip(list.length);
       } else {
-        const params = new URLSearchParams({ sort: sortBy, limit: 20, skip: skipCount });
-        if (filterState) params.set('state', filterState);
+        const params = new URLSearchParams({ sort: sortBy, limit: PAGE_SIZE, skip: skipCount });
         const res = await authFetch(`${API_BASE_URL}/api/suggestions?${params.toString()}`);
         if (currentId !== fetchIdRef.current) return;
         if (!res.ok) throw new Error('Failed to fetch suggestions');
@@ -171,7 +201,6 @@ export default function Suggestions() {
           setSuggestions(data.suggestions || []);
         }
         setTotal(data.total ?? 0);
-        setSkip(skipCount + (data.suggestions?.length || 0));
       }
     } catch (err) {
       if (currentId !== fetchIdRef.current) return;
@@ -192,9 +221,8 @@ export default function Suggestions() {
 
   useEffect(() => {
     if (!isSignedIn || authLoading) return;
-    setSkip(0);
-    fetchSuggestions(sort, 0, false, view, stateFilter);
-  }, [isSignedIn, authLoading, sort, view, stateFilter, fetchSuggestions]);
+    fetchSuggestions(sort, 0, false, view);
+  }, [isSignedIn, authLoading, sort, view, fetchSuggestions]);
 
   const handleImageChange = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
@@ -286,8 +314,7 @@ export default function Suggestions() {
       setForm({ title: '', category: 'Feature Request', details: '' });
       setImageFiles([]);
       setImagePreviews([]);
-      setSkip(0);
-      fetchSuggestions(sort, 0, false, view, stateFilter);
+      fetchSuggestions(sort, 0, false, view);
     } catch (err) {
       setError(err.message || 'Failed to submit');
     } finally {
@@ -350,8 +377,13 @@ export default function Suggestions() {
   };
 
   const handleLoadMore = () => {
-    fetchSuggestions(sort, skip, true, view, stateFilter);
+    fetchSuggestions(sort, suggestions.length, true, view);
   };
+
+  const displayedSuggestions = useMemo(
+    () => suggestions.filter((s) => matchesState(s, stateFilter) && matchesCategory(s, categoryFilter)),
+    [suggestions, stateFilter, categoryFilter]
+  );
 
   const handleAddComment = async (suggestionId) => {
     const text = commentText.trim();
@@ -530,7 +562,7 @@ export default function Suggestions() {
                 <h2 className="suggestions-board-title">
                   {view === 'my' ? 'My Submissions' : 'Community Board'}
                 </h2>
-                <span className="suggestions-board-count">{total}</span>
+                <span className="suggestions-board-count">{displayedSuggestions.length}</span>
               </div>
               {view === 'board' && (
                 <div className="suggestions-board-controls">
@@ -565,6 +597,19 @@ export default function Suggestions() {
                       ))}
                     </select>
                   </div>
+                  <div className="suggestions-state-filter suggestions-category-filter">
+                    <label className="suggestions-state-filter-label">Category:</label>
+                    <select
+                      className="suggestions-state-select suggestions-category-select"
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      aria-label="Filter by category"
+                    >
+                      {CATEGORY_FILTER_OPTIONS.map((opt) => (
+                        <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               )}
             </div>
@@ -573,7 +618,7 @@ export default function Suggestions() {
               <div className="suggestions-loading">Loading suggestions...</div>
             ) : (
               <div className="suggestions-list">
-                {suggestions.map((s) => {
+                {displayedSuggestions.map((s) => {
                   const upvotes = s.upvotes ?? 0;
                   const hasVoted = s.hasVoted ?? false;
                   const isClosed = s.status === 'done' || s.status === 'cancelled' || s.status === 'completed';
@@ -815,7 +860,7 @@ export default function Suggestions() {
               </div>
             )}
 
-            {!loading && suggestions.length > 0 && suggestions.length < total && (
+            {view === 'board' && !loading && suggestions.length > 0 && suggestions.length < total && (
               <div className="suggestions-load-more-wrap">
                 <button
                   type="button"

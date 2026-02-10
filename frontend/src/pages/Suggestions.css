@@ -349,12 +349,8 @@
   margin-bottom: 1.6rem;
 }
 
-@media (min-width: 640px) {
-  .suggestions-board-header {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
+.suggestions-board-header .suggestions-board-controls {
+  align-items: center;
 }
 
 .suggestions-board-title-wrap {
@@ -446,6 +442,10 @@
 .suggestions-state-select:focus {
   outline: none;
   border-color: #4F46E5;
+}
+
+.suggestions-category-filter .suggestions-category-select {
+  min-width: 11rem;
 }
 
 .suggestions-state-dropdown {

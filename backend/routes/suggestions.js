@@ -3,13 +3,15 @@ const router = express.Router();
 const Suggestion = require('../models/Suggestion');
 const UserData = require('../models/UserData');
 
-// List suggestions (sort: top | new, optional state filter) – includes hasVoted for current user
+// List suggestions (sort: top | new, optional state/category filter) – includes hasVoted for current user
 const VALID_STATES = ['new', 'todo', 'in_progress', 'hold', 'in_review', 'done', 'cancelled'];
+const VALID_CATEGORIES = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion', 'Other'];
 
 router.get('/', async (req, res) => {
   try {
     const sort = req.query.sort || 'top';
     const state = req.query.state; // optional: filter by one state
+    const category = req.query.category; // optional: filter by category
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const userId = req.auth?.userId;
@@ -27,6 +29,9 @@ router.get('/', async (req, res) => {
         cancelled: ['cancelled']
       };
       query.status = { $in: stateMap[state] };
+    }
+    if (category && VALID_CATEGORIES.includes(category)) {
+      query.category = category;
     }
 
     let sortOption = { createdAt: -1 };

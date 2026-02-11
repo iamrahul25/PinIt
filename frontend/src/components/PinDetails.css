@@ -430,6 +430,20 @@
   }
 }
 
+/* Bottom actions (Edit / Delete) - shown for admin or pin creator */
+.pin-details-bottom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--pin-slate-100);
+}
+
+.pin-details-bottom-actions .pin-details-btn {
+  min-width: 8rem;
+}
+
 /* Main content */
 .pin-details-main {
   flex: 1;
@@ -721,12 +735,46 @@
   margin: 0 0 0.5rem 0;
 }
 
+.location-address-row .location-address {
+  margin: 0 0 0.5rem 0;
+}
+
 .location-coords {
   display: flex;
   gap: 1rem;
   font-size: 0.6875rem;
   font-family: ui-monospace, monospace;
   color: var(--pin-slate-500);
+  margin-bottom: 0.5rem;
+}
+
+.pin-details-location .pin-details-copy-btn {
+  margin-top: 0.25rem;
+}
+
+.pin-details-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--pin-slate-600);
+  background: var(--pin-slate-100);
+  border: 1px solid var(--pin-slate-200);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  flex-shrink: 0;
+}
+
+.pin-details-copy-btn:hover {
+  background: var(--pin-slate-200);
+  color: var(--pin-slate-800);
+}
+
+.pin-details-copy-btn .material-icons-round {
+  font-size: 1rem;
 }
 
 /* Scheduled events for this pin */

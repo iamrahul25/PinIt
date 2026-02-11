@@ -40,7 +40,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
   const [scheduledEvents, setScheduledEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const imageModalRef = useRef(null);
-  // Edit mode (admin only)
+  // Edit mode (admin or pin creator)
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
   const [editImages, setEditImages] = useState([]); // URLs to keep
@@ -49,6 +49,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
   const [editError, setEditError] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [compressingNewImages, setCompressingNewImages] = useState(false);
+  const [copiedLocation, setCopiedLocation] = useState(null);
   const editFileInputRef = useRef(null);
 
   useEffect(() => {
@@ -417,6 +418,23 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
     });
   };
 
+  const copyLocationToClipboard = (text, field) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedLocation(field);
+      setTimeout(() => setCopiedLocation(null), 2000);
+    }).catch(() => {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setCopiedLocation(field);
+      setTimeout(() => setCopiedLocation(null), 2000);
+    });
+  };
+
   const formatEventDate = (dateStr) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
@@ -502,30 +520,6 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
                 <span className="material-icons-round">share</span>
                 {shareCopied ? 'Copied!' : 'Share'}
               </button>
-              {user?.role === 'admin' && (
-                <button
-                  type="button"
-                  className="pin-details-btn pin-details-btn-edit"
-                  onClick={isEditing ? cancelEditing : startEditing}
-                  disabled={savingEdit}
-                  title={isEditing ? 'Cancel edit' : 'Edit this pin (admin only)'}
-                >
-                  <span className="material-icons-round">edit</span>
-                  {isEditing ? 'Cancel' : 'Edit'}
-                </button>
-              )}
-              {user?.role === 'admin' && (
-                <button
-                  type="button"
-                  className="pin-details-btn pin-details-btn-danger"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  title="Delete this pin (admin only)"
-                >
-                  <span className="material-icons-round">delete</span>
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
-              )}
               <button className="pin-details-close" onClick={onClose} aria-label="Close">
                 <span className="material-icons-round">close</span>
               </button>
@@ -743,13 +737,31 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
                   Precise Location
                 </h3>
                 <div className="pin-details-location">
-                  <p className="location-address">{pin.location.address}</p>
+                  <div className="location-address-row">
+                    <p className="location-address">{pin.location.address}</p>
+                  </div>
                   {pin.location.latitude != null && pin.location.longitude != null && (
                     <div className="location-coords">
-                      <span>LAT: {pin.location.latitude.toFixed(4)}° N</span>
-                      <span>LONG: {pin.location.longitude.toFixed(4)}° E</span>
+                      <span>LAT: {pin.location.latitude.toFixed(5)}° N</span>
+                      <span>LONG: {pin.location.longitude.toFixed(5)}° E</span>
                     </div>
                   )}
+                  <button
+                    type="button"
+                    className="pin-details-copy-btn"
+                    onClick={() => {
+                      let text = `Location: ${pin.location.address || '—'}`;
+                      if (pin.location.latitude != null && pin.location.longitude != null) {
+                        text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
+                      }
+                      copyLocationToClipboard(text, 'location');
+                    }}
+                    title="Copy address and coordinates"
+                    aria-label="Copy address and coordinates"
+                  >
+                    <span className="material-icons-round">{copiedLocation === 'location' ? 'check' : 'content_copy'}</span>
+                    {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
+                  </button>
                 </div>
               </section>
             )}
@@ -821,6 +833,31 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
                 )}
               </div>
             </section>
+
+            {(user?.role === 'admin' || pin.contributor_id === user?.id) && (
+              <div className="pin-details-bottom-actions">
+                <button
+                  type="button"
+                  className="pin-details-btn pin-details-btn-edit"
+                  onClick={startEditing}
+                  disabled={savingEdit}
+                  title={user?.role === 'admin' ? 'Edit this pin' : 'Edit my pin'}
+                >
+                  <span className="material-icons-round">edit</span>
+                  {user?.role === 'admin' ? 'Edit' : 'Edit my Pin'}
+                </button>
+                <button
+                  type="button"
+                  className="pin-details-btn pin-details-btn-danger"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  title={user?.role === 'admin' ? 'Delete this pin' : 'Delete my pin'}
+                >
+                  <span className="material-icons-round">delete</span>
+                  {deleting ? 'Deleting…' : user?.role === 'admin' ? 'Delete' : 'Delete my Pin'}
+                </button>
+              </div>
+            )}
               </>
             )}
           </main>

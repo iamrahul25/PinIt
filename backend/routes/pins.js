@@ -138,7 +138,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update pin (admin only)
+// Update pin (admin or pin creator only)
 const ALLOWED_UPDATE_FIELDS = ['problemType', 'severity', 'location', 'images', 'problemHeading', 'contributor_name', 'description'];
 router.put('/:id', async (req, res) => {
   try {
@@ -146,9 +146,14 @@ router.put('/:id', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const userDoc = await UserData.findOne({ userId }).select('role').lean();
-    if (!userDoc || userDoc.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: admin role required to update pins' });
+    const existingPin = await Pin.findById(req.params.id).select('contributor_id').lean();
+    if (!existingPin) {
+      return res.status(404).json({ error: 'Pin not found' });
+    }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isCreator = existingPin.contributor_id === userId;
+    if (!isAdmin && !isCreator) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the pin creator can update this pin' });
     }
     const updates = {};
     for (const key of ALLOWED_UPDATE_FIELDS) {
@@ -169,16 +174,21 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete pin (admin only)
+// Delete pin (admin or pin creator only)
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const userDoc = await UserData.findOne({ userId }).select('role').lean();
-    if (!userDoc || userDoc.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: admin role required to delete pins' });
+    const existingPin = await Pin.findById(req.params.id).select('contributor_id').lean();
+    if (!existingPin) {
+      return res.status(404).json({ error: 'Pin not found' });
+    }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isCreator = existingPin.contributor_id === userId;
+    if (!isAdmin && !isCreator) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the pin creator can delete this pin' });
     }
     const pin = await Pin.findByIdAndDelete(req.params.id);
     if (!pin) {

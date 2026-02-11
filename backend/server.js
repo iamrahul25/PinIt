@@ -16,6 +16,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const { authMiddleware } = require('./middleware/auth');
 const requestLogger = require('./middleware/requestLogger');
+const { authRateLimiter, uploadRateLimiter, generalRateLimiter } = require('./middleware/rateLimit');
 
 const app = express();
 
@@ -50,8 +51,14 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'OK', message: 'Server is running' });
 });
 
-// Auth route (unprotected – used for login)
-app.use('/api/auth', require('./routes/auth'));
+// Rate limit image uploads by IP (before auth so all attempts are limited)
+app.use('/api/images/upload', uploadRateLimiter);
+
+// Auth route (unprotected) – strict rate limit for login/signup (brute-force protection)
+app.use('/api/auth', authRateLimiter, require('./routes/auth'));
+
+// General API rate limit – DoS mitigation (applies to all /api except health)
+app.use('/api', generalRateLimiter);
 
 // Protect all other API routes
 app.use('/api', authMiddleware);

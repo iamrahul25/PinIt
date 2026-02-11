@@ -31,8 +31,13 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Trust proxy to get real IP address (important for production)
-app.set('trust proxy', true);
+// Trust proxy: use a number (e.g. 1) when behind a reverse proxy so rate limiting
+// uses the client IP from X-Forwarded-For. Never use `true`—it allows clients to
+// spoof X-Forwarded-For and bypass rate limits. Use 0 when not behind a proxy (e.g. local dev).
+const trustProxy = process.env.TRUST_PROXY !== undefined
+  ? parseInt(process.env.TRUST_PROXY, 10)
+  : 0;
+app.set('trust proxy', Number.isNaN(trustProxy) ? 0 : trustProxy);
 
 // Request logging – includeBody from .env SHOW_REQ_BODY, includeResponse from SHOW_RES_BODY (true/false)
 const showReqBody = process.env.SHOW_REQ_BODY === 'true';

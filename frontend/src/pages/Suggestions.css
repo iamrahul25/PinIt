@@ -467,12 +467,21 @@
   gap: 0.75rem;
 }
 
+.suggestions-board-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.suggestions-sort-filter,
 .suggestions-board-header .suggestions-state-filter {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
+.suggestions-sort-filter-label,
 .suggestions-state-filter-label {
   font-size: 0.65rem;
   font-weight: 700;
@@ -482,6 +491,7 @@
   margin: 0;
 }
 
+.suggestions-sort-select,
 .suggestions-state-select {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -494,11 +504,11 @@
   min-width: 7rem;
 }
 
+.suggestions-sort-select:focus,
 .suggestions-state-select:focus {
   outline: none;
   border-color: #4F46E5;
 }
-
 .suggestions-category-filter .suggestions-category-select {
   min-width: 11rem;
 }

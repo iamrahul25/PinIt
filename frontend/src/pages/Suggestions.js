@@ -24,11 +24,7 @@ const CATEGORY_CONFIG = {
   'UI/UX Suggestion': { icon: 'brush', color: '#7c3aed', bg: '#f5f3ff' },
   'Other': { icon: 'apps', color: '#64748b', bg: '#f1f5f9' }
 };
-const VIEW_FILTERS = [
-  { key: 'all', label: 'All', sort: 'top', state: '' },
-  { key: 'new', label: 'New', sort: 'new', state: 'new' },
-  { key: 'done', label: 'Done', sort: 'new', state: 'done' }
-];
+
 
 const SUGGESTION_STATES = [
   { key: '', label: 'All' },
@@ -199,7 +195,7 @@ export default function Suggestions() {
         setSuggestions(Array.isArray(list) ? list : []);
         setTotal(Array.isArray(list) ? list.length : 0);
       } else {
-        const params = new URLSearchParams({ sort: sortBy, limit: PAGE_SIZE, skip: skipCount });
+        const params = new URLSearchParams({ limit: PAGE_SIZE, skip: skipCount });
         const res = await authFetch(`${API_BASE_URL}/api/suggestions?${params.toString()}`);
         if (currentId !== fetchIdRef.current) return;
         if (!res.ok) throw new Error('Failed to fetch suggestions');
@@ -232,7 +228,7 @@ export default function Suggestions() {
   useEffect(() => {
     if (!isSignedIn || authLoading) return;
     fetchSuggestions(sort, 0, false, view);
-  }, [isSignedIn, authLoading, sort, view, fetchSuggestions]);
+  }, [isSignedIn, authLoading, view, fetchSuggestions]);
 
   const handleImageChange = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
@@ -391,10 +387,24 @@ export default function Suggestions() {
     fetchSuggestions(sort, suggestions.length, true, view);
   };
 
-  const displayedSuggestions = useMemo(
-    () => suggestions.filter((s) => matchesState(s, stateFilter) && matchesCategory(s, categoryFilter)),
-    [suggestions, stateFilter, categoryFilter]
-  );
+
+
+  const displayedSuggestions = useMemo(() => {
+    const filtered = suggestions.filter(
+      (s) => matchesState(s, stateFilter) && matchesCategory(s, categoryFilter)
+    );
+
+    switch (sort) {
+      case 'new':
+        return [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      case 'oldest':
+        return [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      case 'top':
+        return [...filtered].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0));
+      default:
+        return filtered;
+    }
+  }, [suggestions, stateFilter, categoryFilter, sort]);
 
   const handleAddComment = async (suggestionId) => {
     const text = commentText.trim();
@@ -601,52 +611,49 @@ export default function Suggestions() {
                 <span className="suggestions-board-count">{displayedSuggestions.length}</span>
               </div>
               {view === 'board' && (
-                <div className="suggestions-board-controls">
-                  <div className="suggestions-sort-tabs">
-                    {VIEW_FILTERS.map((opt) => {
-                      const isActive = opt.key === 'done' ? stateFilter === 'done' : (opt.key === 'new' ? (stateFilter === '' && sort === 'new') : (stateFilter === '' && sort === 'top'));
-                      return (
-                        <button
-                          key={opt.key}
-                          type="button"
-                          className={`suggestions-sort-tab ${isActive ? 'active' : ''}`}
-                          onClick={() => {
-                            setSort(opt.sort);
-                            setStateFilter(opt.state);
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <div className="suggestions-state-filter">
-                    <label className="suggestions-state-filter-label">State:</label>
-                    <select
-                      className="suggestions-state-select"
-                      value={stateFilter}
-                      onChange={(e) => setStateFilter(e.target.value)}
-                      aria-label="Filter by state"
-                    >
-                      {SUGGESTION_STATES.map((opt) => (
-                        <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="suggestions-state-filter suggestions-category-filter">
-                    <label className="suggestions-state-filter-label">Category:</label>
-                    <select
-                      className="suggestions-state-select suggestions-category-select"
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      aria-label="Filter by category"
-                    >
-                      {CATEGORY_FILTER_OPTIONS.map((opt) => (
-                        <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                                <div className="suggestions-board-controls">
+                                  <div className="suggestions-board-filters">
+                                    <div className="suggestions-sort-filter">
+                                      <label className="suggestions-sort-filter-label">Sort by:</label>
+                                      <select
+                                        className="suggestions-sort-select"
+                                        value={sort}
+                                        onChange={(e) => setSort(e.target.value)}
+                                        aria-label="Sort by"
+                                      >
+                                        <option value="top">Top</option>
+                                        <option value="new">Newest</option>
+                                        <option value="oldest">Oldest</option>
+                                      </select>
+                                    </div>
+                                    <div className="suggestions-state-filter">
+                                      <label className="suggestions-state-filter-label">State:</label>
+                                      <select
+                                        className="suggestions-state-select"
+                                        value={stateFilter}
+                                        onChange={(e) => setStateFilter(e.target.value)}
+                                        aria-label="Filter by state"
+                                      >
+                                        {SUGGESTION_STATES.map((opt) => (
+                                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                    <div className="suggestions-state-filter suggestions-category-filter">
+                                      <label className="suggestions-state-filter-label">Category:</label>
+                                      <select
+                                        className="suggestions-state-select suggestions-category-select"
+                                        value={categoryFilter}
+                                        onChange={(e) => setCategoryFilter(e.target.value)}
+                                        aria-label="Filter by category"
+                                      >
+                                        {CATEGORY_FILTER_OPTIONS.map((opt) => (
+                                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                                        ))}
+                                      </select>
+                                    </div>
+                                  </div>
+                                </div>
               )}
             </div>
 
@@ -895,6 +902,7 @@ export default function Suggestions() {
                 })}
               </div>
             )}
+
 
             {view === 'board' && !loading && suggestions.length > 0 && suggestions.length < total && (
               <div className="suggestions-load-more-wrap">

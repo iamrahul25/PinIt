@@ -9,10 +9,9 @@ const VALID_CATEGORIES = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX
 
 router.get('/', async (req, res) => {
   try {
-    const sort = req.query.sort || 'top';
     const state = req.query.state; // optional: filter by one state
     const category = req.query.category; // optional: filter by category
-    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const userId = req.auth?.userId;
 
@@ -34,15 +33,7 @@ router.get('/', async (req, res) => {
       query.category = category;
     }
 
-    let sortOption = { createdAt: -1 };
-    if (sort === 'top') {
-      sortOption = { upvotes: -1, createdAt: -1 };
-    } else {
-      sortOption = { createdAt: -1 };
-    }
-
     const raw = await Suggestion.find(query)
-      .sort(sortOption)
       .skip(skip)
       .limit(limit)
       .lean();

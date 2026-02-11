@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Circle as LeafletCircle, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Circle as LeafletCircle, useMapEvents, useMap, ZoomControl } from 'react-leaflet';
 import { GoogleMap, LoadScript, InfoWindow, Circle as GoogleCircle } from '@react-google-maps/api';
 import L from 'leaflet';
 import 'leaflet.markercluster';
@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
+import './MapView.css';
 
 // Expose L globally so leaflet.markercluster can extend it (UMD expects window.L)
 if (typeof window !== 'undefined') window.L = L;
@@ -241,6 +242,7 @@ function LocationSearch({ onLocationFound }) {
     }
 
     const searchContainer = document.createElement('div');
+    searchContainer.className = 'map-search-container';
     searchContainer.style.cssText = `
       position: absolute;
       top: 10px;
@@ -410,6 +412,7 @@ function LocationSearch({ onLocationFound }) {
     const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
     const currentLocationBtn = document.createElement('button');
     currentLocationBtn.type = 'button';
+    currentLocationBtn.className = 'map-location-btn';
     currentLocationBtn.title = 'My Location';
     currentLocationBtn.innerHTML = locationIconImg;
     currentLocationBtn.style.cssText = `
@@ -460,6 +463,7 @@ function LocationSearch({ onLocationFound }) {
 
     const zoomOutBtn = document.createElement('button');
     zoomOutBtn.type = 'button';
+    zoomOutBtn.className = 'map-zoom-out-btn';
     zoomOutBtn.title = 'Zoom out to state level';
     zoomOutBtn.innerHTML = '<span class="material-icons-round" style="font-size:20px">fullscreen_exit</span>';
     zoomOutBtn.style.cssText = `
@@ -510,6 +514,7 @@ const MAP_LAYERS = [
   { id: 'standard', label: 'Standard' },
   { id: 'satellite', label: 'Satellite' },
   { id: 'terrain', label: 'Terrain' },
+  { id: 'google', label: 'Google Map' },
 ];
 
 // Zoom level / Reset zoom out (broad regional view)
@@ -604,17 +609,23 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   };
 
 
-  const toggleMapType = () => {
-    setMapType(prev => {
-      const newType = prev === 'osm' ? 'google' : 'osm';
-      // Trigger resize for Google Maps when switching to it
-      if (newType === 'google' && googleMapInstance && window.google) {
+  const selectedLayerId = mapType === 'google' ? 'google' : mapLayer;
+
+  const handleSelectLayer = (layer) => {
+    if (layer.id === 'google') {
+      setMapType('google');
+      setMapLayer('standard');
+      setLayersDropdownOpen(false);
+      if (googleMapInstance && window.google) {
         setTimeout(() => {
           window.google.maps.event.trigger(googleMapInstance, 'resize');
         }, 100);
       }
-      return newType;
-    });
+    } else {
+      setMapType('osm');
+      setMapLayer(layer.id);
+      setLayersDropdownOpen(false);
+    }
   };
 
   const handleGoogleMapClick = (e) => {
@@ -660,6 +671,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       }
 
       const searchContainer = document.createElement('div');
+      searchContainer.className = 'map-search-container';
       searchContainer.style.cssText = `
         position: absolute;
         top: 10px;
@@ -749,6 +761,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
       const currentLocationBtn = document.createElement('button');
       currentLocationBtn.type = 'button';
+      currentLocationBtn.className = 'map-location-btn';
       currentLocationBtn.title = 'My Location';
       currentLocationBtn.innerHTML = locationIconImg;
       currentLocationBtn.style.cssText = `
@@ -804,6 +817,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
 
       const zoomOutBtn = document.createElement('button');
       zoomOutBtn.type = 'button';
+      zoomOutBtn.className = 'map-zoom-out-btn';
       zoomOutBtn.title = 'Zoom out';
       zoomOutBtn.innerHTML = '<span class="material-icons-round" style="font-size:20px">fullscreen_exit</span>';
       zoomOutBtn.style.cssText = `
@@ -900,12 +914,13 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   return (
     <div
       ref={mapWrapperRef}
+      className="map-view-wrapper"
       style={{ position: 'relative', height: '100%', width: '100%' }}
       onMouseMove={isAddPinMode ? handlePointerMove : undefined}
       onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
     >
       {/* Map Layers + Clustering - after location and zoom-out buttons */}
-      <div ref={layersDropdownRef} style={{ position: 'absolute', top: '10px', left: '444px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div ref={layersDropdownRef} className="map-layers-controls" style={{ position: 'absolute', top: '10px', left: '444px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           type="button"
           onClick={() => setLayersDropdownOpen((prev) => !prev)}
@@ -966,18 +981,15 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               <button
                 key={layer.id}
                 type="button"
-                onClick={() => {
-                  setMapLayer(layer.id);
-                  setLayersDropdownOpen(false);
-                }}
+                onClick={() => handleSelectLayer(layer)}
                 style={{
                   width: '100%',
                   padding: '10px 14px',
                   border: 'none',
-                  background: mapLayer === layer.id ? '#f3f4f6' : 'white',
+                  background: selectedLayerId === layer.id ? '#f3f4f6' : 'white',
                   color: '#374151',
                   fontSize: '14px',
-                  fontWeight: mapLayer === layer.id ? 600 : 400,
+                  fontWeight: selectedLayerId === layer.id ? 600 : 400,
                   cursor: 'pointer',
                   textAlign: 'left',
                   display: 'flex',
@@ -985,13 +997,13 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                   gap: '8px',
                 }}
                 onMouseEnter={(e) => {
-                  if (mapLayer !== layer.id) e.currentTarget.style.background = '#f9fafb';
+                  if (selectedLayerId !== layer.id) e.currentTarget.style.background = '#f9fafb';
                 }}
                 onMouseLeave={(e) => {
-                  if (mapLayer !== layer.id) e.currentTarget.style.background = 'white';
+                  if (selectedLayerId !== layer.id) e.currentTarget.style.background = 'white';
                 }}
               >
-                <span style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: mapLayer === layer.id ? '#6366f1' : '#f9fafb' }} />
+                <span style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: selectedLayerId === layer.id ? '#6366f1' : '#f9fafb' }} />
                 {layer.label}
               </button>
             ))}
@@ -999,51 +1011,6 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         )}
       </div>
 
-      {/* Map Type Toggle Button - matches sidebar toggle theme */}
-      <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        border: '1px solid #e2e8f0',
-        borderRadius: '8px',
-        background: '#fff',
-        boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.15)',
-        overflow: 'hidden'
-      }}>
-        <button
-          onClick={toggleMapType}
-          style={{
-            padding: '8px 14px',
-            border: 'none',
-            background: mapType === 'osm' ? '#6366f1' : 'transparent',
-            color: mapType === 'osm' ? '#fff' : '#64748b',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: '500',
-            transition: 'background 0.2s, color 0.2s'
-          }}
-        >
-          OpenStreetMap
-        </button>
-        <button
-          onClick={toggleMapType}
-          style={{
-            padding: '8px 14px',
-            border: 'none',
-            background: mapType === 'google' ? '#6366f1' : 'transparent',
-            color: mapType === 'google' ? '#fff' : '#64748b',
-            cursor: 'pointer',
-            fontSize: '13px',
-            fontWeight: '500',
-            transition: 'background 0.2s, color 0.2s'
-          }}
-        >
-          Google Maps
-        </button>
-      </div>
       {isAddPinMode && (
         <>
           <div style={{
@@ -1126,6 +1093,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         <MapContainer
           center={center}
           zoom={zoom}
+          zoomControl={false}
           style={{ 
             height: '100%', 
             width: '100%',
@@ -1149,6 +1117,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                 : 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
             }
           />
+          <ZoomControl position="bottomright" />
           <LeafletMapCapture />
           <MapUpdater center={center} zoom={zoom} onMapMove={handleLeafletMapMove} />
           <MapClickHandler onMapClick={onMapClick} isAddPinMode={isAddPinMode} />
@@ -1249,6 +1218,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                 mapTypeId: mapLayer === 'satellite' ? 'satellite' : mapLayer === 'terrain' ? 'terrain' : 'roadmap',
                 disableDefaultUI: false,
                 zoomControl: true,
+                zoomControlOptions: { position: 9 },
                 streetViewControl: false,
                 mapTypeControl: false,
                 fullscreenControl: true,

@@ -1,0 +1,53 @@
+/* Map controls: search bar and icons - responsive for mobile */
+@media (max-width: 768px) {
+  .map-view-wrapper .map-search-container {
+    left: 8px !important;
+    right: 162px !important;
+    width: auto !important;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .map-view-wrapper .map-search-container input {
+    padding: 8px 36px 8px 12px !important;
+    font-size: 13px !important;
+  }
+
+  .map-view-wrapper .map-location-btn,
+  .map-view-wrapper .map-zoom-out-btn {
+    left: auto !important;
+    width: 32px !important;
+    height: 32px !important;
+    top: 10px !important;
+  }
+
+  .map-view-wrapper .map-location-btn {
+    right: 122px !important;
+  }
+
+  .map-view-wrapper .map-zoom-out-btn {
+    right: 84px !important;
+  }
+
+  .map-view-wrapper .map-location-btn .material-icons-round,
+  .map-view-wrapper .map-zoom-out-btn .material-icons-round {
+    font-size: 18px !important;
+  }
+
+  .map-view-wrapper .map-layers-controls {
+    left: auto !important;
+    right: 8px !important;
+    top: 10px !important;
+    gap: 4px !important;
+  }
+
+  .map-view-wrapper .map-layers-controls button {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+  }
+
+  .map-view-wrapper .map-layers-controls .material-icons-round {
+    font-size: 18px !important;
+  }
+}

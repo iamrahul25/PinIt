@@ -34,6 +34,7 @@ function App() {
   const [isAddPinMode, setIsAddPinMode] = useState(false);
   const [tempPinLocation, setTempPinLocation] = useState(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
 
@@ -122,6 +123,15 @@ function App() {
     fetchPins();
     fetchSavedPinIds();
   }, [isSignedIn, authLoading, syncUserData, fetchPins, fetchSavedPinIds]);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.classList.add('mobile-menu-open');
+    } else {
+      document.body.classList.remove('mobile-menu-open');
+    }
+    return () => document.body.classList.remove('mobile-menu-open');
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     if (!isSignedIn || authLoading || !urlPinId) return;
@@ -282,13 +292,20 @@ function App() {
 
   if (!isSignedIn) return null;
 
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
+  const handleNavTo = (path) => {
+    navigate(path);
+    closeMobileMenu();
+  };
+
   return (
     <div className="App">
       <header className="app-header">
         <button
           type="button"
           className="app-brand"
-          onClick={() => navigate('/')}
+          onClick={() => { navigate('/'); closeMobileMenu(); }}
           title="Home"
         >
           <span className="app-brand-icon" aria-hidden="true">
@@ -301,7 +318,20 @@ function App() {
             <span className="app-brand-tagline">Report civic issues</span>
           </span>
         </button>
-        <div className="app-user">
+
+        <button
+          type="button"
+          className="header-hamburger-btn"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+          aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileMenuOpen}
+        >
+          <span className="header-hamburger-bar" />
+          <span className="header-hamburger-bar" />
+          <span className="header-hamburger-bar" />
+        </button>
+
+        <div className="app-user header-desktop-nav">
           <span className="app-user-name">{user?.fullName || user?.email}</span>
           <button
             type="button"
@@ -354,6 +384,62 @@ function App() {
           </button>
         </div>
       </header>
+
+      <div
+        className={`header-mobile-overlay ${mobileMenuOpen ? 'open' : ''}`}
+        onClick={closeMobileMenu}
+        aria-hidden="true"
+      />
+      <nav className={`header-mobile-menu ${mobileMenuOpen ? 'open' : ''}`} aria-label="Main navigation">
+        <button
+          type="button"
+          className="header-mobile-close-btn"
+          onClick={closeMobileMenu}
+          aria-label="Close menu"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+        <div className="header-mobile-menu-user">
+          <span className="app-user-name">{user?.fullName || user?.email}</span>
+          <button
+            type="button"
+            className="profile-avatar-btn"
+            onClick={() => handleNavTo('/profile')}
+            title="Your profile"
+            aria-label="Profile"
+          >
+            {user?.imageUrl ? (
+              <img src={user.imageUrl} alt="" className="app-user-avatar" referrerPolicy="no-referrer" />
+            ) : (
+              <span className="app-user-avatar-placeholder">
+                {(user?.fullName || user?.email || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </button>
+        </div>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/suggestions')}>
+          Suggestions
+        </button>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/ngos')}>
+          NGO's
+        </button>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/events')}>
+          Events
+        </button>
+        <button type="button" className="header-mobile-nav-btn header-mobile-logout" onClick={() => { handleSignOut(); closeMobileMenu(); }}>
+          <span className="logout-btn-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          Sign out
+        </button>
+      </nav>
       {isProfilePage ? (
         <div className="app-profile-container">
           <UserProfile />

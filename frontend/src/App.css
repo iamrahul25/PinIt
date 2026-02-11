@@ -8,7 +8,7 @@
 .app-header {
   background: #0f0f0f;
   color: #fff;
-  padding: 0.6rem 1.5rem;
+  padding: 0.6rem 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 1000;
   display: flex;
@@ -69,6 +69,176 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Hamburger: hidden on desktop */
+.header-hamburger-btn {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+}
+
+.header-hamburger-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.header-hamburger-bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transition: transform 0.2s, opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.header-hamburger-btn[aria-expanded="true"] .header-hamburger-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.header-hamburger-btn[aria-expanded="true"] .header-hamburger-bar:nth-child(2) {
+  opacity: 0;
+}
+
+.header-hamburger-btn[aria-expanded="true"] .header-hamburger-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* Mobile overlay and menu */
+.header-mobile-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+
+.header-mobile-menu {
+  display: none;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 280px;
+  max-width: 85vw;
+  height: 100vh;
+  background: #0f0f0f;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  z-index: 1002;
+  padding: 1.25rem;
+  padding-top: calc(1.25rem + 52px);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  overflow-y: auto;
+}
+
+.header-mobile-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.header-mobile-menu.open {
+  transform: translateX(0);
+}
+
+.header-mobile-close-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+}
+
+.header-mobile-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.header-mobile-close-btn svg {
+  display: block;
+}
+
+.header-mobile-menu-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.header-mobile-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.25rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.header-mobile-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.header-mobile-logout {
+  margin-top: auto;
+  margin-bottom: 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.header-mobile-logout:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Mobile breakpoint */
+@media (max-width: 768px) {
+  .header-hamburger-btn {
+    display: flex;
+  }
+
+  .header-desktop-nav {
+    display: none !important;
+  }
+
+  .header-mobile-overlay,
+  .header-mobile-menu {
+    display: flex;
+  }
+}
+
+body.mobile-menu-open {
+  overflow: hidden;
 }
 
 .app-user-name {
@@ -185,15 +355,15 @@
 
 .add-pin-btn {
   position: absolute;
-  bottom: 30px;
-  left: 30px;
-  height: 34px;
-  padding: 0 18px;
+  bottom: clamp(12px, 3vmin, 40px);
+  left: clamp(12px, 3vmin, 40px);
+  height: clamp(32px, 4vh, 42px);
+  padding: 0 clamp(12px, 2vw, 22px);
   border-radius: 9999px;
   background: #6366f1;
   border: none;
   color: white;
-  font-size: 0.72rem;
+  font-size: clamp(0.65rem, 1.4vw, 0.8rem);
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
@@ -201,7 +371,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: clamp(4px, 1vw, 10px);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
@@ -216,7 +386,7 @@
 }
 
 .add-pin-btn-icon {
-  font-size: 1.1rem;
+  font-size: clamp(0.95rem, 1.2vw, 1.2rem);
 }
 
 .add-pin-btn-text {

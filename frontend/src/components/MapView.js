@@ -246,7 +246,7 @@ function LocationSearch({ onLocationFound }) {
     searchContainer.style.cssText = `
       position: absolute;
       top: 10px;
-      left: 50px;
+      left: 10px;
       z-index: 1000;
       width: 300px;
     `;
@@ -418,7 +418,7 @@ function LocationSearch({ onLocationFound }) {
     currentLocationBtn.style.cssText = `
       position: absolute;
       top: 10px;
-      left: 360px;
+      left: 318px;
       z-index: 1000;
       width: 36px;
       height: 36px;
@@ -469,7 +469,7 @@ function LocationSearch({ onLocationFound }) {
     zoomOutBtn.style.cssText = `
       position: absolute;
       top: 10px;
-      left: 402px;
+      left: 360px;
       z-index: 1000;
       width: 36px;
       height: 36px;
@@ -675,7 +675,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       searchContainer.style.cssText = `
         position: absolute;
         top: 10px;
-        left: 50px;
+        left: 10px;
         z-index: 1000;
         width: 300px;
       `;
@@ -767,7 +767,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       currentLocationBtn.style.cssText = `
         position: absolute;
         top: 10px;
-        left: 360px;
+        left: 318px;
         z-index: 1000;
         width: 36px;
         height: 36px;
@@ -823,7 +823,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       zoomOutBtn.style.cssText = `
         position: absolute;
         top: 10px;
-        left: 402px;
+        left: 360px;
         z-index: 1000;
         width: 36px;
         height: 36px;
@@ -920,7 +920,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
     >
       {/* Map Layers + Clustering - after location and zoom-out buttons */}
-      <div ref={layersDropdownRef} className="map-layers-controls" style={{ position: 'absolute', top: '10px', left: '444px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div ref={layersDropdownRef} className="map-layers-controls" style={{ position: 'absolute', top: '10px', left: '402px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '6px' }}>
         <button
           type="button"
           onClick={() => setLayersDropdownOpen((prev) => !prev)}

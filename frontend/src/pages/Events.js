@@ -91,6 +91,16 @@ export default function Events() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [expandedDescIds, setExpandedDescIds] = useState(new Set());
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const handleChange = (e) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
 
   const DESC_PREVIEW_LEN = 180;
   const toggleDesc = (id) => {
@@ -315,6 +325,7 @@ export default function Events() {
         throw new Error(err.error || 'Failed to create event');
       }
       setSuccess('Event created successfully!');
+      setMobileFormOpen(false);
       setForm({
         title: '',
         description: '',
@@ -393,11 +404,34 @@ export default function Events() {
         <div className="events-layout">
           <aside className="events-aside">
             <div className="events-form-card">
-              <h2 className="events-form-title">Create an Event</h2>
-              <p className="events-form-desc">
-                Add an upcoming event conducted by an NGO or a group. Others can see it and mark their attendance.
-              </p>
-              <form className="events-form" onSubmit={handleSubmit}>
+              {isMobile && !mobileFormOpen ? (
+                <button
+                  type="button"
+                  className="events-mobile-submit-btn"
+                  onClick={() => setMobileFormOpen(true)}
+                >
+                  <span className="material-icons-round" aria-hidden="true">event</span>
+                  Create an Event
+                </button>
+              ) : (
+                <>
+                  <div className="events-form-header-row">
+                    <h2 className="events-form-title">Create an Event</h2>
+                    {isMobile && (
+                      <button
+                        type="button"
+                        className="events-form-close-mobile"
+                        onClick={() => setMobileFormOpen(false)}
+                        aria-label="Close form"
+                      >
+                        <span className="material-icons-round">close</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="events-form-desc">
+                    Add an upcoming event conducted by an NGO or a group. Others can see it and mark their attendance.
+                  </p>
+                  <form className="events-form" onSubmit={handleSubmit}>
                 <div className="events-field">
                   <label className="events-label">Title of Event <span className="events-required">*</span></label>
                   <input
@@ -610,6 +644,8 @@ export default function Events() {
                   Create Event
                 </button>
               </form>
+                </>
+              )}
               <div className="events-quick-links">
                 <h3 className="events-quick-links-title">Quick Links</h3>
                 <button

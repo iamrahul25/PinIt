@@ -59,6 +59,61 @@
   margin: 0 0 1.6rem 0;
 }
 
+.ngos-mobile-submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  background: #4F46E5;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.ngos-mobile-submit-btn:hover {
+  background: #4338ca;
+}
+.ngos-mobile-submit-btn .material-icons-round {
+  font-size: 1.2rem;
+}
+
+.ngos-form-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.ngos-form-header-row .ngos-form-title {
+  margin: 0;
+}
+.ngos-form-close-mobile {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.ngos-form-close-mobile:hover {
+  background: #e2e8f0;
+  color: #334155;
+}
+.ngos-form-close-mobile .material-icons-round {
+  font-size: 1.2rem;
+}
+
 .ngos-form {
   display: flex;
   flex-direction: column;

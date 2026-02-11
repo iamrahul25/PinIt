@@ -79,7 +79,7 @@
 
 /* Header (90% scale) */
 .pins-sidebar-header {
-  padding: calc(1.25rem * var(--pins-scale)) calc(1.5rem * var(--pins-scale));
+  padding: 10px 10px;
   border-bottom: 1px solid var(--pins-header-border);
   display: flex;
   align-items: center;
@@ -142,10 +142,10 @@
 .pins-sidebar-close {
   width: calc(36px * var(--pins-scale));
   height: calc(36px * var(--pins-scale));
-  border-radius: 50%;
+  border-radius: calc(8px * var(--pins-scale));
   border: none;
-  background: transparent;
-  color: var(--pins-text-muted);
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -153,12 +153,15 @@
   transition: background 0.2s, color 0.2s;
 }
 .pins-sidebar-close:hover {
-  background: var(--pins-border);
-  color: var(--pins-text);
+  background: rgba(220, 38, 38, 0.2);
+  color: #b91c1c;
 }
 .pins-sidebar-close-icon {
   font-size: calc(1.5rem * var(--pins-scale));
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Body - scrollable (90% scale) */

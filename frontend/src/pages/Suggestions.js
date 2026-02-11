@@ -162,8 +162,18 @@ export default function Suggestions() {
   const [commentText, setCommentText] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState('');
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const fetchIdRef = useRef(0);
   const imageInputRef = useRef(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const handleChange = (e) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -314,6 +324,7 @@ export default function Suggestions() {
       setForm({ title: '', category: 'Feature Request', details: '' });
       setImageFiles([]);
       setImagePreviews([]);
+      setMobileFormOpen(false);
       fetchSuggestions(sort, 0, false, view);
     } catch (err) {
       setError(err.message || 'Failed to submit');
@@ -437,9 +448,32 @@ export default function Suggestions() {
         <div className="suggestions-layout">
           <aside className="suggestions-aside">
             <div className="suggestions-form-card">
-              <h2 className="suggestions-form-title">Post a Suggestion</h2>
-              <p className="suggestions-form-desc">Help us prioritize what to build next.</p>
-              <form className="suggestions-form" onSubmit={handleSubmitSuggestion}>
+              {isMobile && !mobileFormOpen ? (
+                <button
+                  type="button"
+                  className="suggestions-mobile-submit-btn"
+                  onClick={() => setMobileFormOpen(true)}
+                >
+                  <span className="material-icons-round" aria-hidden="true">add_box</span>
+                  Submit a suggestion
+                </button>
+              ) : (
+                <>
+                  <div className="suggestions-form-header-row">
+                    <h2 className="suggestions-form-title">Post a Suggestion</h2>
+                    {isMobile && (
+                      <button
+                        type="button"
+                        className="suggestions-form-close-mobile"
+                        onClick={() => setMobileFormOpen(false)}
+                        aria-label="Close form"
+                      >
+                        <span className="material-icons-round">close</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="suggestions-form-desc">Help us prioritize what to build next.</p>
+                  <form className="suggestions-form" onSubmit={handleSubmitSuggestion}>
                 <div className="suggestions-field">
                   <label className="suggestions-label">Title</label>
                   <input
@@ -534,6 +568,8 @@ export default function Suggestions() {
                   Submit Suggestion
                 </button>
               </form>
+                </>
+              )}
               <div className="suggestions-quick-links">
                 <h3 className="suggestions-quick-links-title">Quick Links</h3>
                 <button

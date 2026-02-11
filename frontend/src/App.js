@@ -420,6 +420,9 @@ function App() {
             )}
           </button>
         </div>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/')}>
+          Home
+        </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/suggestions')}>
           Suggestions
         </button>

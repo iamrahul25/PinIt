@@ -2,10 +2,8 @@
 @media (max-width: 768px) {
   .map-view-wrapper .map-search-container {
     left: 8px !important;
-    right: 162px !important;
-    width: auto !important;
-    min-width: 0;
-    max-width: none;
+    right: auto !important;
+    width: 200px !important;
   }
 
   .map-view-wrapper .map-search-container input {
@@ -16,17 +14,18 @@
   .map-view-wrapper .map-location-btn,
   .map-view-wrapper .map-zoom-out-btn {
     left: auto !important;
+    right: auto !important;
     width: 32px !important;
     height: 32px !important;
     top: 10px !important;
   }
 
   .map-view-wrapper .map-location-btn {
-    right: 122px !important;
+    left: 216px !important;
   }
 
   .map-view-wrapper .map-zoom-out-btn {
-    right: 84px !important;
+    left: 254px !important;
   }
 
   .map-view-wrapper .map-location-btn .material-icons-round,
@@ -35,8 +34,8 @@
   }
 
   .map-view-wrapper .map-layers-controls {
-    left: auto !important;
-    right: 8px !important;
+    left: 292px !important;
+    right: auto !important;
     top: 10px !important;
     gap: 4px !important;
   }

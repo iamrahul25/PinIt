@@ -72,7 +72,17 @@ export default function NGOs() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [expandedDescIds, setExpandedDescIds] = useState(new Set());
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1023px)');
+    const handleChange = (e) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
 
   const DESC_PREVIEW_LEN = 180;
   const toggleDesc = (id) => {
@@ -240,6 +250,7 @@ export default function NGOs() {
         throw new Error(err.error || 'Failed to submit NGO');
       }
       setSuccess('NGO submitted successfully!');
+      setMobileFormOpen(false);
       setForm({
         name: '',
         email: '',
@@ -322,9 +333,32 @@ export default function NGOs() {
         <div className="ngos-layout">
           <aside className="ngos-aside">
             <div className="ngos-form-card">
-              <h2 className="ngos-form-title">Submit an NGO</h2>
-              <p className="ngos-form-desc">Share details of an NGO so others can discover and connect.</p>
-              <form className="ngos-form" onSubmit={handleSubmit}>
+              {isMobile && !mobileFormOpen ? (
+                <button
+                  type="button"
+                  className="ngos-mobile-submit-btn"
+                  onClick={() => setMobileFormOpen(true)}
+                >
+                  <span className="material-icons-round" aria-hidden="true">add_box</span>
+                  Submit an NGO
+                </button>
+              ) : (
+                <>
+                  <div className="ngos-form-header-row">
+                    <h2 className="ngos-form-title">Submit an NGO</h2>
+                    {isMobile && (
+                      <button
+                        type="button"
+                        className="ngos-form-close-mobile"
+                        onClick={() => setMobileFormOpen(false)}
+                        aria-label="Close form"
+                      >
+                        <span className="material-icons-round">close</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="ngos-form-desc">Share details of an NGO so others can discover and connect.</p>
+                  <form className="ngos-form" onSubmit={handleSubmit}>
                 <div className="ngos-field">
                   <label className="ngos-label">NGO name <span className="ngos-required">*</span></label>
                   <input
@@ -534,6 +568,8 @@ export default function NGOs() {
                   Submit NGO
                 </button>
               </form>
+                </>
+              )}
               <div className="ngos-quick-links">
                 <h3 className="ngos-quick-links-title">Quick Links</h3>
                 <button

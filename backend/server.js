@@ -6,6 +6,11 @@ if (!process.env.GOOGLE_CLIENT_ID) {
   process.exit(1);
 }
 
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim() === '') {
+  console.error('Missing JWT_SECRET in backend/.env. Add a long random string (e.g. 32+ characters).');
+  process.exit(1);
+}
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -14,12 +19,14 @@ const requestLogger = require('./middleware/requestLogger');
 
 const app = express();
 
-// CORS – allow frontend origins. If CORS_ORIGIN is set, use it; otherwise allow all (dev).
-const corsOrigin = process.env.CORS_ORIGIN;
-const corsOptions = corsOrigin
-  ? { origin: corsOrigin.split(',').map((o) => o.trim()), credentials: true }
-  : { origin: true };
-app.use(cors(corsOptions));
+// CORS – require CORS_ORIGIN in .env; allow only those comma-separated origins, block the rest.
+const corsOrigin = process.env.CORS_ORIGIN || '';
+if (!corsOrigin.trim()) {
+  console.error('CORS_ORIGIN is required in backend/.env. Set it to your frontend origin(s), comma-separated (e.g. http://localhost:3000).');
+  process.exit(1);
+}
+const allowedOrigins = corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

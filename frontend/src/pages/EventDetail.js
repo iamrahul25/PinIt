@@ -146,7 +146,7 @@ export default function EventDetail() {
             <span className="material-icons-round">arrow_back</span>
             Back to Events
           </button>
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || event.authorId === user?.id) && (
             <button
               type="button"
               className="event-detail-delete-btn"

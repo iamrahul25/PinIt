@@ -716,7 +716,7 @@ export default function Events() {
                         <h3 className="events-card-title">{ev.title}</h3>
                         <div className="events-card-head-right">
                           <span className="events-card-date-pill">{formatEventDate(ev.date)}</span>
-                          {user?.role === 'admin' && (
+                          {(user?.role === 'admin' || ev.authorId === user?.id) && (
                             <button
                               type="button"
                               className="events-delete-btn"

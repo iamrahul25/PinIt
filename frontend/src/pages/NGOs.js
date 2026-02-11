@@ -623,7 +623,7 @@ export default function NGOs() {
                         <h3 className="ngos-card-title">{n.name}</h3>
                         <div className="ngos-card-head-right">
                           <span className="ngos-level-pill">{n.level}</span>
-                          {user?.role === 'admin' && (
+                          {(user?.role === 'admin' || n.authorId === user?.id) && (
                             <button
                               type="button"
                               className="ngos-delete-btn"

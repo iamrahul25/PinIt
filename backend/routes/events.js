@@ -204,21 +204,23 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Delete event (admin only)
+// Delete event (admin or event author only)
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const userDoc = await UserData.findOne({ userId }).select('role').lean();
-    if (!userDoc || userDoc.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: admin role required to delete events' });
-    }
-    const event = await Event.findByIdAndDelete(req.params.id);
+    const event = await Event.findById(req.params.id).select('authorId').lean();
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isAuthor = event.authorId && String(event.authorId) === String(userId);
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the author can delete this event' });
+    }
+    await Event.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });

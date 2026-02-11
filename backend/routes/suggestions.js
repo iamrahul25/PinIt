@@ -204,22 +204,23 @@ router.patch('/:id/state', async (req, res) => {
   }
 });
 
-// Delete suggestion (admin only) – role verified from DB to prevent tampering
+// Delete suggestion (admin or suggestion author only)
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    // Double verification: always read role from DB, never trust client/body
-    const userDoc = await UserData.findOne({ userId }).select('role').lean();
-    if (!userDoc || userDoc.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: admin role required to delete suggestions' });
-    }
-    const suggestion = await Suggestion.findByIdAndDelete(req.params.id);
+    const suggestion = await Suggestion.findById(req.params.id).select('authorId').lean();
     if (!suggestion) {
       return res.status(404).json({ error: 'Suggestion not found' });
     }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isAuthor = suggestion.authorId && String(suggestion.authorId) === String(userId);
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the author can delete this suggestion' });
+    }
+    await Suggestion.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });

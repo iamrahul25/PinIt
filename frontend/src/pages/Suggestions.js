@@ -671,7 +671,7 @@ export default function Suggestions() {
                                 {STATUS_LABELS[currentStatus] || 'New'}
                               </span>
                             )}
-                            {user?.role === 'admin' && (
+                            {(user?.role === 'admin' || s.authorId === user?.id) && (
                               <button
                                 type="button"
                                 className="suggestions-delete-btn"

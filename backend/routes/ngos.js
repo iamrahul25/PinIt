@@ -185,21 +185,23 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Delete NGO (admin only)
+// Delete NGO (admin or NGO author only)
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const userDoc = await UserData.findOne({ userId }).select('role').lean();
-    if (!userDoc || userDoc.role !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: admin role required to delete NGOs' });
-    }
-    const ngo = await Ngo.findByIdAndDelete(req.params.id);
+    const ngo = await Ngo.findById(req.params.id).select('authorId').lean();
     if (!ngo) {
       return res.status(404).json({ error: 'NGO not found' });
     }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isAuthor = ngo.authorId && String(ngo.authorId) === String(userId);
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the author can delete this NGO' });
+    }
+    await Ngo.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -685,6 +685,7 @@
   font-size: 0.875rem;
   color: var(--pin-slate-600);
   line-height: 1.6;
+  white-space: pre-wrap; /* preserve newlines and spaces from description */
 }
 
 /* Visual Evidence */

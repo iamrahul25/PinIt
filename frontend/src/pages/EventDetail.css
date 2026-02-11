@@ -143,6 +143,10 @@
   margin: 0;
 }
 
+.event-detail-description {
+  white-space: pre-wrap;
+}
+
 .event-detail-map-link {
   display: inline-block;
   margin-top: 0.4rem;

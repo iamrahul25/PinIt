@@ -565,6 +565,7 @@
   color: #64748b;
   line-height: 1.6;
   margin: 0 0 0.2rem 0;
+  white-space: pre-wrap;
 }
 
 .events-show-more-btn {

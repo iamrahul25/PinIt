@@ -1,0 +1,110 @@
+.calendar-container {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    font-family: 'Inter', sans-serif;
+    color: #475569;
+}
+
+.rbc-toolbar {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.rbc-toolbar .rbc-toolbar-label {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.rbc-btn-group button {
+    background-color: transparent;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rbc-btn-group button:hover,
+.rbc-btn-group button.rbc-active {
+    background-color: #4F46E5;
+    color: #fff;
+    border-color: #4F46E5;
+}
+
+.rbc-header {
+    background-color: #f8fafc;
+    color: #64748b;
+    font-weight: 600;
+    padding: 0.75rem 0;
+    text-align: center;
+    border: none;
+}
+
+.rbc-day-bg {
+    border: 1px solid #f1f5f9;
+}
+
+.rbc-date-cell {
+    padding: 0.5rem;
+    text-align: right;
+    font-weight: 500;
+}
+
+.rbc-off-range .rbc-date-cell {
+    color: #cbd5e1;
+}
+
+.rbc-event {
+    background-color: #6366F1;
+    color: #fff;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.rbc-event:hover {
+    background-color: #4F46E5;
+}
+
+.rbc-day-slot .rbc-event {
+    border: none;
+}
+
+.rbc-show-more {
+    color: #4F46E5;
+    font-weight: 600;
+}
+
+.event-tooltip {
+    position: absolute;
+    background-color: #334155;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    z-index: 1000;
+    transform: translateX(-50%);
+    white-space: nowrap;
+}
+
+.rbc-overlay {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    color: #475569;
+}
+
+
+

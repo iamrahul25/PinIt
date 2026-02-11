@@ -286,6 +286,21 @@ export default function NGOs() {
     }
   };
 
+  const handleDeleteNgo = async (ngoId) => {
+    if (!window.confirm('Delete this NGO? This cannot be undone.')) return;
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/ngos/${ngoId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete NGO');
+      }
+      setNgos((prev) => prev.filter((n) => n._id !== ngoId));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err) {
+      setError(err.message || 'Could not delete NGO');
+    }
+  };
+
   const instagramUrl = (username) => {
     if (!username) return '';
     const u = username.replace(/^@/, '').trim();
@@ -606,7 +621,20 @@ export default function NGOs() {
                     <div className="ngos-card-body">
                       <div className="ngos-card-head">
                         <h3 className="ngos-card-title">{n.name}</h3>
-                        <span className="ngos-level-pill">{n.level}</span>
+                        <div className="ngos-card-head-right">
+                          <span className="ngos-level-pill">{n.level}</span>
+                          {user?.role === 'admin' && (
+                            <button
+                              type="button"
+                              className="ngos-delete-btn"
+                              onClick={() => handleDeleteNgo(n._id)}
+                              aria-label="Delete NGO"
+                              title="Delete NGO"
+                            >
+                              <span className="material-icons-round">delete</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0)) && (
                         <p className="ngos-card-extra">

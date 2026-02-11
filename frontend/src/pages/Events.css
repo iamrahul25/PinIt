@@ -525,6 +525,13 @@
 
 .events-card:hover .events-card-title { color: #4F46E5; }
 
+.events-card-head-right {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
 .events-card-date-pill {
   flex-shrink: 0;
   padding: 0.25rem 0.6rem;
@@ -533,6 +540,28 @@
   font-weight: 700;
   background: #E0E7FF;
   color: #4338ca;
+}
+
+.events-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.events-delete-btn:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.events-delete-btn .material-icons-round {
+  font-size: 1.1rem;
 }
 
 .events-card-foundation {

@@ -36,7 +36,7 @@ function formatEventTime(start, end, durationHours) {
 export default function EventDetail() {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { loading: authLoading, isSignedIn, getToken } = useAuth();
+  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -95,6 +95,21 @@ export default function EventDetail() {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!window.confirm('Delete this event? This cannot be undone.')) return;
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/api/events/${eventId}`, { method: 'DELETE', headers });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete event');
+      }
+      navigate('/events');
+    } catch (err) {
+      setError(err.message || 'Could not delete event');
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="event-detail-page">
@@ -131,6 +146,18 @@ export default function EventDetail() {
             <span className="material-icons-round">arrow_back</span>
             Back to Events
           </button>
+          {user?.role === 'admin' && (
+            <button
+              type="button"
+              className="event-detail-delete-btn"
+              onClick={handleDeleteEvent}
+              aria-label="Delete event"
+              title="Delete event"
+            >
+              <span className="material-icons-round">delete</span>
+              Delete event
+            </button>
+          )}
         </div>
         {event.bannerUrl && (
           <div className="event-detail-banner-wrap">

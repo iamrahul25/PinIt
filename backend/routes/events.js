@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
+const UserData = require('../models/UserData');
 
 // Helper: add hasAttending and volunteerCount to event list
 function withAttendance(events, userId) {
@@ -198,6 +199,27 @@ router.get('/:id', async (req, res) => {
     }
     const [out] = withAttendance([event], userId);
     res.json(out);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete event (admin only)
+router.delete('/:id', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    if (!userDoc || userDoc.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required to delete events' });
+    }
+    const event = await Event.findByIdAndDelete(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

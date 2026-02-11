@@ -363,6 +363,21 @@ export default function Events() {
     }
   };
 
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm('Delete this event? This cannot be undone.')) return;
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/events/${eventId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to delete event');
+      }
+      setEvents((prev) => prev.filter((ev) => ev._id !== eventId));
+      setTotal((t) => Math.max(0, t - 1));
+    } catch (err) {
+      setError(err.message || 'Could not delete event');
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="events-page">
@@ -699,7 +714,20 @@ export default function Events() {
                     <div className="events-card-body">
                       <div className="events-card-head">
                         <h3 className="events-card-title">{ev.title}</h3>
-                        <span className="events-card-date-pill">{formatEventDate(ev.date)}</span>
+                        <div className="events-card-head-right">
+                          <span className="events-card-date-pill">{formatEventDate(ev.date)}</span>
+                          {user?.role === 'admin' && (
+                            <button
+                              type="button"
+                              className="events-delete-btn"
+                              onClick={() => handleDeleteEvent(ev._id)}
+                              aria-label="Delete event"
+                              title="Delete event"
+                            >
+                              <span className="material-icons-round">delete</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                       {(ev.foundationName || ev.foundationLogoUrl) && (
                         <div className="events-card-foundation">

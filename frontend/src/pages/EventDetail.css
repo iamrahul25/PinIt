@@ -28,6 +28,10 @@
 }
 
 .event-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 1rem 1.2rem;
   border-bottom: 1px solid #f1f5f9;
 }
@@ -51,6 +55,30 @@
 
 .event-detail-back-btn .material-icons-round {
   font-size: 1.2rem;
+}
+
+.event-detail-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.event-detail-delete-btn:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.event-detail-delete-btn .material-icons-round {
+  font-size: 1.1rem;
 }
 
 .event-detail-banner-wrap {

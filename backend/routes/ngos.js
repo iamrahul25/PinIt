@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Ngo = require('../models/Ngo');
+const UserData = require('../models/UserData');
 
 const NGO_LEVELS = ['International', 'National', 'State', 'City'];
 
@@ -179,6 +180,27 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'NGO not found' });
     }
     res.json(ngo);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete NGO (admin only)
+router.delete('/:id', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    if (!userDoc || userDoc.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin role required to delete NGOs' });
+    }
+    const ngo = await Ngo.findByIdAndDelete(req.params.id);
+    if (!ngo) {
+      return res.status(404).json({ error: 'NGO not found' });
+    }
+    res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

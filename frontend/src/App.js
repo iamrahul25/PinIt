@@ -245,6 +245,13 @@ function App() {
     setFocusedPinId(null);
   };
 
+  const handleViewPinOnMap = (pin) => {
+    navigate('/');
+    setSelectedPin(null);
+    setFocusedPinId(pin._id);
+    setIsPanelOpen(false);
+  };
+
   const handleTogglePanel = () => {
     setIsPanelOpen(prev => !prev);
   };
@@ -504,6 +511,7 @@ function App() {
           <PinDetails
             pin={selectedPin}
             onClose={handleDetailsClose}
+            onViewOnMap={handleViewPinOnMap}
             user={user}
             onUpdate={fetchPins}
             onPinUpdated={setSelectedPin}

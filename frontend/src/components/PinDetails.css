@@ -29,7 +29,7 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  z-index: 1000;
+  z-index: 1100;
   animation: pinFadeIn 0.3s ease-out;
 }
 
@@ -134,6 +134,10 @@
   margin: 0.25rem 0 0 0;
 }
 
+.pin-details-published-below {
+  margin: 0 0 1rem 0;
+}
+
 .pin-details-header-actions {
   display: flex;
   align-items: center;
@@ -192,12 +196,12 @@
 }
 
 .pin-details-btn-danger {
-  background: var(--pin-red-400);
+  background: black;
   color: white;
 }
 
 .pin-details-btn-danger:hover:not(:disabled) {
-  background: var(--pin-red-600);
+  background: #333;
 }
 
 .pin-details-btn-danger:disabled {
@@ -206,12 +210,12 @@
 }
 
 .pin-details-btn-edit {
-  background: var(--pin-indigo-600);
-  color: white;
+  background: var(--pin-slate-100);
+  color: var(--pin-slate-700);
 }
 
 .pin-details-btn-edit:hover:not(:disabled) {
-  background: var(--pin-indigo-700);
+  background: var(--pin-slate-200);
 }
 
 .pin-details-btn-edit:disabled {
@@ -428,12 +432,18 @@
   .pin-details-edit-row {
     grid-template-columns: 1fr;
   }
+
+  .pin-details-header-actions .pin-details-btn-label {
+    display: none;
+  }
 }
 
-/* Bottom actions (Edit / Delete) - shown for admin or pin creator */
+/* Bottom actions (Edit my Pin / Delete my Pin) - shown for admin or pin creator */
 .pin-details-bottom-actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
   gap: 0.75rem;
   padding: 1rem 0;
   margin-top: 0.5rem;
@@ -749,33 +759,45 @@
   margin-bottom: 0.5rem;
 }
 
-.pin-details-location .pin-details-copy-btn {
-  margin-top: 0.25rem;
+.pin-details-location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
-.pin-details-copy-btn {
+.pin-details-copy-btn,
+.pin-details-view-on-map-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.35rem 0.6rem;
-  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--pin-slate-600);
   background: var(--pin-slate-100);
   border: 1px solid var(--pin-slate-200);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
   flex-shrink: 0;
 }
 
-.pin-details-copy-btn:hover {
-  background: var(--pin-slate-200);
-  color: var(--pin-slate-800);
+.pin-details-copy-btn .material-icons-round,
+.pin-details-view-on-map-btn .material-icons-round {
+  font-size: 1rem;
 }
 
-.pin-details-copy-btn .material-icons-round {
-  font-size: 1rem;
+.pin-details-copy-btn:hover,
+.pin-details-view-on-map-btn:hover {
+  background: var(--pin-slate-200);
+  color: var(--pin-slate-800);
+  border-color: var(--pin-slate-300);
+}
+
+.pin-details-view-on-map-btn {
+  color: var(--pin-slate-700);
 }
 
 /* Scheduled events for this pin */

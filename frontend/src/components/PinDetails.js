@@ -23,7 +23,7 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.75
 };
 
-const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
+const PinDetails = ({ pin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
   const navigate = useNavigate();
   const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
@@ -491,11 +491,8 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
               <div>
                 <div className="pin-details-title-row">
                   <h2 className="pin-details-title">{pin.problemType}</h2>
-                  <span className="pin-details-badge">Report</span>
+                  {/* <span className="pin-details-badge">Report</span> */}
                 </div>
-                <p className="pin-details-meta">
-                  Published {formatDate(pin.createdAt)} • Community Report
-                </p>
               </div>
             </div>
             <div className="pin-details-header-actions">
@@ -508,7 +505,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
                   title={isSaved ? 'Unsave this pin' : 'Save this pin'}
                 >
                   <span className="material-icons-round">bookmark</span>
-                  {saving ? '...' : isSaved ? 'Saved' : 'Save'}
+                  <span className="pin-details-btn-label">{saving ? '...' : isSaved ? 'Saved' : 'Save'}</span>
                 </button>
               )}
               <button
@@ -518,7 +515,7 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
                 title="Share this pin"
               >
                 <span className="material-icons-round">share</span>
-                {shareCopied ? 'Copied!' : 'Share'}
+                <span className="pin-details-btn-label">{shareCopied ? 'Copied!' : 'Share'}</span>
               </button>
               <button className="pin-details-close" onClick={onClose} aria-label="Close">
                 <span className="material-icons-round">close</span>
@@ -643,6 +640,9 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
               </form>
             ) : (
               <>
+            <p className="pin-details-meta pin-details-published-below">
+              - Published {formatDate(pin.createdAt)}
+            </p>
             <div className="pin-details-stats">
               <div className="pin-details-stat-card">
                 <p className="pin-details-stat-label">Severity Score</p>
@@ -730,38 +730,56 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
               </section>
             )}
 
-            {pin.location?.address && (
+            {(pin.location?.address || (pin.location?.latitude != null && pin.location?.longitude != null)) && (
               <section className="pin-details-section">
                 <h3 className="pin-details-section-title">
                   <span className="material-icons-round">pin_drop</span>
                   Precise Location
                 </h3>
                 <div className="pin-details-location">
-                  <div className="location-address-row">
-                    <p className="location-address">{pin.location.address}</p>
-                  </div>
-                  {pin.location.latitude != null && pin.location.longitude != null && (
+                  {pin.location?.address && (
+                    <div className="location-address-row">
+                      <p className="location-address">{pin.location.address}</p>
+                    </div>
+                  )}
+                  {pin.location?.latitude != null && pin.location?.longitude != null && (
                     <div className="location-coords">
                       <span>LAT: {pin.location.latitude.toFixed(5)}° N</span>
                       <span>LONG: {pin.location.longitude.toFixed(5)}° E</span>
                     </div>
                   )}
-                  <button
-                    type="button"
-                    className="pin-details-copy-btn"
-                    onClick={() => {
-                      let text = `Location: ${pin.location.address || '—'}`;
-                      if (pin.location.latitude != null && pin.location.longitude != null) {
-                        text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
-                      }
-                      copyLocationToClipboard(text, 'location');
-                    }}
-                    title="Copy address and coordinates"
-                    aria-label="Copy address and coordinates"
-                  >
-                    <span className="material-icons-round">{copiedLocation === 'location' ? 'check' : 'content_copy'}</span>
-                    {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
-                  </button>
+                  <div className="pin-details-location-actions">
+                    {pin.location?.address && (
+                      <button
+                        type="button"
+                        className="pin-details-copy-btn"
+                        onClick={() => {
+                          let text = `Location: ${pin.location.address || '—'}`;
+                          if (pin.location.latitude != null && pin.location.longitude != null) {
+                            text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
+                          }
+                          copyLocationToClipboard(text, 'location');
+                        }}
+                        title="Copy address and coordinates"
+                        aria-label="Copy address and coordinates"
+                      >
+                        <span className="material-icons-round">{copiedLocation === 'location' ? 'check' : 'content_copy'}</span>
+                        {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
+                      </button>
+                    )}
+                    {onViewOnMap && (pin.location?.latitude != null && pin.location?.longitude != null) && (
+                      <button
+                        type="button"
+                        className="pin-details-view-on-map-btn"
+                        onClick={() => onViewOnMap(pin)}
+                        title="Focus this pin on the map and close this panel"
+                        aria-label="View on map"
+                      >
+                        <span className="material-icons-round">map</span>
+                        View on map
+                      </button>
+                    )}
+                  </div>
                 </div>
               </section>
             )}
@@ -841,20 +859,20 @@ const PinDetails = ({ pin, onClose, user, onUpdate, onPinUpdated, shareUrl, isSa
                   className="pin-details-btn pin-details-btn-edit"
                   onClick={startEditing}
                   disabled={savingEdit}
-                  title={user?.role === 'admin' ? 'Edit this pin' : 'Edit my pin'}
+                  title="Edit"
                 >
                   <span className="material-icons-round">edit</span>
-                  {user?.role === 'admin' ? 'Edit' : 'Edit my Pin'}
+                  Edit
                 </button>
                 <button
                   type="button"
                   className="pin-details-btn pin-details-btn-danger"
                   onClick={handleDelete}
                   disabled={deleting}
-                  title={user?.role === 'admin' ? 'Delete this pin' : 'Delete my pin'}
+                  title="Delete"
                 >
                   <span className="material-icons-round">delete</span>
-                  {deleting ? 'Deleting…' : user?.role === 'admin' ? 'Delete' : 'Delete my Pin'}
+                  {deleting ? 'Deleting…' : 'Delete'}
                 </button>
               </div>
             )}

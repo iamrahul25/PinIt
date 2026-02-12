@@ -64,6 +64,7 @@
   width: 100%;
   max-width: calc(28rem * var(--pins-scale));
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   background: var(--pins-bg);
   border-left: 1px solid var(--pins-border);
   box-shadow: var(--pins-shadow);

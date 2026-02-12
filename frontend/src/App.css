@@ -1,5 +1,6 @@
 .App {
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   width: 100vw;
   display: flex;
   flex-direction: column;
@@ -135,6 +136,7 @@
   width: 280px;
   max-width: 85vw;
   height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
   background: #0f0f0f;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 1002;
@@ -330,6 +332,7 @@ body.mobile-menu-open {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: calc(var(--vh, 1vh) * 100);
   background: #f8fafc;
   color: #64748b;
   font-size: 0.9375rem;
@@ -355,7 +358,7 @@ body.mobile-menu-open {
 
 .add-pin-btn {
   position: absolute;
-  bottom: clamp(12px, 3vmin, 40px);
+  bottom: max(clamp(12px, 3vmin, 40px), env(safe-area-inset-bottom, 0px));
   left: clamp(12px, 3vmin, 40px);
   height: clamp(32px, 4vh, 42px);
   padding: 0 clamp(12px, 2vw, 22px);

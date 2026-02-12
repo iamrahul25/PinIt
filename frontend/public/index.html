@@ -2,7 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script>
+      function setViewportHeight() {
+        var vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', vh + 'px');
+      }
+      setViewportHeight();
+      window.addEventListener('resize', setViewportHeight);
+      window.addEventListener('orientationchange', function () {
+        setTimeout(setViewportHeight, 100);
+      });
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', setViewportHeight);
+        window.visualViewport.addEventListener('scroll', setViewportHeight);
+      }
+    </script>
     <meta name="theme-color" content="#000000" />
     <meta name="description" content="Pin-It - Report civic issues in your area" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

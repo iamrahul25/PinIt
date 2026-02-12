@@ -23,7 +23,7 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.75
 };
 
-const PinDetails = ({ pin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
+const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
   const navigate = useNavigate();
   const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
@@ -478,10 +478,28 @@ const PinDetails = ({ pin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, s
   const reporterName = pin.contributor_name || pin.name || 'Anonymous';
   const reporterAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(reporterName)}&background=ec4899&color=fff`;
 
+  const currentIndex = pins.findIndex((p) => p._id === pin._id);
+  const prevPin = currentIndex > 0 ? pins[currentIndex - 1] : null;
+  const nextPin = currentIndex >= 0 && currentIndex < pins.length - 1 ? pins[currentIndex + 1] : null;
+  const handlePrev = () => prevPin && onSelectPin && onSelectPin(prevPin);
+  const handleNext = () => nextPin && onSelectPin && onSelectPin(nextPin);
+
   return (
     <>
       <div className="pin-details-overlay" onClick={onClose}>
-        <div className="pin-details-container" onClick={(e) => e.stopPropagation()}>
+        <div className="pin-details-wrapper" onClick={(e) => e.stopPropagation()}>
+          {prevPin && (
+            <button
+              type="button"
+              className="pin-details-nav pin-details-nav-prev"
+              onClick={handlePrev}
+              aria-label="Previous pin"
+              title="Previous pin"
+            >
+              <span className="material-icons-round">chevron_left</span>
+            </button>
+          )}
+          <div className="pin-details-container">
           <header className="pin-details-header">
             <div className="pin-details-header-content">
               <div
@@ -683,6 +701,29 @@ const PinDetails = ({ pin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, s
               </div>
             </div>
 
+            {images.length > 0 && (
+              <section className="pin-details-section">
+                <div className="pin-details-section-header">
+                  <h3 className="pin-details-section-title">
+                    <span className="material-icons-round">photo_library</span>
+                    Visual Evidence
+                  </h3>
+                  <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
+                </div>
+                <div className="pin-details-images-grid">
+                  {images.map((url, index) => (
+                    <div
+                      key={index}
+                      className="pin-details-image-wrap"
+                      onClick={() => openImageModal(index)}
+                    >
+                      <img src={url} alt={`Evidence ${index + 1}`} />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {pin.problemHeading && (
               <section className="pin-details-section">
                 <h3 className="pin-details-section-title">
@@ -703,29 +744,6 @@ const PinDetails = ({ pin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, s
                 </h3>
                 <div className="pin-details-description">
                   <p>{pin.description}</p>
-                </div>
-              </section>
-            )}
-
-            {images.length > 0 && (
-              <section className="pin-details-section">
-                <div className="pin-details-section-header">
-                  <h3 className="pin-details-section-title">
-                    <span className="material-icons-round">photo_library</span>
-                    Visual Evidence
-                  </h3>
-                  <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
-                </div>
-                <div className="pin-details-images-grid">
-                  {images.map((url, index) => (
-                    <div
-                      key={index}
-                      className="pin-details-image-wrap"
-                      onClick={() => openImageModal(index)}
-                    >
-                      <img src={url} alt={`Evidence ${index + 1}`} />
-                    </div>
-                  ))}
                 </div>
               </section>
             )}
@@ -902,6 +920,18 @@ const PinDetails = ({ pin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, s
               </button>
             </form>
           </footer>
+          )}
+          </div>
+          {nextPin && (
+            <button
+              type="button"
+              className="pin-details-nav pin-details-nav-next"
+              onClick={handleNext}
+              aria-label="Next pin"
+              title="Next pin"
+            >
+              <span className="material-icons-round">chevron_right</span>
+            </button>
           )}
         </div>
       </div>

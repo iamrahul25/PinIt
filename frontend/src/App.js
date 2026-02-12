@@ -423,24 +423,24 @@ function App() {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <div className="header-mobile-menu-user">
+        <button
+          type="button"
+          className="header-mobile-nav-btn header-mobile-menu-user-btn"
+          onClick={() => handleNavTo('/profile')}
+          title="Your profile"
+          aria-label="Profile"
+        >
           <span className="app-user-name">{user?.fullName || user?.email}</span>
-          <button
-            type="button"
-            className="profile-avatar-btn"
-            onClick={() => handleNavTo('/profile')}
-            title="Your profile"
-            aria-label="Profile"
-          >
+          <span className="header-mobile-user-avatar">
             {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="" className="app-user-avatar" referrerPolicy="no-referrer" />
+              <img src={user.imageUrl} alt="" referrerPolicy="no-referrer" />
             ) : (
-              <span className="app-user-avatar-placeholder">
+              <span className="header-mobile-user-avatar-placeholder">
                 {(user?.fullName || user?.email || '?').charAt(0).toUpperCase()}
               </span>
             )}
-          </button>
-        </div>
+          </span>
+        </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/')}>
           Home
         </button>
@@ -452,16 +452,6 @@ function App() {
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/events')}>
           Events
-        </button>
-        <button type="button" className="header-mobile-nav-btn header-mobile-logout" onClick={() => { handleSignOut(); closeMobileMenu(); }}>
-          <span className="logout-btn-icon" aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </span>
-          Sign out
         </button>
         <a
           href={DISCORD_INVITE_URL}
@@ -478,6 +468,16 @@ function App() {
           </span>
           Join Discussion
         </a>
+        <button type="button" className="header-mobile-nav-btn header-mobile-logout" onClick={() => { handleSignOut(); closeMobileMenu(); }}>
+          <span className="logout-btn-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </span>
+          Sign out
+        </button>
       </nav>
       {isProfilePage ? (
         <div className="app-profile-container">

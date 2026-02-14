@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb } from 'react-icons/fa';
+import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './UserProfile.css';
@@ -14,6 +14,7 @@ export default function UserProfile() {
   const [activityData, setActivityData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userLevel, setUserLevel] = useState({ level: 1, points: 0, progress: 0, nextLevelPoints: 100 });
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -35,6 +36,27 @@ export default function UserProfile() {
 
   useEffect(() => {
     if (!isSignedIn || authLoading) return;
+
+    const calculateLevel = (stats) => {
+      const points = (stats.pinsCreated * 20) + (stats.commentsMade * 5) + (stats.ngosCreated * 100) + (stats.eventsCreated * 50) + (stats.suggestionsMade * 15);
+      let level = 1;
+      let nextLevelPoints = 100;
+      if (points > 1000) {
+        level = 5;
+        nextLevelPoints = Infinity;
+      } else if (points > 500) {
+        level = 4;
+        nextLevelPoints = 1000;
+      } else if (points > 300) {
+        level = 3;
+        nextLevelPoints = 500;
+      } else if (points > 100) {
+        level = 2;
+        nextLevelPoints = 300;
+      }
+      const progress = (points / nextLevelPoints) * 100;
+      setUserLevel({ level, points, progress, nextLevelPoints });
+    };
 
     const fetchProfileData = async () => {
       try {
@@ -66,7 +88,9 @@ export default function UserProfile() {
         const eventsData = await eventsResponse.json();
         const suggestionsData = await suggestionsResponse.json();
 
-        setStats({ ...statsData, ngosCreated: ngosData.length, eventsCreated: eventsData.length, suggestionsMade: suggestionsData.length });
+        const currentStats = { ...statsData, ngosCreated: ngosData.length, eventsCreated: eventsData.length, suggestionsMade: suggestionsData.length };
+        setStats(currentStats);
+        calculateLevel(currentStats);
         setActivityData({
           pins: pinsData,
           saved: savedPinsData,
@@ -132,6 +156,7 @@ export default function UserProfile() {
         comments: 'No comments made yet.',
         ngos: 'No NGOs created yet.',
         events: 'No events created yet.',
+        suggestions: 'No suggestions made yet.',
       };
       return <div className="activity-empty">{message[activityTab]}</div>;
     }
@@ -265,7 +290,7 @@ export default function UserProfile() {
             )}
           </div>
           <div className="user-profile-info">
-            <h1>{user?.fullName || user?.email || 'User'}</h1>
+            <h1>{user?.fullName || user?.email || 'User'} <span className="user-level-badge"><FaTrophy /> Level {userLevel.level}</span></h1>
             <div className="user-profile-meta">
               {user?.createdAt && <span>Joined {formatJoinDate(user.createdAt)}</span>}
               {user?.role === 'admin' && <span className="user-role-badge">Admin</span>}
@@ -289,6 +314,15 @@ export default function UserProfile() {
             {error}
           </div>
         )}
+
+        <div className="user-level-progress-section">
+          <div className="user-level-progress-bar">
+            <div className="user-level-progress-fill" style={{ width: `${userLevel.progress}%` }}></div>
+          </div>
+          <div className="user-level-progress-text">
+            <span>{userLevel.points} / {userLevel.nextLevelPoints} Points to Next Level</span>
+          </div>
+        </div>
 
         <div className="profile-stats">
           <div className="stat-card contributions">
@@ -330,7 +364,7 @@ export default function UserProfile() {
             <div className="stat-icon"><FaLightbulb aria-hidden="true" /></div>
             <div className="stat-content">
               <span className="stat-value">{stats.suggestionsMade}</span>
-              <span className="stat-label">Suggestions</span>
+              <span className="stat-label">Suggestions Made</span>
             </div>
           </div>
         </div>

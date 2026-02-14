@@ -97,6 +97,46 @@
   text-align: center;
 }
 
+.user-level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fefce8;
+  color: #ca8a04;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+.user-level-progress-section {
+  margin-bottom: 1.5rem;
+}
+
+.user-level-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.user-level-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #fde047 0%, #facc15 100%);
+  border-radius: 4px;
+  transition: width 0.5s ease-in-out;
+}
+
+.user-level-progress-text {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-align: center;
+}
+
 .profile-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

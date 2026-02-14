@@ -11,7 +11,7 @@
 
 .user-profile-card {
   width: 100%;
-  max-width: 480px;
+  max-width: 700px;
   background: rgba(255, 255, 255, 0.98);
   border-radius: 16px;
   padding: 2rem;
@@ -99,7 +99,8 @@
 
 .profile-stats {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 1rem;
 }
 
@@ -166,4 +167,252 @@
   font-size: 0.8rem;
   color: #94a3b8;
   line-height: 1.5;
+}
+
+.user-profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.user-role-badge {
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.user-activity-section {
+  margin-top: 2rem;
+}
+
+.activity-tabs {
+  display: flex;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 1.5rem;
+}
+
+.activity-tab {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: #64748b;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.activity-tab:hover {
+  color: #0f172a;
+}
+
+.activity-tab.active {
+  color: #4f46e5;
+  font-weight: 600;
+}
+
+.activity-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #4f46e5;
+}
+
+.activity-content-container {
+  min-height: 150px;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; 
+}
+
+.activity-pin-card {
+  display: flex;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.activity-pin-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.activity-pin-card-thumb {
+  flex-shrink: 0;
+  width: 120px;
+  background: #f1f5f9;
+}
+
+.activity-pin-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.activity-pin-card-no-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 2rem;
+}
+
+.activity-pin-card-content {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.5rem;
+}
+
+.activity-pin-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.activity-pin-card-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: #1e293b;
+}
+
+.activity-pin-card-severity {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.pin-severity-critical { background-color: #fee2e2; color: #b91c1c; }
+.pin-severity-strong { background-color: #ffedd5; color: #c2410c; }
+.pin-severity-medium { background-color: #fef08a; color: #a16207; }
+.pin-severity-low { background-color: #dcfce7; color: #15803d; }
+.pin-severity-minor { background-color: #e0e7ff; color: #4338ca; }
+
+
+.activity-pin-card-desc {
+  font-size: 0.9rem;
+  color: #475569;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.activity-pin-card-location {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.activity-pin-card-stats {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.activity-pin-card-stats span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.activity-pin-card-full-details {
+  margin-top: auto;
+  align-self: flex-end;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.activity-pin-card-full-details:hover {
+  text-decoration: underline;
+}
+
+.activity-pin-card-full-details-icon {
+  transition: transform 0.2s;
+}
+
+.activity-pin-card-full-details:hover .activity-pin-card-full-details-icon {
+  transform: translateX(3px);
+}
+
+.comment-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+
+.comment-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+}
+
+.comment-card-link {
+  display: block;
+  padding: 1rem 1.25rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.comment-card-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-card-text {
+  font-style: italic;
+  color: #475569;
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+.comment-card-meta {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.activity-loading,
+.activity-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .user-profile-card {
+    padding: 1.5rem;
+  }
+  .stat-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }

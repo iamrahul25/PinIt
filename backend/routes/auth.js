@@ -57,7 +57,8 @@ router.post('/google', async (req, res) => {
         email,
         fullName: name,
         imageUrl: picture,
-        role: userDoc.role || 'user'
+        role: userDoc.role || 'user',
+        createdAt: userDoc.createdAt
       }
     });
   } catch (error) {

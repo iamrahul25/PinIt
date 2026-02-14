@@ -46,11 +46,63 @@ router.get('/stats', async (req, res) => {
     if (!authUserId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const contributions = await Pin.countDocuments({ contributor_id: authUserId });
-    const userPins = await Pin.find({ contributor_id: authUserId }).select('upvotes').lean();
-    const totalUpvotes = userPins.reduce((sum, p) => sum + (p.upvotes || 0), 0);
-    const totalComments = await Comment.countDocuments({ authorId: authUserId });
-    res.json({ contributions, totalUpvotes, totalComments });
+    const pinsCreated = await Pin.countDocuments({ contributor_id: authUserId });
+    const commentsMade = await Comment.countDocuments({ authorId: authUserId });
+    const votesCast = await Pin.countDocuments({ 'votes.userId': authUserId });
+    
+    res.json({ pinsCreated, commentsMade, votesCast });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get pins created by the current user.
+ */
+router.get('/me/pins', async (req, res) => {
+  try {
+    const authUserId = req.auth?.userId;
+    if (!authUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const pins = await Pin.find({ contributor_id: authUserId }).sort({ createdAt: -1 }).lean();
+    res.json(pins);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get pins saved by the current user.
+ */
+router.get('/me/saved-pins', async (req, res) => {
+  try {
+    const authUserId = req.auth?.userId;
+    if (!authUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const user = await UserData.findOne({ userId: authUserId }).select('pinIds').lean();
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const savedPins = await Pin.find({ _id: { $in: user.pinIds } }).lean();
+    res.json(savedPins);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Get comments made by the current user.
+ */
+router.get('/me/comments', async (req, res) => {
+  try {
+    const authUserId = req.auth?.userId;
+    if (!authUserId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const comments = await Comment.find({ authorId: authUserId }).sort({ createdAt: -1 }).lean();
+    res.json(comments);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

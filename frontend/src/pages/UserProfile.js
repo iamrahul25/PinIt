@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight } from 'react-icons/fa';
+import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './UserProfile.css';
@@ -9,8 +9,8 @@ import './UserProfile.css';
 export default function UserProfile() {
   const navigate = useNavigate();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
-  const [stats, setStats] = useState({ pinsCreated: 0, commentsMade: 0, votesCast: 0 });
-  const [activityTab, setActivityTab] = useState('pins'); // 'pins', 'saved', 'comments'
+  const [stats, setStats] = useState({ pinsCreated: 0, commentsMade: 0, votesCast: 0, ngosCreated: 0, eventsCreated: 0, suggestionsMade: 0 });
+  const [activityTab, setActivityTab] = useState('pins'); // 'pins', 'saved', 'comments', 'ngos', 'events'
   const [activityData, setActivityData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,28 +40,40 @@ export default function UserProfile() {
       try {
         const headers = await getAuthHeaders();
 
-        const [statsResponse, pinsResponse, savedPinsResponse, commentsResponse] = await Promise.all([
+        const [statsResponse, pinsResponse, savedPinsResponse, commentsResponse, ngosResponse, eventsResponse, suggestionsResponse] = await Promise.all([
           fetch(`${API_BASE_URL}/api/users/stats`, { headers }),
           fetch(`${API_BASE_URL}/api/users/me/pins`, { headers }),
           fetch(`${API_BASE_URL}/api/users/me/saved-pins`, { headers }),
           fetch(`${API_BASE_URL}/api/users/me/comments`, { headers }),
+          fetch(`${API_BASE_URL}/api/ngos/my/submissions`, { headers }),
+          fetch(`${API_BASE_URL}/api/events/my/submissions`, { headers }),
+          fetch(`${API_BASE_URL}/api/suggestions/my/submissions`, { headers }),
         ]);
 
         if (!statsResponse.ok) throw new Error('Failed to fetch profile stats');
         if (!pinsResponse.ok) throw new Error('Failed to fetch created pins');
         if (!savedPinsResponse.ok) throw new Error('Failed to fetch saved pins');
         if (!commentsResponse.ok) throw new Error('Failed to fetch comments');
+        if (!ngosResponse.ok) throw new Error('Failed to fetch created NGOs');
+        if (!eventsResponse.ok) throw new Error('Failed to fetch created events');
+        if (!suggestionsResponse.ok) throw new Error('Failed to fetch created suggestions');
 
         const statsData = await statsResponse.json();
         const pinsData = await pinsResponse.json();
         const savedPinsData = await savedPinsResponse.json();
         const commentsData = await commentsResponse.json();
+        const ngosData = await ngosResponse.json();
+        const eventsData = await eventsResponse.json();
+        const suggestionsData = await suggestionsResponse.json();
 
-        setStats(statsData);
+        setStats({ ...statsData, ngosCreated: ngosData.length, eventsCreated: eventsData.length, suggestionsMade: suggestionsData.length });
         setActivityData({
           pins: pinsData,
           saved: savedPinsData,
           comments: commentsData,
+          ngos: ngosData,
+          events: eventsData,
+          suggestions: suggestionsData,
         });
 
       } catch (err) {
@@ -80,6 +92,13 @@ export default function UserProfile() {
     if (!isoDate) return '';
     const date = new Date(isoDate);
     const options = { year: 'numeric', month: 'long' };
+    return date.toLocaleDateString('en-US', options);
+  };
+
+  const formatDate = (isoDate) => {
+    if (!isoDate) return '';
+    const date = new Date(isoDate);
+    const options = { year: 'numeric', month: 'short', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
   };
 
@@ -104,13 +123,15 @@ export default function UserProfile() {
   const renderActivityContent = () => {
     if (loading) return <div className="activity-loading">Loading activity...</div>;
   
-    const data = activityData[activityTab === 'pins' ? 'pins' : activityTab === 'saved' ? 'saved' : 'comments'];
+    const data = activityData[activityTab];
   
     if (!data || data.length === 0) {
       const message = {
         pins: 'No pins created yet.',
         saved: 'No saved pins yet.',
         comments: 'No comments made yet.',
+        ngos: 'No NGOs created yet.',
+        events: 'No events created yet.',
       };
       return <div className="activity-empty">{message[activityTab]}</div>;
     }
@@ -167,6 +188,61 @@ export default function UserProfile() {
                       Commented on {new Date(comment.createdAt).toLocaleDateString()}
                     </p>
                   </div>
+                </a>
+              </div>
+            ))}
+          </div>
+        );
+      case 'ngos':
+        return (
+          <div className="activity-list">
+            {data.map((ngo) => (
+              <div key={ngo._id} className="activity-ngo-card">
+                <div className="activity-ngo-card-thumb">
+                  <img src={getThumbnailUrl(ngo.logoUrl)} alt={`${ngo.name} logo`} />
+                </div>
+                <div className="activity-ngo-card-content">
+                  <h3 className="activity-ngo-card-title">{ngo.name}</h3>
+                  <p className="activity-ngo-card-meta">Added on {formatDate(ngo.createdAt)}</p>
+                </div>
+                <a href={`/ngos/${ngo._id}`} className="activity-ngo-card-details">
+                  View <FaChevronRight />
+                </a>
+              </div>
+            ))}
+          </div>
+        );
+      case 'events':
+        return (
+          <div className="activity-list">
+            {data.map((event) => (
+              <div key={event._id} className="activity-event-card">
+                <div className="activity-event-card-content">
+                  <h3 className="activity-event-card-title">{event.title}</h3>
+                  <p className="activity-event-card-meta">
+                    Event on {formatDate(event.date)}
+                  </p>
+                </div>
+                <a href={`/events/${event._id}`} className="activity-event-card-details">
+                  View <FaChevronRight />
+                </a>
+              </div>
+            ))}
+          </div>
+        );
+      case 'suggestions':
+        return (
+          <div className="activity-list">
+            {data.map((suggestion) => (
+              <div key={suggestion._id} className="activity-suggestion-card">
+                <div className="activity-suggestion-card-content">
+                  <h3 className="activity-suggestion-card-title">{suggestion.title}</h3>
+                  <p className="activity-suggestion-card-meta">
+                    Suggested on {formatDate(suggestion.createdAt)}
+                  </p>
+                </div>
+                <a href={`/suggestions/${suggestion._id}`} className="activity-suggestion-card-details">
+                  View <FaChevronRight />
                 </a>
               </div>
             ))}
@@ -236,6 +312,27 @@ export default function UserProfile() {
               <span className="stat-label">Votes Cast</span>
             </div>
           </div>
+          <div className="stat-card contributions-ngo-events">
+            <div className="stat-icon"><FaHandHoldingHeart aria-hidden="true" /></div>
+            <div className="stat-content">
+              <span className="stat-value">{stats.ngosCreated}</span>
+              <span className="stat-label">NGOs Created</span>
+            </div>
+          </div>
+          <div className="stat-card events">
+            <div className="stat-icon"><FaCalendarAlt aria-hidden="true" /></div>
+            <div className="stat-content">
+              <span className="stat-value">{stats.eventsCreated}</span>
+              <span className="stat-label">Events Created</span>
+            </div>
+          </div>
+          <div className="stat-card suggestions">
+            <div className="stat-icon"><FaLightbulb aria-hidden="true" /></div>
+            <div className="stat-content">
+              <span className="stat-value">{stats.suggestionsMade}</span>
+              <span className="stat-label">Suggestions</span>
+            </div>
+          </div>
         </div>
 
         <div className="user-activity-section">
@@ -257,6 +354,24 @@ export default function UserProfile() {
               onClick={() => setActivityTab('comments')}
             >
               Recent Comments
+            </button>
+            <button
+              className={`activity-tab ${activityTab === 'ngos' ? 'active' : ''}`}
+              onClick={() => setActivityTab('ngos')}
+            >
+              NGOs
+            </button>
+            <button
+              className={`activity-tab ${activityTab === 'events' ? 'active' : ''}`}
+              onClick={() => setActivityTab('events')}
+            >
+              Events
+            </button>
+            <button
+              className={`activity-tab ${activityTab === 'suggestions' ? 'active' : ''}`}
+              onClick={() => setActivityTab('suggestions')}
+            >
+              Suggestions
             </button>
           </div>
           <div className="activity-content-container">

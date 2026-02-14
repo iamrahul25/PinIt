@@ -664,6 +664,70 @@
   background: #fef2f2;
 }
 
+.ngos-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ngos-edit-btn:hover {
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.ngos-edit-btn .material-icons-round {
+  font-size: 1.1rem;
+}
+.ngos-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ngos-edit-btn:hover {
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.ngos-edit-btn .material-icons-round {
+  font-size: 1.1rem;
+}
+.ngos-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.ngos-edit-btn:hover {
+  color: #3b82f6;
+  background: #eff6ff;
+}
+
+.ngos-edit-btn .material-icons-round {
+  font-size: 1.1rem;
+}
+
 .ngos-delete-btn .material-icons-round {
   font-size: 1.1rem;
 }

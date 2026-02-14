@@ -723,15 +723,26 @@ export default function NGOs() {
                         <div className="ngos-card-head-right">
                           <span className="ngos-level-pill">{n.level}</span>
                           {(user?.role === 'admin' || n.authorId === user?.id) && (
-                            <button
-                              type="button"
-                              className="ngos-delete-btn"
-                              onClick={() => handleDeleteNgo(n._id)}
-                              aria-label="Delete NGO"
-                              title="Delete NGO"
-                            >
-                              <span className="material-icons-round">delete</span>
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="ngos-edit-btn"
+                                onClick={() => navigate(`/ngos/${n._id}/edit`)}
+                                aria-label="Edit NGO"
+                                title="Edit NGO"
+                              >
+                                <span className="material-icons-round">edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="ngos-delete-btn"
+                                onClick={() => handleDeleteNgo(n._id)}
+                                aria-label="Delete NGO"
+                                title="Delete NGO"
+                              >
+                                <span className="material-icons-round">delete</span>
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>

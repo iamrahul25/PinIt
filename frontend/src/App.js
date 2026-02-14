@@ -12,6 +12,7 @@ import Suggestions from './pages/Suggestions';
 import NGOs from './pages/NGOs';
 import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
+import NgoEdit from './pages/NgoEdit';
 import { reverseGeocode } from './utils/geocode';
 import { checkGraphicsAcceleration } from './utils/graphics';
 import { API_BASE_URL, DISCORD_INVITE_URL } from './config';
@@ -27,6 +28,7 @@ function App() {
   const isNgosPage = location.pathname === '/ngos';
   const isEventsPage = location.pathname === '/events';
   const isEventDetailPage = location.pathname.startsWith('/events/') && location.pathname !== '/events';
+  const isNgoEditPage = location.pathname.startsWith('/ngos/') && location.pathname.endsWith('/edit');
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null);
@@ -536,6 +538,10 @@ function App() {
       ) : isEventsPage ? (
         <div className="app-profile-container">
           <Events />
+        </div>
+      ) : isNgoEditPage ? (
+        <div className="app-profile-container">
+          <NgoEdit />
         </div>
       ) : (
       <div className="map-container">

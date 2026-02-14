@@ -210,4 +210,73 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Update NGO (admin or NGO author only)
+router.put('/:id', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const ngo = await Ngo.findById(req.params.id);
+    if (!ngo) {
+      return res.status(404).json({ error: 'NGO not found' });
+    }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isAuthor = ngo.authorId && String(ngo.authorId) === String(userId);
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the author can update this NGO' });
+    }
+    const {
+      name,
+      email,
+      level,
+      socialMedia,
+      whatTheyDo,
+      aboutDescription,
+      founder,
+      foundInYear,
+      numberOfCities,
+      logoUrl,
+      instagramFollowers
+    } = req.body;
+
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: 'NGO name is required' });
+    }
+    if (!logoUrl || !String(logoUrl).trim()) {
+      return res.status(400).json({ error: 'NGO image/logo is required' });
+    }
+    const validLevel = NGO_LEVELS.includes(level) ? level : 'City';
+    const instagramUsername = normalizeInstagramUsername(socialMedia?.instagram);
+
+    ngo.name = String(name).trim();
+    ngo.email = email ? String(email).trim() : '';
+    ngo.level = validLevel;
+    ngo.socialMedia = {
+      website: (socialMedia?.website || '').trim(),
+      instagram: instagramUsername,
+      linkedin: (socialMedia?.linkedin || '').trim(),
+      facebook: (socialMedia?.facebook || '').trim(),
+      other: (socialMedia?.other || '').trim(),
+      instagramFollowers: instagramFollowers != null && instagramFollowers !== '' ? Math.max(0, parseInt(instagramFollowers, 10)) : null
+    };
+    ngo.whatTheyDo = Array.isArray(whatTheyDo) ? whatTheyDo.filter(Boolean).map((s) => String(s).trim()) : [];
+    ngo.aboutDescription = aboutDescription ? String(aboutDescription).trim() : '';
+    ngo.founder = {
+      name: (founder?.name || '').trim(),
+      city: (founder?.city || '').trim()
+    };
+    ngo.foundInYear = foundInYear != null && foundInYear !== '' ? parseInt(foundInYear, 10) : null;
+    ngo.numberOfCities = numberOfCities != null && numberOfCities !== '' ? Math.max(0, parseInt(numberOfCities, 10)) : null;
+    ngo.logoUrl = String(logoUrl).trim();
+    ngo.updatedAt = new Date();
+
+    await ngo.save();
+    res.json(ngo);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+
 module.exports = router;

@@ -60,6 +60,7 @@ export default function NGOs() {
     linkedin: '',
     facebook: '',
     otherSocial: '',
+    instagramFollowers: '',
     whatTheyDo: [],
     otherWhatTheyDo: '',
     aboutDescription: '',
@@ -74,6 +75,8 @@ export default function NGOs() {
   const [expandedDescIds, setExpandedDescIds] = useState(new Set());
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -160,6 +163,33 @@ export default function NGOs() {
     }));
   };
 
+  const handleNameChange = (e) => {
+    setForm((f) => ({ ...f, name: e.target.value }));
+    setVerificationResult(''); // Reset verification result on name change
+  };
+
+  const handleVerify = async () => {
+    if (!form.name.trim()) {
+      setVerificationResult('');
+      return;
+    }
+    setVerifying(true);
+    setVerificationResult('');
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/ngos/verify?name=${encodeURIComponent(form.name.trim())}`);
+      const data = await res.json();
+      if (data.found) {
+        setVerificationResult('Taken');
+      } else {
+        setVerificationResult('Available');
+      }
+    } catch (err) {
+      setVerificationResult('Error');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const handleLogoChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -191,6 +221,10 @@ export default function NGOs() {
     setSuccess('');
     if (!form.name.trim()) {
       setError('NGO name is required.');
+      return;
+    }
+    if (form.name.trim() && verificationResult !== 'Available') {
+      setError('Please verify the NGO name for uniqueness.');
       return;
     }
     if (!logoFile && !logoPreview) {
@@ -231,6 +265,7 @@ export default function NGOs() {
           socialMedia: {
             website: form.website.trim() || '',
             instagram: instagramUsername,
+            instagramFollowers: form.instagramFollowers.trim() ? parseInt(form.instagramFollowers, 10) : undefined,
             linkedin: form.linkedin.trim() || '',
             facebook: form.facebook.trim() || '',
             other: form.otherSocial.trim() || ''
@@ -242,7 +277,8 @@ export default function NGOs() {
             city: form.founderCity.trim() || undefined
           },
           logoUrl,
-          authorName: user?.fullName || user?.email || 'Anonymous'
+          authorName: user?.fullName || user?.email || 'Anonymous',
+          instagramFollowers: form.instagramFollowers.trim() ? parseInt(form.instagramFollowers, 10) : undefined
         })
       });
       if (!res.ok) {
@@ -262,6 +298,7 @@ export default function NGOs() {
         linkedin: '',
         facebook: '',
         otherSocial: '',
+        instagramFollowers: '',
         whatTheyDo: [],
         otherWhatTheyDo: '',
         aboutDescription: '',
@@ -361,13 +398,28 @@ export default function NGOs() {
                   <form className="ngos-form" onSubmit={handleSubmit}>
                 <div className="ngos-field">
                   <label className="ngos-label">NGO name <span className="ngos-required">*</span></label>
-                  <input
-                    type="text"
-                    className="ngos-input"
-                    placeholder="Name of the NGO"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  />
+                  <div className="ngos-input-wrap">
+                    <input
+                      type="text"
+                      className="ngos-input"
+                      placeholder="Name of the NGO"
+                      value={form.name}
+                      onChange={handleNameChange}
+                    />
+                    <button
+                      type="button"
+                      className="ngos-verify-btn"
+                      onClick={handleVerify}
+                      disabled={verifying}
+                    >
+                      {verifying ? '...' : 'Verify'}
+                    </button>
+                  </div>
+                  {verificationResult && (
+                    <div className={`ngos-verification-result ${verificationResult.toLowerCase()}`}>
+                      {verificationResult}
+                    </div>
+                  )}
                 </div>
                 <div className="ngos-field">
                   <label className="ngos-label">NGO email <span className="ngos-optional">(optional)</span></label>
@@ -436,6 +488,17 @@ export default function NGOs() {
                       placeholder="e.g. vrikshitfoundation (link: https://www.instagram.com/vrikshitfoundation)"
                       value={form.instagram}
                       onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))}
+                    />
+                  </div>
+                  <div className="ngos-field">
+                    <label className="ngos-label">No. of followers on Instagram <span className="ngos-optional">(optional)</span></label>
+                    <input
+                      type="number"
+                      className="ngos-input"
+                      placeholder="e.g. 15000"
+                      min="0"
+                      value={form.instagramFollowers}
+                      onChange={(e) => setForm((f) => ({ ...f, instagramFollowers: e.target.value }))}
                     />
                   </div>
                   <div className="ngos-field">
@@ -744,6 +807,7 @@ export default function NGOs() {
                             <a href={n.socialMedia.facebook.startsWith('http') ? n.socialMedia.facebook : `https://facebook.com/${n.socialMedia.facebook}`} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Facebook">f</a>
                           )}
                         </div>
+                        <span className="ngos-followers">Followers: {n.socialMedia?.instagramFollowers > 0 ? n.socialMedia.instagramFollowers : 'NA'}</span>
                         <span className="ngos-time">{formatTimeAgo(n.createdAt)}</span>
                       </div>
                     </div>

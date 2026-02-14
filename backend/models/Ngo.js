@@ -6,7 +6,8 @@ const ngoSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    unique: true
   },
   email: {
     type: String,
@@ -21,6 +22,7 @@ const ngoSchema = new mongoose.Schema({
   socialMedia: {
     website: { type: String, default: '', trim: true },
     instagram: { type: String, default: '', trim: true },
+    instagramFollowers: { type: Number, default: null },
     linkedin: { type: String, default: '', trim: true },
     facebook: { type: String, default: '', trim: true },
     other: { type: String, default: '', trim: true }

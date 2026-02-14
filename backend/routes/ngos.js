@@ -87,7 +87,8 @@ router.post('/', async (req, res) => {
       foundInYear,
       numberOfCities,
       logoUrl,
-      authorName
+      authorName,
+      instagramFollowers
     } = req.body;
 
     if (!name || !String(name).trim()) {
@@ -107,7 +108,8 @@ router.post('/', async (req, res) => {
         instagram: instagramUsername,
         linkedin: (socialMedia?.linkedin || '').trim(),
         facebook: (socialMedia?.facebook || '').trim(),
-        other: (socialMedia?.other || '').trim()
+        other: (socialMedia?.other || '').trim(),
+        instagramFollowers: instagramFollowers != null && instagramFollowers !== '' ? Math.max(0, parseInt(instagramFollowers, 10)) : null
       },
       whatTheyDo: Array.isArray(whatTheyDo) ? whatTheyDo.filter(Boolean).map((s) => String(s).trim()) : [],
       aboutDescription: aboutDescription ? String(aboutDescription).trim() : '',

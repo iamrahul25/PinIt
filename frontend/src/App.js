@@ -5,6 +5,7 @@ import MapView from './components/MapView';
 import PinForm from './components/PinForm';
 import PinDetails from './components/PinDetails';
 import Toast from './components/Toast';
+import Notification from './components/Notification';
 import PinListPanel from './components/PinListPanel';
 import UserProfile from './pages/UserProfile';
 import Suggestions from './pages/Suggestions';
@@ -12,6 +13,7 @@ import NGOs from './pages/NGOs';
 import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
 import { reverseGeocode } from './utils/geocode';
+import { checkGraphicsAcceleration } from './utils/graphics';
 import { API_BASE_URL, DISCORD_INVITE_URL } from './config';
 import './App.css';
 
@@ -37,6 +39,22 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+  const [notifications, setNotifications] = useState([]);
+
+  const addNotification = useCallback((type, message) => {
+    const id = Date.now();
+    setNotifications(prev => {
+      // Avoid duplicate messages
+      if (prev.some(n => n.message === message)) {
+        return prev;
+      }
+      return [...prev, { id, type, message }];
+    });
+  }, []);
+
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
 
   const loading = authLoading;
 
@@ -123,6 +141,16 @@ function App() {
     fetchPins();
     fetchSavedPinIds();
   }, [isSignedIn, authLoading, syncUserData, fetchPins, fetchSavedPinIds]);
+
+  useEffect(() => {
+    const isAccelerationOn = checkGraphicsAcceleration();
+    if (isAccelerationOn === false) { // Can also be true or null
+      addNotification(
+        'warning',
+        'Graphics acceleration is disabled in your browser.'
+      );
+    }
+  }, [addNotification]);
 
   useEffect(() => {
     if (mobileMenuOpen) {
@@ -308,6 +336,16 @@ function App() {
 
   return (
     <div className="App">
+      <div className="fixed bottom-0 right-3 z-[9999] flex flex-col-reverse items-end">
+        {notifications.map(n => (
+          <Notification
+            key={n.id}
+            type={n.type}
+            message={n.message}
+            onClose={() => removeNotification(n.id)}
+          />
+        ))}
+      </div>
       <header className="app-header">
         <button
           type="button"

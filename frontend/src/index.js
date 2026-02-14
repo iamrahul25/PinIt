@@ -5,6 +5,7 @@ import { AuthProvider } from './context/AuthContext';
 import BackendHealthChecker from './components/BackendHealthChecker';
 import LoginSignup from './pages/LoginSignup';
 import App from './App';
+import './tailwind.css';
 import './index.css';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));

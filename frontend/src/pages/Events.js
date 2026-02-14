@@ -99,6 +99,7 @@ export default function Events() {
   const [expandedDescIds, setExpandedDescIds] = useState(new Set());
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
+  const [editingEvent, setEditingEvent] = useState(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)');
@@ -173,6 +174,53 @@ export default function Events() {
     setSkip(0);
     fetchEvents(0, false, view);
   }, [isSignedIn, authLoading, view, appliedCity, appliedDate, fetchEvents]);
+
+  useEffect(() => {
+    if (editingEvent) {
+      setForm({
+        title: editingEvent.title || '',
+        description: editingEvent.description || '',
+        foundationName: editingEvent.foundationName || '',
+        address: editingEvent.location?.address || '',
+        city: editingEvent.location?.city || '',
+        state: editingEvent.location?.state || '',
+        mapUrl: editingEvent.location?.mapUrl || '',
+        driveType: editingEvent.driveType || '',
+        otherDriveName: editingEvent.otherDriveName || '',
+        pinLink: editingEvent.pinId ? `${window.location.origin}/pin/${editingEvent.pinId}` : '',
+        date: editingEvent.date ? editingEvent.date.substring(0, 10) : '',
+        startTime: editingEvent.startTime || '',
+        durationHours: editingEvent.durationHours || ''
+      });
+      setBannerPreview(editingEvent.bannerUrl || '');
+      setFoundationVerified(editingEvent.foundationId ? { id: editingEvent.foundationId, name: editingEvent.foundationName, logoUrl: editingEvent.foundationLogoUrl } : null);
+      setPinVerified(!!editingEvent.pinId);
+    } else {
+      // Reset form for new event creation
+      setForm({
+        title: '',
+        description: '',
+        foundationName: '',
+        address: '',
+        city: '',
+        state: '',
+        mapUrl: '',
+        driveType: '',
+        otherDriveName: '',
+        pinLink: '',
+        date: '',
+        startTime: '',
+        durationHours: ''
+      });
+      setBannerFile(null);
+      setBannerPreview('');
+      setFoundationVerified(null);
+      setPinVerified(false);
+    }
+    setError('');
+    setSuccess('');
+    setSubmitting(false);
+  }, [editingEvent]);
 
   const handleFilterSearch = () => {
     setAppliedCity(cityInput);
@@ -288,7 +336,7 @@ export default function Events() {
     }
     setSubmitting(true);
     try {
-      let bannerUrl = '';
+      let bannerUrl = bannerPreview; // Start with current preview URL (might be existing event banner)
       if (bannerFile) {
         const formData = new FormData();
         formData.append('image', bannerFile);
@@ -300,8 +348,12 @@ export default function Events() {
         bannerUrl = uploadRes.data?.url || '';
       }
       const pinId = extractPinIdFromLink(form.pinLink.trim()) || undefined;
-      const res = await authFetch(`${API_BASE_URL}/api/events`, {
-        method: 'POST',
+
+      const method = editingEvent ? 'PUT' : 'POST';
+      const url = editingEvent ? `${API_BASE_URL}/api/events/${editingEvent._id}` : `${API_BASE_URL}/api/events`;
+
+      const res = await authFetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title.trim(),
@@ -318,8 +370,7 @@ export default function Events() {
           foundationName: foundationVerified.name,
           foundationLogoUrl: foundationVerified.logoUrl || undefined,
           pinId,
-          pinLink: form.pinLink.trim() || undefined,
-          bannerUrl: bannerUrl || undefined,
+          bannerUrl: bannerUrl || undefined, // Use bannerUrl determined above
           date: form.date,
           startTime: form.startTime.trim(),
           durationHours: form.durationHours !== '' ? Number(form.durationHours) : undefined,
@@ -328,7 +379,7 @@ export default function Events() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to create event');
+        throw new Error(err.error || `Failed to ${editingEvent ? 'update' : 'create'} event`);
       }
       setSuccess('Event created successfully!');
       setMobileFormOpen(false);
@@ -514,7 +565,7 @@ export default function Events() {
               ) : (
                 <>
                   <div className="events-form-header-row">
-                    <h2 className="events-form-title">Create an Event</h2>
+                    <h2 className="events-form-title">{editingEvent ? 'Edit Event' : 'Create an Event'}</h2>
                     {isMobile && (
                       <button
                         type="button"
@@ -527,7 +578,7 @@ export default function Events() {
                     )}
                   </div>
                   <p className="events-form-desc">
-                    Add an upcoming event conducted by an NGO or a group. Others can see it and mark their attendance.
+                    {editingEvent ? 'Update the details of the event.' : 'Add an upcoming event conducted by an NGO or a group. Others can see it and mark their attendance.'}
                   </p>
                   <form className="events-form" onSubmit={handleSubmit}>
                 <div className="events-field">
@@ -737,10 +788,17 @@ export default function Events() {
                 </div>
                 {error && <div className="events-msg events-msg-error" role="alert">{error}</div>}
                 {success && <div className="events-msg events-msg-success">{success}</div>}
-                <button type="submit" className="events-submit-btn" disabled={submitting}>
-                  <span className="material-icons-round" aria-hidden="true">event</span>
-                  Create Event
-                </button>
+                <div className="events-form-actions">
+                  {editingEvent && (
+                    <button type="button" className="events-cancel-btn" onClick={() => setEditingEvent(null)}>
+                      Cancel
+                    </button>
+                  )}
+                  <button type="submit" className="events-submit-btn" disabled={submitting}>
+                    <span className="material-icons-round" aria-hidden="true">event</span>
+                    {editingEvent ? 'Save Changes' : 'Create Event'}
+                  </button>
+                </div>
               </form>
                 </>
               )}
@@ -861,15 +919,26 @@ export default function Events() {
                         <div className="events-card-head-right">
                           <span className="events-card-date-pill">{formatEventDate(ev.date)}</span>
                           {(user?.role === 'admin' || ev.authorId === user?.id) && (
-                            <button
-                              type="button"
-                              className="events-delete-btn"
-                              onClick={() => handleDeleteEvent(ev._id)}
-                              aria-label="Delete event"
-                              title="Delete event"
-                            >
-                              <span className="material-icons-round">delete</span>
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="events-edit-btn"
+                                onClick={() => setEditingEvent(ev)}
+                                aria-label="Edit event"
+                                title="Edit event"
+                              >
+                                <span className="material-icons-round">edit</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="events-delete-btn"
+                                onClick={() => handleDeleteEvent(ev._id)}
+                                aria-label="Delete event"
+                                title="Delete event"
+                              >
+                                <span className="material-icons-round">delete</span>
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>

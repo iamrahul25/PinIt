@@ -227,4 +227,92 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Update event (admin or event author only)
+router.put('/:id', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const isAdmin = (await UserData.findOne({ userId }).select('role').lean())?.role === 'admin';
+    const isAuthor = event.authorId && String(event.authorId) === String(userId);
+    if (!isAdmin && !isAuthor) {
+      return res.status(403).json({ error: 'Forbidden: only admin or the author can update this event' });
+    }
+
+    const {
+      title,
+      description,
+      location,
+      driveType,
+      otherDriveName,
+      foundationId,
+      foundationName,
+      foundationLogoUrl,
+      pinId,
+      pinLink,
+      bannerUrl,
+      date,
+      startTime,
+      endTime,
+      durationHours,
+    } = req.body;
+
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ error: 'Event title is required' });
+    }
+    const foundationNameVal = (foundationName && String(foundationName).trim()) || '';
+    if (!foundationNameVal) {
+      return res.status(400).json({ error: 'Foundation name is required. Please verify a foundation.' });
+    }
+    if (!date) {
+      return res.status(400).json({ error: 'Event date is required' });
+    }
+
+    const eventDate = new Date(date);
+    if (isNaN(eventDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid event date' });
+    }
+
+    const driveTypeVal = (driveType && String(driveType).trim()) || '';
+    const otherName = (otherDriveName && String(otherDriveName).trim()) || '';
+    let pinIdVal = (pinId && String(pinId).trim()) || '';
+    if (!pinIdVal && pinLink && String(pinLink).trim()) {
+      const match = String(pinLink).trim().match(/\/pin\/([a-zA-Z0-9_-]+)/i);
+      if (match) pinIdVal = match[1];
+    }
+    const bannerUrlVal = (bannerUrl && String(bannerUrl).trim()) || '';
+
+    event.title = String(title).trim();
+    event.description = description ? String(description).trim() : '';
+    event.foundationId = (foundationId && String(foundationId).trim()) || '';
+    event.foundationName = foundationNameVal;
+    event.foundationLogoUrl = (foundationLogoUrl && String(foundationLogoUrl).trim()) || '';
+    event.location = {
+      address: (location?.address || '').trim(),
+      city: (location?.city || '').trim(),
+      state: (location?.state || '').trim(),
+      mapUrl: (location?.mapUrl || '').trim()
+    };
+    event.driveType = driveTypeVal;
+    event.otherDriveName = otherName;
+    event.pinId = pinIdVal;
+    event.bannerUrl = bannerUrlVal;
+    event.date = eventDate;
+    event.startTime = (startTime != null && startTime !== '') ? String(startTime).trim() : '';
+    event.endTime = (endTime != null && endTime !== '') ? String(endTime).trim() : '';
+    event.durationHours = durationHours != null && durationHours >= 1 && durationHours <= 10 ? parseInt(durationHours, 10) : null;
+    event.updatedAt = new Date();
+
+    await event.save();
+    res.json(event);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 module.exports = router;

@@ -77,6 +77,7 @@ export default function NGOs() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState('');
+  const [editingNgo, setEditingNgo] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -154,6 +155,57 @@ export default function NGOs() {
     fetchNgos(0, false, view);
   }, [isSignedIn, authLoading, view, levelFilter, fetchNgos]);
 
+  useEffect(() => {
+    if (editingNgo) {
+      setForm({
+        name: editingNgo.name || '',
+        email: editingNgo.email || '',
+        level: editingNgo.level || 'City',
+        foundInYear: editingNgo.foundInYear || '',
+        numberOfCities: editingNgo.numberOfCities || '',
+        website: editingNgo.socialMedia?.website || '',
+        instagram: editingNgo.socialMedia?.instagram || '',
+        linkedin: editingNgo.socialMedia?.linkedin || '',
+        facebook: editingNgo.socialMedia?.facebook || '',
+        otherSocial: editingNgo.socialMedia?.other || '',
+        instagramFollowers: editingNgo.socialMedia?.instagramFollowers || '',
+        whatTheyDo: editingNgo.whatTheyDo || [],
+        otherWhatTheyDo: '',
+        aboutDescription: editingNgo.aboutDescription || '',
+        founderName: editingNgo.founder?.name || '',
+        founderCity: editingNgo.founder?.city || ''
+      });
+      setLogoPreview(editingNgo.logoUrl || '');
+      setVerificationResult('Available'); // Assume verified if editing an existing NGO
+    } else {
+      // Reset form for new NGO creation
+      setForm({
+        name: '',
+        email: '',
+        level: 'City',
+        foundInYear: '',
+        numberOfCities: '',
+        website: '',
+        instagram: '',
+        linkedin: '',
+        facebook: '',
+        otherSocial: '',
+        instagramFollowers: '',
+        whatTheyDo: [],
+        otherWhatTheyDo: '',
+        aboutDescription: '',
+        founderName: '',
+        founderCity: ''
+      });
+      setLogoFile(null);
+      setLogoPreview('');
+      setVerificationResult('');
+    }
+    setError('');
+    setSuccess('');
+    setSubmitting(false);
+  }, [editingNgo]);
+
   const handleWhatTheyDoToggle = (option) => {
     setForm((f) => ({
       ...f,
@@ -178,7 +230,7 @@ export default function NGOs() {
     try {
       const res = await authFetch(`${API_BASE_URL}/api/ngos/verify?name=${encodeURIComponent(form.name.trim())}`);
       const data = await res.json();
-      if (data.found) {
+      if (data.found && (!editingNgo || data.ngo._id !== editingNgo._id)) {
         setVerificationResult('Taken');
       } else {
         setVerificationResult('Available');
@@ -233,7 +285,7 @@ export default function NGOs() {
     }
     setSubmitting(true);
     try {
-      let logoUrl = '';
+      let logoUrl = logoPreview; // Start with current preview URL (might be existing NGO logo)
       if (logoFile) {
         const formData = new FormData();
         formData.append('image', logoFile);
@@ -245,7 +297,7 @@ export default function NGOs() {
         logoUrl = uploadRes.data?.url || '';
       }
       if (!logoUrl) {
-        throw new Error('Image upload failed. Please try again.');
+        throw new Error('NGO image/logo is required and upload failed.');
       }
       const whatTheyDoList = [...form.whatTheyDo];
       if (form.otherWhatTheyDo.trim()) whatTheyDoList.push(form.otherWhatTheyDo.trim());
@@ -253,19 +305,21 @@ export default function NGOs() {
       const instagramUsername = instagramInput.match(/instagram\.com\/([^/?]+)/i)
         ? instagramInput.replace(/^.*instagram\.com\/([^/?]+).*$/i, '$1').replace(/^@/, '')
         : instagramInput.replace(/^@/, '');
-      const res = await authFetch(`${API_BASE_URL}/api/ngos`, {
-        method: 'POST',
+      const method = editingNgo ? 'PUT' : 'POST';
+      const url = editingNgo ? `${API_BASE_URL}/api/ngos/${editingNgo._id}` : `${API_BASE_URL}/api/ngos`;
+
+      const res = await authFetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name.trim(),
           email: form.email.trim() || undefined,
           level: form.level,
-          foundInYear: form.foundInYear.trim() ? parseInt(form.foundInYear, 10) : undefined,
-          numberOfCities: form.numberOfCities.trim() ? Math.max(0, parseInt(form.numberOfCities, 10)) : undefined,
+          foundInYear: form.foundInYear.toString().trim() ? parseInt(form.foundInYear, 10) : undefined,
+          numberOfCities: form.numberOfCities.toString().trim() ? Math.max(0, parseInt(form.numberOfCities, 10)) : undefined,
           socialMedia: {
             website: form.website.trim() || '',
             instagram: instagramUsername,
-            instagramFollowers: form.instagramFollowers.trim() ? parseInt(form.instagramFollowers, 10) : undefined,
             linkedin: form.linkedin.trim() || '',
             facebook: form.facebook.trim() || '',
             other: form.otherSocial.trim() || ''
@@ -278,15 +332,16 @@ export default function NGOs() {
           },
           logoUrl,
           authorName: user?.fullName || user?.email || 'Anonymous',
-          instagramFollowers: form.instagramFollowers.trim() ? parseInt(form.instagramFollowers, 10) : undefined
+          instagramFollowers: form.instagramFollowers.toString().trim() ? parseInt(form.instagramFollowers, 10) : undefined
         })
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to submit NGO');
+        throw new Error(err.error || `Failed to ${editingNgo ? 'update' : 'submit'} NGO`);
       }
-      setSuccess('NGO submitted successfully!');
+      setSuccess(`NGO ${editingNgo ? 'updated' : 'submitted'} successfully!`);
       setMobileFormOpen(false);
+      setEditingNgo(null); // Exit editing mode
       setForm({
         name: '',
         email: '',
@@ -309,7 +364,7 @@ export default function NGOs() {
       setSkip(0);
       fetchNgos(0, false, view);
     } catch (err) {
-      setError(err.message || 'Failed to submit');
+      setError(err.message || `Failed to ${editingNgo ? 'update' : 'submit'}`);
     } finally {
       setSubmitting(false);
     }
@@ -382,7 +437,7 @@ export default function NGOs() {
               ) : (
                 <>
                   <div className="ngos-form-header-row">
-                    <h2 className="ngos-form-title">Submit an NGO</h2>
+                    <h2 className="ngos-form-title">{editingNgo ? 'Edit NGO' : 'Submit an NGO'}</h2>
                     {isMobile && (
                       <button
                         type="button"
@@ -394,7 +449,7 @@ export default function NGOs() {
                       </button>
                     )}
                   </div>
-                  <p className="ngos-form-desc">Share details of an NGO so others can discover and connect.</p>
+                  <p className="ngos-form-desc">{editingNgo ? 'Update the details of the NGO.' : 'Share details of an NGO so others can discover and connect.'}</p>
                   <form className="ngos-form" onSubmit={handleSubmit}>
                 <div className="ngos-field">
                   <label className="ngos-label">NGO name <span className="ngos-required">*</span></label>
@@ -626,10 +681,17 @@ export default function NGOs() {
 
                 {error && <div className="ngos-msg ngos-msg-error" role="alert">{error}</div>}
                 {success && <div className="ngos-msg ngos-msg-success">{success}</div>}
-                <button type="submit" className="ngos-submit-btn" disabled={submitting}>
-                  <span className="material-icons-round" aria-hidden="true">add_box</span>
-                  Submit NGO
-                </button>
+                <div className="ngos-form-actions">
+                  {editingNgo && (
+                    <button type="button" className="ngos-cancel-btn" onClick={() => setEditingNgo(null)}>
+                      Cancel
+                    </button>
+                  )}
+                  <button type="submit" className="ngos-submit-btn" disabled={submitting}>
+                    <span className="material-icons-round" aria-hidden="true">add_box</span>
+                    {editingNgo ? 'Save Changes' : 'Submit NGO'}
+                  </button>
+                </div>
               </form>
                 </>
               )}
@@ -727,7 +789,7 @@ export default function NGOs() {
                               <button
                                 type="button"
                                 className="ngos-edit-btn"
-                                onClick={() => navigate(`/ngos/${n._id}/edit`)}
+                                onClick={() => setEditingNgo(n)}
                                 aria-label="Edit NGO"
                                 title="Edit NGO"
                               >

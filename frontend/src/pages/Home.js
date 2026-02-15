@@ -25,11 +25,29 @@ function Home() {
 
   return (
     <div className="home-container">
+      {/* Background Pin Decorations */}
+      <div className="home-background-decor">
+        <div className="home-decor-item home-item-1">
+          <span className="material-icons-round home-glow-pin">location_on</span>
+        </div>
+        <div className="home-decor-item home-item-2">
+          <span className="material-icons-round home-glow-pin">location_on</span>
+        </div>
+        <div className="home-decor-item home-item-3">
+          <span className="material-icons-round home-glow-pin">location_on</span>
+        </div>
+        <div className="home-decor-item home-item-4">
+          <span className="material-icons-round home-glow-pin">location_on</span>
+        </div>
+      </div>
+
       {/* Navigation Bar */}
       <nav className="home-navbar">
         <div className="home-nav-content">
           <div className="home-logo">
-            <span className="material-icons-round home-logo-icon">push_pin</span>
+            <div className="home-logo-box">
+              <span className="material-icons-round home-logo-icon">push_pin</span>
+            </div>
             <span className="home-logo-text">Pin-It</span>
           </div>
           <button className="home-nav-cta" onClick={handleGetStarted}>
@@ -43,11 +61,11 @@ function Home() {
         <div className="home-hero-content">
           <div className="home-hero-text">
             <h1 className="home-hero-title">
-              Empower Your Community,<br />
-              <span className="home-gradient-text">One Pin at a Time</span>
+              Report and Track Civic Issues<br />
+              <span className="home-gradient-text">Effortlessly</span>
             </h1>
             <p className="home-hero-subtitle">
-              PinIt is a community-driven platform where citizens report and track civic issues in real-time. From broken streetlights to potholes, help your neighborhood become better together.
+              Join a community-driven platform where citizens report and track civic issues in real-time. From broken streetlights to potholes, help your neighborhood become better together.
             </p>
             <div className="home-hero-buttons">
               <button className="home-btn home-btn-primary" onClick={handleGetStarted}>

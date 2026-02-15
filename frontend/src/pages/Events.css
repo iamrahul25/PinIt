@@ -14,6 +14,14 @@
   flex: 1;
 }
 
+.events-main.events-main--table-view {
+  max-width: 1320px;
+}
+
+.events-main.events-main--table-view .events-board {
+  width: 100%;
+}
+
 .events-layout {
   display: flex;
   flex-direction: column;
@@ -481,6 +489,111 @@
 .events-filter-reset-btn:hover {
   background: #f8fafc;
   border-color: #cbd5e1;
+}
+
+/* Events list table */
+.events-table-wrap {
+  background: #fff;
+  border: 1px solid #f1f5f9;
+  border-radius: 0.8rem;
+  overflow: hidden;
+  box-shadow: 0 3px 16px -2px rgba(0, 0, 0, 0.05);
+}
+
+.events-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.events-table thead {
+  background: linear-gradient(135deg, #4F46E5 0%, #6366f1 100%);
+  color: #fff;
+}
+
+.events-table th {
+  padding: 1rem 1.2rem;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.events-table th:first-child {
+  padding-left: 1.4rem;
+}
+
+.events-table th:last-child {
+  text-align: center;
+  padding-right: 1.4rem;
+}
+
+.events-table tbody tr {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s;
+}
+
+.events-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.events-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.events-table td {
+  padding: 1rem 1.2rem;
+  vertical-align: middle;
+}
+
+.events-table td:first-child {
+  padding-left: 1.4rem;
+}
+
+.events-table td:last-child {
+  text-align: center;
+  padding-right: 1.4rem;
+}
+
+.events-table-event-link {
+  color: #4F46E5;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.events-table-event-link:hover {
+  color: #4338ca;
+  text-decoration: underline;
+}
+
+.events-table-joined {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.events-table-nowrap {
+  white-space: nowrap;
+}
+
+.events-table-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 2.4rem 1.2rem !important;
+  font-style: italic;
+}
+
+@media (max-width: 767px) {
+  .events-table-wrap {
+    overflow-x: auto;
+  }
+  .events-table {
+    min-width: 560px;
+    font-size: 0.8rem;
+  }
+  .events-table th,
+  .events-table td {
+    padding: 0.75rem 0.9rem;
+  }
 }
 
 .events-loading {

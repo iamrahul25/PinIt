@@ -4,13 +4,9 @@ import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './Events.css';
-import './Calendar.css';
 
-const localizer = momentLocalizer(moment);
+
 
 const DRIVE_TYPES = ['Cleanup', 'Plantation', 'Painting', 'Awareness', 'Other'];
 
@@ -34,6 +30,16 @@ const DURATION_HOURS_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 function formatEventDate(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatEventDay(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(undefined, { weekday: 'short' });
+}
+
+function formatEventDateOnly(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 /** Format 24h time string (e.g. "14:30") to AM/PM (e.g. "2:30 PM") */
@@ -100,6 +106,7 @@ export default function Events() {
   const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [showEventsList, setShowEventsList] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)');
@@ -446,97 +453,7 @@ export default function Events() {
     }
   };
 
-  const renderCalendarView = () => {
-    const calendarEvents = events.map(event => ({
-      id: event._id,
-      title: event.title,
-      start: new Date(event.date),
-      end: new Date(event.date),
-      allDay: true,
-      resource: event,
-    }));
 
-    const eventPropGetter = (event) => {
-      const driveType = event.resource.driveType || '';
-      const backgroundColor = {
-        Cleanup: '#F59E0B',
-        Plantation: '#10B981',
-        Painting: '#6366F1',
-        Awareness: '#3B82F6',
-        Other: '#9CA3AF',
-      }[driveType];
-      return { style: { backgroundColor } };
-    };
-
-    return (
-      <div className="calendar-container">
-        <Calendar
-          localizer={localizer}
-          events={calendarEvents}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: 600 }}
-          onSelectEvent={event => navigate(`/events/${event.id}`)}
-          popup
-          eventPropGetter={eventPropGetter}
-          components={{
-            toolbar: (toolbar) => {
-              const goToBack = () => toolbar.onNavigate('PREV');
-              const goToNext = () => toolbar.onNavigate('NEXT');
-              const goToCurrent = () => toolbar.onNavigate('TODAY');
-
-              return (
-                <div className={`rbc-toolbar ${isMobile ? 'rbc-toolbar-mobile' : ''}`}>
-                  <div className="rbc-btn-group">
-                    <button type="button" onClick={goToBack}>
-                      <span className="material-icons-round">chevron_left</span>
-                    </button>
-                    <button type="button" onClick={goToCurrent}>
-                      Today
-                    </button>
-                    <button type="button" onClick={goToNext}>
-                      <span className="material-icons-round">chevron_right</span>
-                    </button>
-                  </div>
-                  <div className="rbc-toolbar-label">{toolbar.label}</div>
-                  <div className="rbc-btn-group">
-                    <button
-                      type="button"
-                      className={toolbar.view === 'month' ? 'rbc-active' : ''}
-                      onClick={() => toolbar.onView('month')}
-                    >
-                      Month
-                    </button>
-                    <button
-                      type="button"
-                      className={toolbar.view === 'week' ? 'rbc-active' : ''}
-                      onClick={() => toolbar.onView('week')}
-                    >
-                      Week
-                    </button>
-                    <button
-                      type="button"
-                      className={toolbar.view === 'day' ? 'rbc-active' : ''}
-                      onClick={() => toolbar.onView('day')}
-                    >
-                      Day
-                    </button>
-                    <button
-                      type="button"
-                      className={toolbar.view === 'agenda' ? 'rbc-active' : ''}
-                      onClick={() => toolbar.onView('agenda')}
-                    >
-                      Agenda
-                    </button>
-                  </div>
-                </div>
-              );
-            },
-          }}
-        />
-      </div>
-    );
-  };
 
   if (authLoading) {
     return (
@@ -549,7 +466,7 @@ export default function Events() {
 
   return (
     <div className="events-page">
-      <main className="events-main">
+      <main className={`events-main ${view === 'board' && showEventsList ? 'events-main--table-view' : ''}`}>
         <div className="events-layout">
           <aside className="events-aside">
             <div className="events-form-card">
@@ -820,14 +737,7 @@ export default function Events() {
                   <span className="material-icons-round" aria-hidden="true">event_available</span>
                   Upcoming Events
                 </button>
-                <button
-                  type="button"
-                  className={`events-quick-link ${view === 'calendar' ? 'active' : ''}`}
-                  onClick={() => setView('calendar')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">calendar_today</span>
-                  Calendar
-                </button>
+
               </div>
             </div>
           </aside>
@@ -836,7 +746,7 @@ export default function Events() {
             <div className="events-board-header">
               <div className="events-board-title-wrap">
                 <h2 className="events-board-title">
-                  {view === 'my' ? 'My Events' : view === 'calendar' ? 'Events Calendar' : 'Upcoming Events'}
+                  {view === 'my' ? 'My Events' : 'Upcoming Events'}
                 </h2>
                 <span className="events-board-count">{total}</span>
               </div>
@@ -879,18 +789,70 @@ export default function Events() {
                     <span className="material-icons-round" aria-hidden="true">refresh</span>
                     Reset
                   </button>
+                  <button
+                    type="button"
+                    className={`events-filter-btn ${showEventsList ? 'events-filter-reset-btn' : ''}`}
+                    onClick={() => setShowEventsList((v) => !v)}
+                    title={showEventsList ? 'Switch to card view' : 'View events in a table'}
+                  >
+                    <span className="material-icons-round" aria-hidden="true">table_chart</span>
+                    {showEventsList ? 'Card view' : 'Events list'}
+                  </button>
                 </div>
               )}
             </div>
 
             {loading ? (
               <div className="events-loading">Loading events...</div>
-            ) : view === 'calendar' ? (
-              renderCalendarView()
             ) : events.length === 0 ? (
               <div className="events-empty">
                 {view === 'my' ? 'You haven’t created any events yet.' : 'No upcoming events match your filters.'}
               </div>
+            ) : view === 'board' && showEventsList ? (
+              (() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const upcoming = events.filter((ev) => new Date(ev.date) >= today);
+                const venueStr = (ev) => [ev.location?.address, ev.location?.city, ev.location?.state].filter(Boolean).join(', ') || '—';
+                return (
+                  <div className="events-table-wrap">
+                    <table className="events-table">
+                      <thead>
+                        <tr>
+                          <th>Event</th>
+                          <th className="events-table-nowrap">Day</th>
+                          <th className="events-table-nowrap">Date</th>
+                          <th className="events-table-nowrap">Time</th>
+                          <th>Venue</th>
+                          <th>Joined</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {upcoming.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="events-table-empty">No upcoming events.</td>
+                          </tr>
+                        ) : (
+                          upcoming.map((ev) => (
+                            <tr key={ev._id}>
+                              <td>
+                                <a href={`/events/${ev._id}`} className="events-table-event-link" onClick={(e) => { e.preventDefault(); navigate(`/events/${ev._id}`); }}>
+                                  {ev.title}
+                                </a>
+                              </td>
+                              <td className="events-table-nowrap">{formatEventDay(ev.date)}</td>
+                              <td className="events-table-nowrap">{formatEventDateOnly(ev.date)}</td>
+                              <td className="events-table-nowrap">{ev.startTime ? formatTimeToAMPM(ev.startTime) : '—'}</td>
+                              <td>{venueStr(ev)}</td>
+                              <td className="events-table-joined">{ev.volunteerCount ?? 0}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()
             ) : (
               <div className="events-list">
                 {events.map((ev) => (

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import BackendHealthChecker from './components/BackendHealthChecker';
 import LoginSignup from './pages/LoginSignup';
+import MainLayout from './pages/MainLayout';
 import App from './App';
 import './tailwind.css';
 import './index.css';
@@ -22,7 +23,7 @@ root.render(
             <Route path="/events" element={<App />} />
             <Route path="/events/:eventId" element={<App />} />
             <Route path="/pin/:pinId" element={<App />} />
-            <Route path="/" element={<App />} />
+            <Route path="/" element={<MainLayout />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BackendHealthChecker>

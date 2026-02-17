@@ -2,9 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './NGOs.css';
+
+const NGOS_QUERY_KEY = ['ngos'];
+const STALE_TIME_MS = 60 * 1000;
+const PAGE_SIZE = 10;
 
 const NGO_LEVELS = ['International', 'National', 'State', 'City'];
 
@@ -41,14 +46,10 @@ function formatTimeAgo(dateStr) {
 
 export default function NGOs() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
-  const [ngos, setNgos] = useState([]);
-  const [total, setTotal] = useState(0);
   const [view, setView] = useState('board');
   const [levelFilter, setLevelFilter] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [skip, setSkip] = useState(0);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -109,38 +110,51 @@ export default function NGOs() {
     return fetch(url, { ...options, headers });
   }, [getAuthHeaders]);
 
-  const fetchNgos = useCallback(async (skipCount = 0, append = false, viewMode = 'board') => {
-    try {
-      if (skipCount === 0) setLoading(true);
-      else setLoadingMore(true);
-      if (viewMode === 'my') {
-        const res = await authFetch(`${API_BASE_URL}/api/ngos/my/submissions`);
-        if (!res.ok) throw new Error('Failed to fetch your submissions');
-        const list = await res.json();
-        setNgos(Array.isArray(list) ? list : []);
-        setTotal(Array.isArray(list) ? list.length : 0);
-        setSkip(list.length);
-      } else {
-        const params = new URLSearchParams({ limit: 10, skip: skipCount });
-        if (levelFilter) params.set('level', levelFilter);
-        const res = await authFetch(`${API_BASE_URL}/api/ngos?${params}`);
-        if (!res.ok) throw new Error('Failed to fetch NGOs');
-        const data = await res.json();
-        if (append) {
-          setNgos((prev) => [...prev, ...(data.ngos || [])]);
-        } else {
-          setNgos(data.ngos || []);
-        }
-        setTotal(data.total ?? 0);
-        setSkip(skipCount + (data.ngos?.length || 0));
-      }
-    } catch (err) {
-      setError(err.message || 'Could not load NGOs');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
+  const fetchMyNgos = useCallback(async () => {
+    const res = await authFetch(`${API_BASE_URL}/api/ngos/my/submissions`);
+    if (!res.ok) throw new Error('Failed to fetch your submissions');
+    const list = await res.json();
+    return Array.isArray(list) ? list : [];
+  }, [authFetch]);
+
+  const fetchBoardPage = useCallback(async ({ pageParam = 0 }) => {
+    const params = new URLSearchParams({ limit: PAGE_SIZE, skip: pageParam });
+    if (levelFilter) params.set('level', levelFilter);
+    const res = await authFetch(`${API_BASE_URL}/api/ngos?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch NGOs');
+    const data = await res.json();
+    return { ngos: data.ngos || [], total: data.total ?? 0 };
   }, [authFetch, levelFilter]);
+
+  const enabled = Boolean(isSignedIn && !authLoading);
+  const myQuery = useQuery({
+    queryKey: [...NGOS_QUERY_KEY, 'my'],
+    queryFn: fetchMyNgos,
+    enabled: enabled && view === 'my',
+    staleTime: STALE_TIME_MS,
+  });
+
+  const boardQuery = useInfiniteQuery({
+    queryKey: [...NGOS_QUERY_KEY, 'board', levelFilter],
+    queryFn: fetchBoardPage,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((n, p) => n + (p.ngos?.length ?? 0), 0);
+      return loaded < (lastPage.total ?? 0) ? loaded : undefined;
+    },
+    enabled: enabled && view === 'board',
+    staleTime: STALE_TIME_MS,
+  });
+
+  const ngos = view === 'my'
+    ? (myQuery.data ?? [])
+    : (boardQuery.data?.pages?.flatMap((p) => p.ngos ?? []) ?? []);
+  const total = view === 'my'
+    ? (myQuery.data?.length ?? 0)
+    : (boardQuery.data?.pages?.[0]?.total ?? 0);
+  const loading = view === 'my' ? myQuery.isLoading : boardQuery.isLoading;
+  const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
+  const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
 
   useEffect(() => {
     if (authLoading) return;
@@ -150,10 +164,26 @@ export default function NGOs() {
   }, [authLoading, isSignedIn, navigate]);
 
   useEffect(() => {
-    if (!isSignedIn || authLoading) return;
-    setSkip(0);
-    fetchNgos(0, false, view);
-  }, [isSignedIn, authLoading, view, levelFilter, fetchNgos]);
+    if (fetchError) setError(fetchError.message || 'Could not load NGOs');
+    else setError('');
+  }, [fetchError]);
+
+  const updateNgoInCache = useCallback((ngoId, updater) => {
+    queryClient.setQueryData([...NGOS_QUERY_KEY, 'my'], (prev) => {
+      if (!Array.isArray(prev)) return prev;
+      return prev.map((n) => (n._id === ngoId ? updater(n) : n));
+    });
+    queryClient.setQueriesData({ queryKey: [...NGOS_QUERY_KEY, 'board'], exact: false }, (prev) => {
+      if (!prev?.pages) return prev;
+      return {
+        ...prev,
+        pages: prev.pages.map((page) => ({
+          ...page,
+          ngos: (page.ngos ?? []).map((n) => (n._id === ngoId ? updater(n) : n)),
+        })),
+      };
+    });
+  }, [queryClient]);
 
   useEffect(() => {
     if (editingNgo) {
@@ -361,8 +391,7 @@ export default function NGOs() {
         founderCity: ''
       });
       removeLogo();
-      setSkip(0);
-      fetchNgos(0, false, view);
+      queryClient.invalidateQueries({ queryKey: NGOS_QUERY_KEY });
     } catch (err) {
       setError(err.message || `Failed to ${editingNgo ? 'update' : 'submit'}`);
     } finally {
@@ -371,7 +400,7 @@ export default function NGOs() {
   };
 
   const handleLoadMore = () => {
-    fetchNgos(skip, true);
+    boardQuery.fetchNextPage();
   };
 
   const handleVote = async (ngoId) => {
@@ -379,11 +408,7 @@ export default function NGOs() {
       const res = await authFetch(`${API_BASE_URL}/api/ngos/${ngoId}/vote`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to vote');
       const data = await res.json();
-      setNgos((prev) =>
-        prev.map((n) =>
-          n._id === ngoId ? { ...n, upvotes: data.upvotes, hasVoted: data.hasVoted } : n
-        )
-      );
+      updateNgoInCache(ngoId, (n) => ({ ...n, upvotes: data.upvotes, hasVoted: data.hasVoted }));
     } catch (err) {
       setError(err.message || 'Could not update vote');
     }
@@ -397,8 +422,21 @@ export default function NGOs() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to delete NGO');
       }
-      setNgos((prev) => prev.filter((n) => n._id !== ngoId));
-      setTotal((t) => Math.max(0, t - 1));
+      queryClient.setQueryData([...NGOS_QUERY_KEY, 'my'], (prev) =>
+        Array.isArray(prev) ? prev.filter((n) => n._id !== ngoId) : prev
+      );
+      queryClient.setQueriesData({ queryKey: [...NGOS_QUERY_KEY, 'board'], exact: false }, (prev) => {
+        if (!prev?.pages) return prev;
+        const firstTotal = prev.pages[0]?.total ?? 0;
+        return {
+          ...prev,
+          pages: prev.pages.map((page, i) => ({
+            ...page,
+            ngos: (page.ngos ?? []).filter((n) => n._id !== ngoId),
+            total: i === 0 ? Math.max(0, firstTotal - 1) : page.total,
+          })),
+        };
+      });
     } catch (err) {
       setError(err.message || 'Could not delete NGO');
     }
@@ -724,6 +762,16 @@ export default function NGOs() {
                   {view === 'my' ? 'My NGO Submissions' : 'NGOs'}
                 </h2>
                 <span className="ngos-board-count">{total}</span>
+                <button
+                  type="button"
+                  className="ngos-refresh-btn"
+                  onClick={() => (view === 'my' ? myQuery.refetch() : boardQuery.refetch())}
+                  disabled={view === 'my' ? myQuery.isFetching : boardQuery.isFetching}
+                  aria-label="Refresh list"
+                  title="Refresh list"
+                >
+                  <span className="material-icons-round" aria-hidden="true">refresh</span>
+                </button>
               </div>
               {view === 'board' && (
                 <div className="ngos-level-tabs">

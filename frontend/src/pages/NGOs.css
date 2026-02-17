@@ -483,6 +483,30 @@
   font-weight: 700;
 }
 
+.ngos-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  margin-left: auto;
+}
+.ngos-refresh-btn:hover:not(:disabled) {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+.ngos-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ngos-refresh-btn .material-icons-round {
+  font-size: 1.25rem;
+}
+
 .ngos-level-tabs {
   display: flex;
   flex-wrap: wrap;

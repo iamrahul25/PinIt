@@ -430,6 +430,30 @@
   font-weight: 700;
 }
 
+.suggestions-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem;
+  border: none;
+  border-radius: 0.5rem;
+  background: #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  margin-left: auto;
+}
+.suggestions-refresh-btn:hover:not(:disabled) {
+  background: #cbd5e1;
+  color: #0f172a;
+}
+.suggestions-refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.suggestions-refresh-btn .material-icons-round {
+  font-size: 1.25rem;
+}
+
 .suggestions-sort-tabs {
   display: flex;
   background: rgba(226, 232, 240, 0.5);

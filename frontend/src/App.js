@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import MapView from './components/MapView';
 import PinForm from './components/PinForm';
@@ -20,9 +20,9 @@ import './App.css';
 
 function App() {
   const { loading: authLoading, isSignedIn, user, getToken, logout } = useAuth();
-  const { pinId: urlPinId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const urlPinId = (location.pathname.match(/^\/pin\/([^/]+)$/) || [])[1];
   const isProfilePage = location.pathname === '/profile';
   const isSuggestionsPage = location.pathname === '/suggestions';
   const isNgosPage = location.pathname === '/ngos';

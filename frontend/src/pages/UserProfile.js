@@ -1,10 +1,36 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './UserProfile.css';
+
+const USER_PROFILE_QUERY_KEY = ['userProfile'];
+const STALE_TIME_MS = 60 * 1000; // 60s – no refetch on route remount when data is fresh
+
+function calculateLevel(stats) {
+  if (!stats) return { level: 1, points: 0, progress: 0, nextLevelPoints: 100 };
+  const points = (stats.pinsCreated * 20) + (stats.commentsMade * 5) + (stats.ngosCreated * 100) + (stats.eventsCreated * 50) + (stats.suggestionsMade * 15);
+  let level = 1;
+  let nextLevelPoints = 100;
+  if (points > 1000) {
+    level = 5;
+    nextLevelPoints = Infinity;
+  } else if (points > 500) {
+    level = 4;
+    nextLevelPoints = 1000;
+  } else if (points > 300) {
+    level = 3;
+    nextLevelPoints = 500;
+  } else if (points > 100) {
+    level = 2;
+    nextLevelPoints = 300;
+  }
+  const progress = nextLevelPoints === Infinity ? 100 : (points / nextLevelPoints) * 100;
+  return { level, points, progress, nextLevelPoints };
+}
 
 const ACTIVITY_TABS = [
   { key: 'pins', label: 'Created Pins' },
@@ -18,12 +44,7 @@ const ACTIVITY_TABS = [
 export default function UserProfile() {
   const navigate = useNavigate();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
-  const [stats, setStats] = useState({ pinsCreated: 0, commentsMade: 0, votesCast: 0, ngosCreated: 0, eventsCreated: 0, suggestionsMade: 0 });
   const [activityTab, setActivityTab] = useState('pins');
-  const [activityData, setActivityData] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [userLevel, setUserLevel] = useState({ level: 1, points: 0, progress: 0, nextLevelPoints: 100 });
   const tabsContainerRef = useRef(null);
   const tabButtonRefs = useRef({});
 
@@ -38,90 +59,66 @@ export default function UserProfile() {
     };
   }, [getToken]);
 
+  const fetchProfileData = useCallback(async () => {
+    const headers = await getAuthHeaders();
+    const [statsResponse, pinsResponse, savedPinsResponse, commentsResponse, ngosResponse, eventsResponse, suggestionsResponse] = await Promise.all([
+      fetch(`${API_BASE_URL}/api/users/stats`, { headers }),
+      fetch(`${API_BASE_URL}/api/users/me/pins`, { headers }),
+      fetch(`${API_BASE_URL}/api/users/me/saved-pins`, { headers }),
+      fetch(`${API_BASE_URL}/api/users/me/comments`, { headers }),
+      fetch(`${API_BASE_URL}/api/ngos/my/submissions`, { headers }),
+      fetch(`${API_BASE_URL}/api/events/my/submissions`, { headers }),
+      fetch(`${API_BASE_URL}/api/suggestions/my/submissions`, { headers }),
+    ]);
+
+    if (!statsResponse.ok) throw new Error('Failed to fetch profile stats');
+    if (!pinsResponse.ok) throw new Error('Failed to fetch created pins');
+    if (!savedPinsResponse.ok) throw new Error('Failed to fetch saved pins');
+    if (!commentsResponse.ok) throw new Error('Failed to fetch comments');
+    if (!ngosResponse.ok) throw new Error('Failed to fetch created NGOs');
+    if (!eventsResponse.ok) throw new Error('Failed to fetch created events');
+    if (!suggestionsResponse.ok) throw new Error('Failed to fetch created suggestions');
+
+    const statsData = await statsResponse.json();
+    const pinsData = await pinsResponse.json();
+    const savedPinsData = await savedPinsResponse.json();
+    const commentsData = await commentsResponse.json();
+    const ngosData = await ngosResponse.json();
+    const eventsData = await eventsResponse.json();
+    const suggestionsData = await suggestionsResponse.json();
+
+    const stats = { ...statsData, ngosCreated: ngosData.length, eventsCreated: eventsData.length, suggestionsMade: suggestionsData.length };
+    const activityData = {
+      pins: pinsData,
+      saved: savedPinsData,
+      comments: commentsData,
+      ngos: ngosData,
+      events: eventsData,
+      suggestions: suggestionsData,
+    };
+    return { stats, activityData };
+  }, [getAuthHeaders]);
+
+  const profileQuery = useQuery({
+    queryKey: USER_PROFILE_QUERY_KEY,
+    queryFn: fetchProfileData,
+    enabled: Boolean(isSignedIn && !authLoading),
+    staleTime: STALE_TIME_MS,
+  });
+
+  const stats = profileQuery.data?.stats ?? { pinsCreated: 0, commentsMade: 0, votesCast: 0, ngosCreated: 0, eventsCreated: 0, suggestionsMade: 0 };
+  const activityData = profileQuery.data?.activityData ?? {};
+  const userLevel = useMemo(() => calculateLevel(stats), [stats]);
+  const loading = profileQuery.isLoading;
+  const error = profileQuery.error?.message ?? '';
+  const loadingState = authLoading || loading;
+
   useEffect(() => {
     if (authLoading) return;
     if (!isSignedIn) {
       navigate('/login', { replace: true });
     }
   }, [authLoading, isSignedIn, navigate]);
-
-  useEffect(() => {
-    if (!isSignedIn || authLoading) return;
-
-    const calculateLevel = (stats) => {
-      const points = (stats.pinsCreated * 20) + (stats.commentsMade * 5) + (stats.ngosCreated * 100) + (stats.eventsCreated * 50) + (stats.suggestionsMade * 15);
-      let level = 1;
-      let nextLevelPoints = 100;
-      if (points > 1000) {
-        level = 5;
-        nextLevelPoints = Infinity;
-      } else if (points > 500) {
-        level = 4;
-        nextLevelPoints = 1000;
-      } else if (points > 300) {
-        level = 3;
-        nextLevelPoints = 500;
-      } else if (points > 100) {
-        level = 2;
-        nextLevelPoints = 300;
-      }
-      const progress = (points / nextLevelPoints) * 100;
-      setUserLevel({ level, points, progress, nextLevelPoints });
-    };
-
-    const fetchProfileData = async () => {
-      try {
-        const headers = await getAuthHeaders();
-
-        const [statsResponse, pinsResponse, savedPinsResponse, commentsResponse, ngosResponse, eventsResponse, suggestionsResponse] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/users/stats`, { headers }),
-          fetch(`${API_BASE_URL}/api/users/me/pins`, { headers }),
-          fetch(`${API_BASE_URL}/api/users/me/saved-pins`, { headers }),
-          fetch(`${API_BASE_URL}/api/users/me/comments`, { headers }),
-          fetch(`${API_BASE_URL}/api/ngos/my/submissions`, { headers }),
-          fetch(`${API_BASE_URL}/api/events/my/submissions`, { headers }),
-          fetch(`${API_BASE_URL}/api/suggestions/my/submissions`, { headers }),
-        ]);
-
-        if (!statsResponse.ok) throw new Error('Failed to fetch profile stats');
-        if (!pinsResponse.ok) throw new Error('Failed to fetch created pins');
-        if (!savedPinsResponse.ok) throw new Error('Failed to fetch saved pins');
-        if (!commentsResponse.ok) throw new Error('Failed to fetch comments');
-        if (!ngosResponse.ok) throw new Error('Failed to fetch created NGOs');
-        if (!eventsResponse.ok) throw new Error('Failed to fetch created events');
-        if (!suggestionsResponse.ok) throw new Error('Failed to fetch created suggestions');
-
-        const statsData = await statsResponse.json();
-        const pinsData = await pinsResponse.json();
-        const savedPinsData = await savedPinsResponse.json();
-        const commentsData = await commentsResponse.json();
-        const ngosData = await ngosResponse.json();
-        const eventsData = await eventsResponse.json();
-        const suggestionsData = await suggestionsResponse.json();
-
-        const currentStats = { ...statsData, ngosCreated: ngosData.length, eventsCreated: eventsData.length, suggestionsMade: suggestionsData.length };
-        setStats(currentStats);
-        calculateLevel(currentStats);
-        setActivityData({
-          pins: pinsData,
-          saved: savedPinsData,
-          comments: commentsData,
-          ngos: ngosData,
-          events: eventsData,
-          suggestions: suggestionsData,
-        });
-
-      } catch (err) {
-        setError(err.message || 'Could not load profile');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfileData();
-  }, [isSignedIn, authLoading, getAuthHeaders]);
-
-  const loadingState = authLoading || loading;
 
   const goToPrevTab = () => {
     const currentIndex = ACTIVITY_TABS.findIndex((t) => t.key === activityTab);
@@ -231,9 +228,9 @@ export default function UserProfile() {
                       <span><FaThumbsUp /> {pin.upvotes || 0}</span>
                       <span><FaComment /> {pin.comments?.length || 0}</span>
                     </div>
-                    <a href={`/pin/${pin._id}`} className="activity-pin-card-full-details">
+                    <Link to={`/pin/${pin._id}`} className="activity-pin-card-full-details">
                       Full details <FaChevronRight className="activity-pin-card-full-details-icon" />
-                    </a>
+                    </Link>
                   </div>
                 </div>
               );
@@ -245,14 +242,14 @@ export default function UserProfile() {
           <div className="activity-list">
             {data.map((comment) => (
               <div key={comment._id} className="comment-card">
-                <a href={`/pin/${comment.pinId}`} className="comment-card-link">
+                <Link to={`/pin/${comment.pinId}`} className="comment-card-link">
                   <div className="comment-card-content">
                     <p className="comment-card-text">"{comment.text}"</p>
                     <p className="comment-card-meta">
                       Commented on {new Date(comment.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -269,9 +266,9 @@ export default function UserProfile() {
                   <h3 className="activity-ngo-card-title">{ngo.name}</h3>
                   <p className="activity-ngo-card-meta">Added on {formatDate(ngo.createdAt)}</p>
                 </div>
-                <a href={`/ngos/${ngo._id}`} className="activity-ngo-card-details">
+                <Link to={`/ngos/${ngo._id}`} className="activity-ngo-card-details">
                   View <FaChevronRight />
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -287,9 +284,9 @@ export default function UserProfile() {
                     Event on {formatDate(event.date)}
                   </p>
                 </div>
-                <a href={`/events/${event._id}`} className="activity-event-card-details">
+                <Link to={`/events/${event._id}`} className="activity-event-card-details">
                   View <FaChevronRight />
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -305,9 +302,9 @@ export default function UserProfile() {
                     Suggested on {formatDate(suggestion.createdAt)}
                   </p>
                 </div>
-                <a href={`/suggestions/${suggestion._id}`} className="activity-suggestion-card-details">
+                <Link to={`/suggestions/${suggestion._id}`} className="activity-suggestion-card-details">
                   View <FaChevronRight />
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -338,14 +335,26 @@ export default function UserProfile() {
               <p className="user-email">{user.email}</p>
             )}
           </div>
-          <button
-            type="button"
-            className="profile-back-btn"
-            onClick={() => navigate('/')}
-            title="Back to map"
-          >
-            ← Back
-          </button>
+          <div className="user-profile-header-actions">
+            <button
+              type="button"
+              className="profile-refresh-btn"
+              onClick={() => profileQuery.refetch()}
+              disabled={profileQuery.isFetching}
+              aria-label="Refresh profile"
+              title="Refresh profile"
+            >
+              ↻ Refresh
+            </button>
+            <button
+              type="button"
+              className="profile-back-btn"
+              onClick={() => navigate('/')}
+              title="Back to map"
+            >
+              ← Back
+            </button>
+          </div>
         </div>
 
         {error && (

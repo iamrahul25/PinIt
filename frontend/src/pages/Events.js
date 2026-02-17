@@ -2,9 +2,14 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './Events.css';
+
+const EVENTS_QUERY_KEY = ['events'];
+const STALE_TIME_MS = 60 * 1000;
+const PAGE_SIZE = 10;
 
 
 
@@ -66,17 +71,13 @@ function formatEventTime(start, durationHours) {
 
 export default function Events() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
-  const [events, setEvents] = useState([]);
-  const [total, setTotal] = useState(0);
   const [view, setView] = useState('board');
   const [dateInput, setDateInput] = useState('');
   const [cityInput, setCityInput] = useState('');
   const [appliedDate, setAppliedDate] = useState('');
   const [appliedCity, setAppliedCity] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [skip, setSkip] = useState(0);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -137,39 +138,52 @@ export default function Events() {
     return fetch(url, { ...options, headers });
   }, [getAuthHeaders]);
 
-  const fetchEvents = useCallback(async (skipCount = 0, append = false, viewMode = 'board') => {
-    try {
-      if (skipCount === 0) setLoading(true);
-      else setLoadingMore(true);
-      if (viewMode === 'my') {
-        const res = await authFetch(`${API_BASE_URL}/api/events/my/submissions`);
-        if (!res.ok) throw new Error('Failed to fetch your events');
-        const list = await res.json();
-        setEvents(Array.isArray(list) ? list : []);
-        setTotal(Array.isArray(list) ? list.length : 0);
-        setSkip(list.length);
-      } else {
-        const params = new URLSearchParams({ limit: 10, skip: skipCount });
-        if (appliedCity.trim()) params.set('city', appliedCity.trim());
-        if (appliedDate) params.set('date', appliedDate);
-        const res = await authFetch(`${API_BASE_URL}/api/events?${params}`);
-        if (!res.ok) throw new Error('Failed to fetch events');
-        const data = await res.json();
-        if (append) {
-          setEvents((prev) => [...prev, ...(data.events || [])]);
-        } else {
-          setEvents(data.events || []);
-        }
-        setTotal(data.total ?? 0);
-        setSkip(skipCount + (data.events?.length || 0));
-      }
-    } catch (err) {
-      setError(err.message || 'Could not load events');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
+  const fetchMyEvents = useCallback(async () => {
+    const res = await authFetch(`${API_BASE_URL}/api/events/my/submissions`);
+    if (!res.ok) throw new Error('Failed to fetch your events');
+    const list = await res.json();
+    return Array.isArray(list) ? list : [];
+  }, [authFetch]);
+
+  const fetchBoardPage = useCallback(async ({ pageParam = 0 }) => {
+    const params = new URLSearchParams({ limit: PAGE_SIZE, skip: pageParam });
+    if (appliedCity.trim()) params.set('city', appliedCity.trim());
+    if (appliedDate) params.set('date', appliedDate);
+    const res = await authFetch(`${API_BASE_URL}/api/events?${params}`);
+    if (!res.ok) throw new Error('Failed to fetch events');
+    const data = await res.json();
+    return { events: data.events || [], total: data.total ?? 0 };
   }, [authFetch, appliedCity, appliedDate]);
+
+  const enabled = Boolean(isSignedIn && !authLoading);
+  const myQuery = useQuery({
+    queryKey: [...EVENTS_QUERY_KEY, 'my'],
+    queryFn: fetchMyEvents,
+    enabled: enabled && view === 'my',
+    staleTime: STALE_TIME_MS,
+  });
+
+  const boardQuery = useInfiniteQuery({
+    queryKey: [...EVENTS_QUERY_KEY, 'board', appliedCity, appliedDate],
+    queryFn: fetchBoardPage,
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((n, p) => n + (p.events?.length ?? 0), 0);
+      return loaded < (lastPage.total ?? 0) ? loaded : undefined;
+    },
+    enabled: enabled && view === 'board',
+    staleTime: STALE_TIME_MS,
+  });
+
+  const events = view === 'my'
+    ? (myQuery.data ?? [])
+    : (boardQuery.data?.pages?.flatMap((p) => p.events ?? []) ?? []);
+  const total = view === 'my'
+    ? (myQuery.data?.length ?? 0)
+    : (boardQuery.data?.pages?.[0]?.total ?? 0);
+  const loading = view === 'my' ? myQuery.isLoading : boardQuery.isLoading;
+  const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
+  const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
 
   useEffect(() => {
     if (authLoading) return;
@@ -177,10 +191,26 @@ export default function Events() {
   }, [authLoading, isSignedIn, navigate]);
 
   useEffect(() => {
-    if (!isSignedIn || authLoading) return;
-    setSkip(0);
-    fetchEvents(0, false, view);
-  }, [isSignedIn, authLoading, view, appliedCity, appliedDate, fetchEvents]);
+    if (fetchError) setError(fetchError.message || 'Could not load events');
+    else setError('');
+  }, [fetchError]);
+
+  const updateEventInCache = useCallback((eventId, updater) => {
+    queryClient.setQueryData([...EVENTS_QUERY_KEY, 'my'], (prev) => {
+      if (!Array.isArray(prev)) return prev;
+      return prev.map((ev) => (ev._id === eventId ? updater(ev) : ev));
+    });
+    queryClient.setQueriesData({ queryKey: [...EVENTS_QUERY_KEY, 'board'], exact: false }, (prev) => {
+      if (!prev?.pages) return prev;
+      return {
+        ...prev,
+        pages: prev.pages.map((page) => ({
+          ...page,
+          events: (page.events ?? []).map((ev) => (ev._id === eventId ? updater(ev) : ev)),
+        })),
+      };
+    });
+  }, [queryClient]);
 
   useEffect(() => {
     if (editingEvent) {
@@ -232,7 +262,6 @@ export default function Events() {
   const handleFilterSearch = () => {
     setAppliedCity(cityInput);
     setAppliedDate(dateInput);
-    setSkip(0);
   };
 
   const handleFilterReset = () => {
@@ -240,7 +269,6 @@ export default function Events() {
     setDateInput('');
     setAppliedCity('');
     setAppliedDate('');
-    setSkip(0);
   };
 
   const handleVerifyFoundation = async () => {
@@ -408,8 +436,7 @@ export default function Events() {
       setFoundationVerified(null);
       setPinVerified(false);
       removeBanner();
-      setSkip(0);
-      fetchEvents(0, false, view);
+      queryClient.invalidateQueries({ queryKey: EVENTS_QUERY_KEY });
     } catch (err) {
       setError(err.message || 'Failed to create event');
     } finally {
@@ -418,7 +445,7 @@ export default function Events() {
   };
 
   const handleLoadMore = () => {
-    fetchEvents(skip, true);
+    boardQuery.fetchNextPage();
   };
 
   const handleAttend = async (eventId) => {
@@ -426,13 +453,11 @@ export default function Events() {
       const res = await authFetch(`${API_BASE_URL}/api/events/${eventId}/attend`, { method: 'POST' });
       if (!res.ok) throw new Error('Failed to update attendance');
       const data = await res.json();
-      setEvents((prev) =>
-        prev.map((ev) =>
-          ev._id === eventId
-            ? { ...ev, volunteerCount: data.volunteerCount, hasAttending: data.hasAttending }
-            : ev
-        )
-      );
+      updateEventInCache(eventId, (ev) => ({
+        ...ev,
+        volunteerCount: data.volunteerCount,
+        hasAttending: data.hasAttending
+      }));
     } catch (err) {
       setError(err.message || 'Could not update attendance');
     }
@@ -446,8 +471,21 @@ export default function Events() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to delete event');
       }
-      setEvents((prev) => prev.filter((ev) => ev._id !== eventId));
-      setTotal((t) => Math.max(0, t - 1));
+      queryClient.setQueryData([...EVENTS_QUERY_KEY, 'my'], (prev) =>
+        Array.isArray(prev) ? prev.filter((ev) => ev._id !== eventId) : prev
+      );
+      queryClient.setQueriesData({ queryKey: [...EVENTS_QUERY_KEY, 'board'], exact: false }, (prev) => {
+        if (!prev?.pages) return prev;
+        const firstTotal = prev.pages[0]?.total ?? 0;
+        return {
+          ...prev,
+          pages: prev.pages.map((page, i) => ({
+            ...page,
+            events: (page.events ?? []).filter((ev) => ev._id !== eventId),
+            total: i === 0 ? Math.max(0, firstTotal - 1) : page.total,
+          })),
+        };
+      });
     } catch (err) {
       setError(err.message || 'Could not delete event');
     }
@@ -749,6 +787,16 @@ export default function Events() {
                   {view === 'my' ? 'My Events' : 'Upcoming Events'}
                 </h2>
                 <span className="events-board-count">{total}</span>
+                <button
+                  type="button"
+                  className="events-refresh-btn"
+                  onClick={() => (view === 'my' ? myQuery.refetch() : boardQuery.refetch())}
+                  disabled={view === 'my' ? myQuery.isFetching : boardQuery.isFetching}
+                  aria-label="Refresh list"
+                  title="Refresh list"
+                >
+                  <span className="material-icons-round" aria-hidden="true">refresh</span>
+                </button>
               </div>
               {view === 'board' && (
                 <div className="events-filters">

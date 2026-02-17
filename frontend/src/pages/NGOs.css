@@ -530,7 +530,8 @@
   border-radius: 0.8rem;
   padding: 1.6rem;
   display: flex;
-  gap: 1.6rem;
+  flex-direction: column;
+  gap: 0.6rem;
   box-shadow: 0 3px 16px -2px rgba(0, 0, 0, 0.05);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -543,7 +544,8 @@
 .ngos-card-logo-wrap {
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  justify-content: space-between;
   align-items: center;
   gap: 0.5rem;
 }

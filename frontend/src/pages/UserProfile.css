@@ -236,10 +236,34 @@
   margin-top: 2rem;
 }
 
+.activity-tabs-container {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.activity-tabs-wrapper {
+  overflow: hidden;
+  border-bottom: 1px solid #e2e8f0;
+  padding-left: 44px;
+  padding-right: 44px;
+}
+
 .activity-tabs {
   display: flex;
-  border-bottom: 1px solid #e2e8f0;
-  margin-bottom: 1.5rem;
+  align-items: center;
+  gap: 0;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  width: max-content;
+  transition: transform 0.3s ease;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.activity-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .activity-tab {
@@ -251,6 +275,8 @@
   color: #64748b;
   position: relative;
   transition: color 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .activity-tab:hover {
@@ -270,6 +296,54 @@
   right: 0;
   height: 2px;
   background: #4f46e5;
+}
+
+.activity-tabs-scroll-btn {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 36px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: #64748b;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s;
+}
+
+.activity-tabs-scroll-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  color: #0f172a;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+.activity-tabs-scroll-btn.left {
+  left: 0;
+}
+
+.activity-tabs-scroll-btn.right {
+  right: 0;
+}
+
+/* Hide scroll buttons on wide screens where all tabs fit */
+@media (min-width: 768px) {
+  .activity-tabs-container {
+    overflow: visible;
+  }
+  
+  .activity-tabs-scroll-btn {
+    display: none;
+  }
+  
+  .activity-tabs-wrapper {
+    overflow: visible;
+  }
 }
 
 .activity-content-container {
@@ -577,6 +651,13 @@
 
 .activity-suggestion-card-details:hover {
   text-decoration: underline;
+}
+
+/* Mobile: hide image/thumb in Created Pins and Saved Pins cards */
+@media (max-width: 500px) {
+  .activity-pin-card-thumb {
+    display: none;
+  }
 }
 
 @media (max-width: 480px) {

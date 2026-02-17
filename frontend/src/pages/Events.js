@@ -863,23 +863,10 @@ export default function Events() {
                       </div>
                     )}
                     <div className="events-card-row">
-                    <div className="events-card-attend-wrap">
-                      <button
-                        type="button"
-                        className={`events-attend-btn ${ev.hasAttending ? 'attending' : ''}`}
-                        onClick={() => handleAttend(ev._id)}
-                        aria-label={ev.hasAttending ? "You're attending" : "I'll join"}
-                      >
-                        <span className="material-icons-round">{ev.hasAttending ? 'check_circle' : 'person_add'}</span>
-                        {ev.hasAttending ? "I'm in" : "I'll join"}
-                      </button>
-                      <span className="events-volunteer-count">{ev.volunteerCount ?? 0} volunteers</span>
-                    </div>
                     <div className="events-card-body">
                       <div className="events-card-head">
                         <h3 className="events-card-title">{ev.title}</h3>
                         <div className="events-card-head-right">
-                          <span className="events-card-date-pill">{formatEventDate(ev.date)}</span>
                           {(user?.role === 'admin' || ev.authorId === user?.id) && (
                             <>
                               <button
@@ -953,9 +940,11 @@ export default function Events() {
                           )}
                         </p>
                       )}
-                      {(ev.startTime || ev.durationHours != null || ev.endTime) && (
+                      {(ev.date || ev.startTime || ev.durationHours != null || ev.endTime) && (
                         <p className="events-card-time">
-                          🕐 {ev.durationHours != null
+                          🕐 {formatEventDateOnly(ev.date)}
+                          {(ev.startTime || ev.durationHours != null || ev.endTime) && ' · '}
+                          {ev.durationHours != null
                             ? formatEventTime(ev.startTime, ev.durationHours)
                             : ev.startTime && ev.endTime
                               ? `${formatTimeToAMPM(ev.startTime)} – ${formatTimeToAMPM(ev.endTime)}`
@@ -981,6 +970,19 @@ export default function Events() {
                           </a>
                         </p>
                       )}
+                    </div>
+                    <div className="events-card-attend-wrap">
+                      <button
+                        type="button"
+                        className={`events-attend-btn ${ev.hasAttending ? 'attending' : ''}`}
+                        onClick={() => handleAttend(ev._id)}
+                        aria-label={ev.hasAttending ? "You're attending" : "I'll join"}
+                      >
+                        <span className="material-icons-round">{ev.hasAttending ? 'check_circle' : 'person_add'}</span>
+                        {ev.hasAttending ? "I'm in" : "I'll join"}
+                      </button>
+                      <span className="events-volunteer-count">{ev.volunteerCount ?? 0} volunteers</span>
+                      <span className="events-card-author">By {ev.authorName || 'Anonymous'}</span>
                       <div className="events-card-meta">
                         <a
                           href={`/events/${ev._id}`}
@@ -992,7 +994,6 @@ export default function Events() {
                         >
                           View full event details
                         </a>
-                        <span>By {ev.authorName || 'Anonymous'}</span>
                       </div>
                     </div>
                     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
@@ -231,9 +231,9 @@ export default function UserProfile() {
                       <span><FaThumbsUp /> {pin.upvotes || 0}</span>
                       <span><FaComment /> {pin.comments?.length || 0}</span>
                     </div>
-                    <a href={`/pin/${pin._id}`} className="activity-pin-card-full-details">
+                    <Link to={`/pin/${pin._id}`} className="activity-pin-card-full-details">
                       Full details <FaChevronRight className="activity-pin-card-full-details-icon" />
-                    </a>
+                    </Link>
                   </div>
                 </div>
               );
@@ -245,14 +245,14 @@ export default function UserProfile() {
           <div className="activity-list">
             {data.map((comment) => (
               <div key={comment._id} className="comment-card">
-                <a href={`/pin/${comment.pinId}`} className="comment-card-link">
+                <Link to={`/pin/${comment.pinId}`} className="comment-card-link">
                   <div className="comment-card-content">
                     <p className="comment-card-text">"{comment.text}"</p>
                     <p className="comment-card-meta">
                       Commented on {new Date(comment.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -269,9 +269,9 @@ export default function UserProfile() {
                   <h3 className="activity-ngo-card-title">{ngo.name}</h3>
                   <p className="activity-ngo-card-meta">Added on {formatDate(ngo.createdAt)}</p>
                 </div>
-                <a href={`/ngos/${ngo._id}`} className="activity-ngo-card-details">
+                <Link to={`/ngos/${ngo._id}`} className="activity-ngo-card-details">
                   View <FaChevronRight />
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -287,9 +287,9 @@ export default function UserProfile() {
                     Event on {formatDate(event.date)}
                   </p>
                 </div>
-                <a href={`/events/${event._id}`} className="activity-event-card-details">
+                <Link to={`/events/${event._id}`} className="activity-event-card-details">
                   View <FaChevronRight />
-                </a>
+                </Link>
               </div>
             ))}
           </div>
@@ -305,9 +305,9 @@ export default function UserProfile() {
                     Suggested on {formatDate(suggestion.createdAt)}
                   </p>
                 </div>
-                <a href={`/suggestions/${suggestion._id}`} className="activity-suggestion-card-details">
+                <Link to={`/suggestions/${suggestion._id}`} className="activity-suggestion-card-details">
                   View <FaChevronRight />
-                </a>
+                </Link>
               </div>
             ))}
           </div>

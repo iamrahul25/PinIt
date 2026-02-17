@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './Events.css';
@@ -836,9 +836,9 @@ export default function Events() {
                           upcoming.map((ev) => (
                             <tr key={ev._id}>
                               <td>
-                                <a href={`/events/${ev._id}`} className="events-table-event-link" onClick={(e) => { e.preventDefault(); navigate(`/events/${ev._id}`); }}>
+                                <Link to={`/events/${ev._id}`} className="events-table-event-link">
                                   {ev.title}
-                                </a>
+                                </Link>
                               </td>
                               <td className="events-table-nowrap">{formatEventDay(ev.date)}</td>
                               <td className="events-table-nowrap">{formatEventDateOnly(ev.date)}</td>
@@ -961,13 +961,9 @@ export default function Events() {
                       {ev.pinId && (
                         <p className="events-card-pin-link">
                           <span className="events-card-pin-label">Pin URL: </span>
-                          <a
-                            href={`${window.location.origin}/pin/${ev.pinId}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
+                          <Link to={`/pin/${ev.pinId}`}>
                             {`${window.location.origin}/pin/${ev.pinId}`}
-                          </a>
+                          </Link>
                         </p>
                       )}
                     </div>
@@ -984,16 +980,12 @@ export default function Events() {
                       <span className="events-volunteer-count">{ev.volunteerCount ?? 0} volunteers</span>
                       <span className="events-card-author">By {ev.authorName || 'Anonymous'}</span>
                       <div className="events-card-meta">
-                        <a
-                          href={`/events/${ev._id}`}
+                        <Link
+                          to={`/events/${ev._id}`}
                           className="events-card-detail-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/events/${ev._id}`);
-                          }}
                         >
                           View full event details
-                        </a>
+                        </Link>
                       </div>
                     </div>
                     </div>

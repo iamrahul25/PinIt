@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
@@ -823,17 +823,13 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                           )}
                         </div>
                         <p className="pin-details-event-title">{ev.title}</p>
-                        <a
-                          href={`/events/${ev._id}`}
+                        <Link
+                          to={`/events/${ev._id}`}
                           className="pin-details-event-link"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            onClose();
-                            navigate(`/events/${ev._id}`);
-                          }}
+                          onClick={() => onClose()}
                         >
                           View full event details
-                        </a>
+                        </Link>
                       </div>
                     ))}
                   </div>

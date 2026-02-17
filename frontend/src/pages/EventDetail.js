@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './EventDetail.css';
@@ -34,7 +34,8 @@ function formatEventTime(start, end, durationHours) {
 }
 
 export default function EventDetail() {
-  const { eventId } = useParams();
+  const location = useLocation();
+  const eventId = (location.pathname.match(/^\/events\/([^/]+)$/) || [])[1] || null;
   const navigate = useNavigate();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
   const [event, setEvent] = useState(null);

@@ -673,22 +673,6 @@ export default function Suggestions() {
                       key={s._id}
                       className={`suggestions-card ${isClosed ? 'suggestions-card-completed' : ''}`}
                     >
-                      <div className="suggestions-card-vote">
-                        <button
-                          type="button"
-                          className={`suggestions-vote-btn ${hasVoted ? 'voted' : ''} ${isClosed ? 'completed' : ''}`}
-                          onClick={() => !isClosed && handleVote(s._id)}
-                          disabled={isClosed}
-                          aria-label={hasVoted ? 'Remove vote' : 'Upvote'}
-                        >
-                          {isClosed ? (
-                            <span className="material-icons-round">check_circle</span>
-                          ) : (
-                            <span className="material-icons-round">expand_less</span>
-                          )}
-                          <span className="suggestions-vote-count">{upvotes}</span>
-                        </button>
-                      </div>
                       <div className="suggestions-card-body">
                         <div className="suggestions-card-head">
                           <h3 className="suggestions-card-title">{s.title}</h3>
@@ -896,6 +880,21 @@ export default function Suggestions() {
                             </div>
                           </div>
                         )}
+                      </div>
+                      <div className="suggestions-card-vote">
+                        <button
+                          type="button"
+                          className={`suggestions-vote-btn ${hasVoted ? 'voted' : ''} ${isClosed ? 'completed' : ''}`}
+                          onClick={() => !isClosed && handleVote(s._id)}
+                          disabled={isClosed}
+                          aria-label={hasVoted ? 'Remove vote' : 'Upvote'}
+                        >
+                          <span className="material-icons-round" aria-hidden="true">
+                            {isClosed ? 'check_circle' : hasVoted ? 'check_circle' : 'expand_less'}
+                          </span>
+                          <span className="suggestions-vote-text">Upvote</span>
+                          <span className="suggestions-vote-count"> - ({upvotes})</span>
+                        </button>
                       </div>
                     </article>
                   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy } from 'react-icons/fa';
@@ -6,15 +6,26 @@ import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './UserProfile.css';
 
+const ACTIVITY_TABS = [
+  { key: 'pins', label: 'Created Pins' },
+  { key: 'saved', label: 'Saved Pins' },
+  { key: 'comments', label: 'Recent Comments' },
+  { key: 'ngos', label: 'NGOs' },
+  { key: 'events', label: 'Events' },
+  { key: 'suggestions', label: 'Suggestions' },
+];
+
 export default function UserProfile() {
   const navigate = useNavigate();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
   const [stats, setStats] = useState({ pinsCreated: 0, commentsMade: 0, votesCast: 0, ngosCreated: 0, eventsCreated: 0, suggestionsMade: 0 });
-  const [activityTab, setActivityTab] = useState('pins'); // 'pins', 'saved', 'comments', 'ngos', 'events'
+  const [activityTab, setActivityTab] = useState('pins');
   const [activityData, setActivityData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userLevel, setUserLevel] = useState({ level: 1, points: 0, progress: 0, nextLevelPoints: 100 });
+  const tabsContainerRef = useRef(null);
+  const tabButtonRefs = useRef({});
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -111,6 +122,34 @@ export default function UserProfile() {
   }, [isSignedIn, authLoading, getAuthHeaders]);
 
   const loadingState = authLoading || loading;
+
+  const goToPrevTab = () => {
+    const currentIndex = ACTIVITY_TABS.findIndex((t) => t.key === activityTab);
+    const prevIndex = currentIndex <= 0 ? ACTIVITY_TABS.length - 1 : currentIndex - 1;
+    const prevTab = ACTIVITY_TABS[prevIndex].key;
+    setActivityTab(prevTab);
+    scrollTabIntoView(prevTab);
+  };
+
+  const goToNextTab = () => {
+    const currentIndex = ACTIVITY_TABS.findIndex((t) => t.key === activityTab);
+    const nextIndex = currentIndex >= ACTIVITY_TABS.length - 1 ? 0 : currentIndex + 1;
+    const nextTab = ACTIVITY_TABS[nextIndex].key;
+    setActivityTab(nextTab);
+    scrollTabIntoView(nextTab);
+  };
+
+  const scrollTabIntoView = (tabKey) => {
+    const container = tabsContainerRef.current;
+    const tabEl = tabButtonRefs.current[tabKey];
+    if (container && tabEl) {
+      tabEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  };
+
+  useEffect(() => {
+    scrollTabIntoView(activityTab);
+  }, [activityTab]);
 
   const formatJoinDate = (isoDate) => {
     if (!isoDate) return '';
@@ -370,42 +409,40 @@ export default function UserProfile() {
         </div>
 
         <div className="user-activity-section">
-          <div className="activity-tabs">
+          <div className="activity-tabs-container">
             <button
-              className={`activity-tab ${activityTab === 'pins' ? 'active' : ''}`}
-              onClick={() => setActivityTab('pins')}
+              type="button"
+              className="activity-tabs-scroll-btn left"
+              onClick={goToPrevTab}
+              aria-label="Previous section"
             >
-              Created Pins
+              ‹
             </button>
+            <div className="activity-tabs-wrapper">
+              <div className="activity-tabs" ref={tabsContainerRef}>
+                {ACTIVITY_TABS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`activity-tab ${activityTab === key ? 'active' : ''}`}
+                    onClick={() => {
+                      setActivityTab(key);
+                      scrollTabIntoView(key);
+                    }}
+                    ref={(el) => { tabButtonRefs.current[key] = el; }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <button
-              className={`activity-tab ${activityTab === 'saved' ? 'active' : ''}`}
-              onClick={() => setActivityTab('saved')}
+              type="button"
+              className="activity-tabs-scroll-btn right"
+              onClick={goToNextTab}
+              aria-label="Next section"
             >
-              Saved Pins
-            </button>
-            <button
-              className={`activity-tab ${activityTab === 'comments' ? 'active' : ''}`}
-              onClick={() => setActivityTab('comments')}
-            >
-              Recent Comments
-            </button>
-            <button
-              className={`activity-tab ${activityTab === 'ngos' ? 'active' : ''}`}
-              onClick={() => setActivityTab('ngos')}
-            >
-              NGOs
-            </button>
-            <button
-              className={`activity-tab ${activityTab === 'events' ? 'active' : ''}`}
-              onClick={() => setActivityTab('events')}
-            >
-              Events
-            </button>
-            <button
-              className={`activity-tab ${activityTab === 'suggestions' ? 'active' : ''}`}
-              onClick={() => setActivityTab('suggestions')}
-            >
-              Suggestions
+              ›
             </button>
           </div>
           <div className="activity-content-container">

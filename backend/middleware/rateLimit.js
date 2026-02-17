@@ -31,7 +31,7 @@ const uploadRateLimiter = rateLimit({
 
 // General API limit (optional) – DoS mitigation for write/heavy endpoints
 const generalWindowMs = 15 * 60 * 1000;
-const generalMax = parseInt(process.env.RATE_LIMIT_GENERAL_MAX, 10) || 100;
+const generalMax = parseInt(process.env.RATE_LIMIT_GENERAL_MAX, 10) || 300;
 
 const generalRateLimiter = rateLimit({
   windowMs: generalWindowMs,

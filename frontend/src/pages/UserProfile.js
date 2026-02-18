@@ -182,9 +182,9 @@ export default function UserProfile() {
 
   const renderActivityContent = () => {
     if (loading) return <div className="activity-loading">Loading activity...</div>;
-  
+
     const data = activityData[activityTab];
-  
+
     if (!data || data.length === 0) {
       const message = {
         pins: 'No pins created yet.',
@@ -196,7 +196,7 @@ export default function UserProfile() {
       };
       return <div className="activity-empty">{message[activityTab]}</div>;
     }
-  
+
     switch (activityTab) {
       case 'pins':
       case 'saved':
@@ -317,6 +317,7 @@ export default function UserProfile() {
   return (
     <div className="user-profile-page">
       <div className="user-profile-card">
+
         <div className="user-profile-header">
           <div className="user-avatar" aria-hidden="true">
             {user?.imageUrl ? (
@@ -335,26 +336,6 @@ export default function UserProfile() {
               <p className="user-email">{user.email}</p>
             )}
           </div>
-          <div className="user-profile-header-actions">
-            <button
-              type="button"
-              className="profile-refresh-btn"
-              onClick={() => profileQuery.refetch()}
-              disabled={profileQuery.isFetching}
-              aria-label="Refresh profile"
-              title="Refresh profile"
-            >
-              ↻ Refresh
-            </button>
-            <button
-              type="button"
-              className="profile-back-btn"
-              onClick={() => navigate('/')}
-              title="Back to map"
-            >
-              ← Back
-            </button>
-          </div>
         </div>
 
         {error && (
@@ -370,6 +351,27 @@ export default function UserProfile() {
           <div className="user-level-progress-text">
             <span>{userLevel.points} / {userLevel.nextLevelPoints} Points to Next Level</span>
           </div>
+        </div>
+
+        <div className="user-profile-header-actions">
+          <button
+            type="button"
+            className="profile-refresh-btn"
+            onClick={() => profileQuery.refetch()}
+            disabled={profileQuery.isFetching}
+            aria-label="Refresh profile"
+            title="Refresh profile"
+          >
+            ↻ Refresh
+          </button>
+          <button
+            type="button"
+            className="profile-back-btn"
+            onClick={() => navigate('/')}
+            title="Back to map"
+          >
+            ← Back
+          </button>
         </div>
 
         <div className="profile-stats">

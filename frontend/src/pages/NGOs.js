@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../config';
 import './NGOs.css';
 
 const NGOS_QUERY_KEY = ['ngos'];
-const STALE_TIME_MS = 60 * 1000;
+const STALE_TIME_MS = 5 * 60 * 1000; // 5 mins – no refetch on route remount when data is fresh
 const PAGE_SIZE = 10;
 
 const NGO_LEVELS = ['International', 'National', 'State', 'City'];

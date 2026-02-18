@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../config';
 import './Suggestions.css';
 
 const SUGGESTIONS_QUERY_KEY = ['suggestions'];
-const STALE_TIME_MS = 60 * 1000; // 60s – no refetch on route remount when data is fresh
+const STALE_TIME_MS = 5 * 60 * 1000; // 5 mins – no refetch on route remount when data is fresh
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.5,

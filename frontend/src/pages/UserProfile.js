@@ -8,7 +8,7 @@ import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './UserProfile.css';
 
 const USER_PROFILE_QUERY_KEY = ['userProfile'];
-const STALE_TIME_MS = 60 * 1000; // 60s – no refetch on route remount when data is fresh
+const STALE_TIME_MS = 5 * 60 * 1000; // 5 mins – no refetch on route remount when data is fresh
 
 function calculateLevel(stats) {
   if (!stats) return { level: 1, points: 0, progress: 0, nextLevelPoints: 100 };

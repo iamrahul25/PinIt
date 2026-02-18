@@ -7,7 +7,6 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
-import './MapView.css';
 
 // Expose L globally so leaflet.markercluster can extend it (UMD expects window.L)
 if (typeof window !== 'undefined') window.L = L;
@@ -222,291 +221,8 @@ function MapUpdater({ center, zoom, onMapMove }) {
 }
 
 function LocationSearch({ onLocationFound }) {
-  const map = useMap();
-
-  useEffect(() => {
-    // Ensure map is ready and has getContainer method
-    if (!map || typeof map.getContainer !== 'function') {
-      return;
-    }
-
-    let container;
-    try {
-      container = map.getContainer();
-      if (!container) {
-        return;
-      }
-    } catch (error) {
-      console.warn('Map container not ready:', error);
-      return;
-    }
-
-    const searchContainer = document.createElement('div');
-    searchContainer.className = 'map-search-container';
-    searchContainer.style.cssText = `
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      z-index: 1000;
-      width: 300px;
-    `;
-
-    const inputWrapper = document.createElement('div');
-    inputWrapper.style.cssText = `
-      position: relative;
-      width: 100%;
-    `;
-
-    const searchInput = document.createElement('input');
-    searchInput.type = 'text';
-    searchInput.placeholder = 'Search location...';
-    searchInput.style.cssText = `
-      width: 100%;
-      padding: 10px 40px 10px 15px;
-      border: none;
-      border-radius: 5px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      font-size: 14px;
-      box-sizing: border-box;
-    `;
-
-    const clearButton = document.createElement('button');
-    clearButton.innerHTML = '×';
-    clearButton.style.cssText = `
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      font-size: 24px;
-      color: #999;
-      cursor: pointer;
-      padding: 0;
-      width: 24px;
-      height: 24px;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      line-height: 1;
-      transition: color 0.2s;
-      z-index: 1002;
-    `;
-    clearButton.addEventListener('mouseenter', () => {
-      clearButton.style.color = '#333';
-    });
-    clearButton.addEventListener('mouseleave', () => {
-      clearButton.style.color = '#999';
-    });
-    clearButton.addEventListener('click', (e) => {
-      e.stopPropagation();
-      searchInput.value = '';
-      searchInput.focus();
-      suggestionsList.innerHTML = '';
-      suggestionsList.style.display = 'none';
-      clearButton.style.display = 'none';
-    });
-
-    const suggestionsList = document.createElement('div');
-    suggestionsList.id = 'location-suggestions';
-    suggestionsList.style.cssText = `
-      position: absolute;
-      top: 100%;
-      left: 0;
-      right: 0;
-      margin-top: 5px;
-      background: white;
-      border-radius: 5px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      max-height: 300px;
-      overflow-y: auto;
-      display: none;
-      z-index: 1001;
-    `;
-
-    // Simple geocoding using Nominatim (OpenStreetMap)
-    let timeout;
-    const handleInput = async (e) => {
-      clearTimeout(timeout);
-      const query = e.target.value.trim();
-      
-      // Show/hide clear button based on input
-      if (e.target.value.length > 0) {
-        clearButton.style.display = 'flex';
-      } else {
-        clearButton.style.display = 'none';
-      }
-      
-      if (query.length > 2) {
-        timeout = setTimeout(async () => {
-          try {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
-            );
-            const data = await response.json();
-            
-            // Clear previous suggestions
-            suggestionsList.innerHTML = '';
-            
-            if (data.length > 0) {
-              data.forEach((result, index) => {
-                const suggestionItem = document.createElement('div');
-                suggestionItem.style.cssText = `
-                  padding: 12px 15px;
-                  cursor: pointer;
-                  border-bottom: 1px solid #f0f0f0;
-                  transition: background-color 0.2s;
-                `;
-                suggestionItem.textContent = result.display_name;
-                
-                // Hover effect
-                suggestionItem.addEventListener('mouseenter', () => {
-                  suggestionItem.style.backgroundColor = '#f5f5f5';
-                });
-                suggestionItem.addEventListener('mouseleave', () => {
-                  suggestionItem.style.backgroundColor = 'white';
-                });
-                
-                // Click handler
-                suggestionItem.addEventListener('click', () => {
-                  const lat = parseFloat(result.lat);
-                  const lon = parseFloat(result.lon);
-                  map.setView([lat, lon], 15);
-                  onLocationFound({ lat, lng: lon, address: result.display_name });
-                  searchInput.value = result.display_name;
-                  suggestionsList.style.display = 'none';
-                  clearButton.style.display = 'flex';
-                });
-                
-                suggestionsList.appendChild(suggestionItem);
-              });
-              suggestionsList.style.display = 'block';
-            } else {
-              suggestionsList.style.display = 'none';
-            }
-          } catch (error) {
-            console.error('Geocoding error:', error);
-            suggestionsList.style.display = 'none';
-          }
-        }, 500);
-      } else {
-        suggestionsList.style.display = 'none';
-      }
-    };
-
-    searchInput.addEventListener('input', handleInput);
-    
-    // Hide suggestions when clicking outside
-    const handleClickOutside = (e) => {
-      if (!searchContainer.contains(e.target)) {
-        suggestionsList.style.display = 'none';
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-
-    inputWrapper.appendChild(searchInput);
-    inputWrapper.appendChild(clearButton);
-    searchContainer.appendChild(inputWrapper);
-    searchContainer.appendChild(suggestionsList);
-
-    const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
-    const currentLocationBtn = document.createElement('button');
-    currentLocationBtn.type = 'button';
-    currentLocationBtn.className = 'map-location-btn';
-    currentLocationBtn.title = 'My Location';
-    currentLocationBtn.innerHTML = locationIconImg;
-    currentLocationBtn.style.cssText = `
-      position: absolute;
-      top: 10px;
-      left: 318px;
-      z-index: 1000;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      border: none;
-      border-radius: 6px;
-      background: white;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #374151;
-    `;
-    currentLocationBtn.onclick = () => {
-      if (navigator.geolocation) {
-        const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
-        currentLocationBtn.innerHTML = '<span class="map-location-spinner" style="width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:mapLocationSpin 0.6s linear infinite"></span>';
-        currentLocationBtn.disabled = true;
-        currentLocationBtn.style.cursor = 'wait';
-        document.body.style.cursor = 'wait';
-        const restore = () => {
-          currentLocationBtn.innerHTML = locationIconImg;
-          currentLocationBtn.disabled = false;
-          currentLocationBtn.style.cursor = 'pointer';
-          document.body.style.cursor = '';
-        };
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const { latitude, longitude, accuracy } = position.coords;
-            map.setView([latitude, longitude], 15);
-            onLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
-            restore();
-          },
-          (error) => {
-            alert('Unable to get your location. Please enable location services.');
-            restore();
-          }
-        );
-      }
-    };
-
-    const zoomOutBtn = document.createElement('button');
-    zoomOutBtn.type = 'button';
-    zoomOutBtn.className = 'map-zoom-out-btn';
-    zoomOutBtn.title = 'Zoom out to state level';
-    zoomOutBtn.innerHTML = '<span class="material-icons-round" style="font-size:20px">fullscreen_exit</span>';
-    zoomOutBtn.style.cssText = `
-      position: absolute;
-      top: 10px;
-      left: 360px;
-      z-index: 1000;
-      width: 36px;
-      height: 36px;
-      padding: 0;
-      border: none;
-      border-radius: 6px;
-      background: white;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #374151;
-    `;
-    zoomOutBtn.onclick = () => {
-      const c = map.getCenter();
-      map.setView([c.lat, c.lng], STATE_LEVEL_ZOOM);
-    };
-
-    container.appendChild(searchContainer);
-    container.appendChild(currentLocationBtn);
-    container.appendChild(zoomOutBtn);
-
-    return () => {
-      document.removeEventListener('click', handleClickOutside);
-      if (searchContainer.parentNode) {
-        searchContainer.parentNode.removeChild(searchContainer);
-      }
-      if (currentLocationBtn.parentNode) {
-        currentLocationBtn.parentNode.removeChild(currentLocationBtn);
-      }
-      if (zoomOutBtn.parentNode) {
-        zoomOutBtn.parentNode.removeChild(zoomOutBtn);
-      }
-    };
-  }, [map, onLocationFound]);
-
+  // This component is now replaced by the floating controls overlay
+  // Keeping it as a placeholder for potential future use
   return null;
 }
 
@@ -528,9 +244,13 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   const [layersDropdownOpen, setLayersDropdownOpen] = useState(false);
   const [clusteringEnabled, setClusteringEnabled] = useState(false);
   const layersDropdownRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const suggestionsListRef = useRef(null);
+  const clearButtonRef = useRef(null);
   const [googleMapInstance, setGoogleMapInstance] = useState(null);
   const [leafletMapInstance, setLeafletMapInstance] = useState(null);
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, accuracy } - accuracy in meters
+  const [isMyLocationLoading, setIsMyLocationLoading] = useState(false);
   const [pointerPosition, setPointerPosition] = useState(null); // { x, y } for following pin when placing
   const mapWrapperRef = useRef(null);
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
@@ -651,216 +371,10 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   };
   const handlePointerLeave = () => setPointerPosition(null);
 
-  // Google Maps Search Component
+  // Google Maps Search Component - replaced by floating controls overlay
   const GoogleMapSearch = ({ map, onLocationFound }) => {
-    useEffect(() => {
-      // Ensure map is ready and has getContainer method
-      if (!map || typeof map.getContainer !== 'function') {
-        return;
-      }
-
-      let container;
-      try {
-        container = map.getContainer();
-        if (!container) {
-          return;
-        }
-      } catch (error) {
-        console.warn('Google Map container not ready:', error);
-        return;
-      }
-
-      const searchContainer = document.createElement('div');
-      searchContainer.className = 'map-search-container';
-      searchContainer.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 1000;
-        width: 300px;
-      `;
-
-      const inputWrapper = document.createElement('div');
-      inputWrapper.style.cssText = `
-        position: relative;
-        width: 100%;
-      `;
-
-      const searchInput = document.createElement('input');
-      searchInput.type = 'text';
-      searchInput.placeholder = 'Search location...';
-      searchInput.style.cssText = `
-        width: 100%;
-        padding: 10px 40px 10px 15px;
-        border: none;
-        border-radius: 5px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        font-size: 14px;
-        box-sizing: border-box;
-      `;
-
-      const clearButton = document.createElement('button');
-      clearButton.innerHTML = '×';
-      clearButton.style.cssText = `
-        position: absolute;
-        right: 8px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        font-size: 24px;
-        color: #999;
-        cursor: pointer;
-        padding: 0;
-        width: 24px;
-        height: 24px;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        line-height: 1;
-        transition: color 0.2s;
-        z-index: 1002;
-      `;
-
-      if (!window.google || !window.google.maps || !window.google.maps.places) {
-        return;
-      }
-
-      const autocomplete = new window.google.maps.places.Autocomplete(searchInput, {
-        types: ['geocode'],
-      });
-
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place.geometry) {
-          const location = place.geometry.location;
-          const lat = location.lat();
-          const lng = location.lng();
-          map.setCenter({ lat, lng });
-          map.setZoom(15);
-          onLocationFound({ lat, lng, address: place.formatted_address });
-          clearButton.style.display = 'flex';
-        }
-      });
-
-      clearButton.addEventListener('click', (e) => {
-        e.stopPropagation();
-        searchInput.value = '';
-        searchInput.focus();
-        clearButton.style.display = 'none';
-      });
-
-      searchInput.addEventListener('input', (e) => {
-        if (e.target.value.length > 0) {
-          clearButton.style.display = 'flex';
-        } else {
-          clearButton.style.display = 'none';
-        }
-      });
-
-      const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
-      const currentLocationBtn = document.createElement('button');
-      currentLocationBtn.type = 'button';
-      currentLocationBtn.className = 'map-location-btn';
-      currentLocationBtn.title = 'My Location';
-      currentLocationBtn.innerHTML = locationIconImg;
-      currentLocationBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 318px;
-        z-index: 1000;
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        border: none;
-        border-radius: 6px;
-        background: white;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #374151;
-      `;
-      currentLocationBtn.onclick = () => {
-        if (navigator.geolocation) {
-          const locationIconImg = '<img src="/icons/location.svg" alt="" width="20" height="20" style="display:block;pointer-events:none">';
-          currentLocationBtn.innerHTML = '<span class="map-location-spinner" style="width:18px;height:18px;border:2px solid #e5e7eb;border-top-color:#3b82f6;border-radius:50%;animation:mapLocationSpin 0.6s linear infinite"></span>';
-          currentLocationBtn.disabled = true;
-          currentLocationBtn.style.cursor = 'wait';
-          document.body.style.cursor = 'wait';
-          const restore = () => {
-            currentLocationBtn.innerHTML = locationIconImg;
-            currentLocationBtn.disabled = false;
-            currentLocationBtn.style.cursor = 'pointer';
-            document.body.style.cursor = '';
-          };
-          navigator.geolocation.getCurrentPosition(
-            (position) => {
-              const { latitude, longitude, accuracy } = position.coords;
-              map.setCenter({ lat: latitude, lng: longitude });
-              map.setZoom(15);
-              onLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
-              restore();
-            },
-            (error) => {
-              alert('Unable to get your location. Please enable location services.');
-              restore();
-            }
-          );
-        }
-      };
-
-      inputWrapper.appendChild(searchInput);
-      inputWrapper.appendChild(clearButton);
-      searchContainer.appendChild(inputWrapper);
-
-      const zoomOutBtn = document.createElement('button');
-      zoomOutBtn.type = 'button';
-      zoomOutBtn.className = 'map-zoom-out-btn';
-      zoomOutBtn.title = 'Zoom out';
-      zoomOutBtn.innerHTML = '<span class="material-icons-round" style="font-size:20px">fullscreen_exit</span>';
-      zoomOutBtn.style.cssText = `
-        position: absolute;
-        top: 10px;
-        left: 360px;
-        z-index: 1000;
-        width: 36px;
-        height: 36px;
-        padding: 0;
-        border: none;
-        border-radius: 6px;
-        background: white;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.15);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #374151;
-      `;
-      zoomOutBtn.onclick = () => {
-        const c = map.getCenter();
-        map.setZoom(STATE_LEVEL_ZOOM);
-        map.panTo(c);
-      };
-
-      container.appendChild(searchContainer);
-      container.appendChild(currentLocationBtn);
-      container.appendChild(zoomOutBtn);
-
-      return () => {
-        if (searchContainer.parentNode) {
-          searchContainer.parentNode.removeChild(searchContainer);
-        }
-        if (currentLocationBtn.parentNode) {
-          currentLocationBtn.parentNode.removeChild(currentLocationBtn);
-        }
-        if (zoomOutBtn.parentNode) {
-          zoomOutBtn.parentNode.removeChild(zoomOutBtn);
-        }
-      };
-    }, [map, onLocationFound]);
-
+    // This component is now replaced by the floating controls overlay
+    // Keeping it as a placeholder for potential future use
     return null;
   };
 
@@ -891,6 +405,182 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
     return () => document.removeEventListener('click', handleClickOutside);
   }, [layersDropdownOpen]);
 
+  // Search functionality for floating controls
+  useEffect(() => {
+    const searchInput = searchInputRef.current;
+    const suggestionsList = suggestionsListRef.current;
+    const clearButton = clearButtonRef.current;
+    
+    if (!searchInput || !suggestionsList || !clearButton) return;
+
+    let timeout;
+    
+    const handleInput = async (e) => {
+      clearTimeout(timeout);
+      const query = e.target.value.trim();
+      
+      // Show/hide clear button based on input
+      if (query.length > 0) {
+        clearButton.style.display = 'flex';
+      } else {
+        clearButton.style.display = 'none';
+      }
+      
+      if (query.length > 2) {
+        timeout = setTimeout(async () => {
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+            );
+            const data = await response.json();
+            
+            // Clear previous suggestions
+            suggestionsList.innerHTML = '';
+            
+            if (data.length > 0) {
+              data.forEach((result, index) => {
+                const suggestionItem = document.createElement('div');
+                suggestionItem.style.cssText = `
+                  padding: 12px 15px;
+                  cursor: pointer;
+                  border-bottom: 1px solid #f0f0f0;
+                  transition: background-color 0.2s;
+                `;
+                suggestionItem.textContent = result.display_name;
+                
+                // Hover effect
+                suggestionItem.addEventListener('mouseenter', () => {
+                  suggestionItem.style.backgroundColor = '#f5f5f5';
+                });
+                suggestionItem.addEventListener('mouseleave', () => {
+                  suggestionItem.style.backgroundColor = 'white';
+                });
+                
+                // Click handler
+                suggestionItem.addEventListener('click', () => {
+                  const lat = parseFloat(result.lat);
+                  const lon = parseFloat(result.lon);
+                  setCenter([lat, lon]);
+                  setZoom(15);
+                  handleLocationFound({ lat, lng: lon, address: result.display_name });
+                  searchInput.value = result.display_name;
+                  suggestionsList.style.display = 'none';
+                  clearButton.style.display = 'flex';
+                });
+                
+                suggestionsList.appendChild(suggestionItem);
+              });
+              suggestionsList.style.display = 'block';
+            } else {
+              suggestionsList.style.display = 'none';
+            }
+          } catch (error) {
+            console.error('Geocoding error:', error);
+            suggestionsList.style.display = 'none';
+          }
+        }, 500);
+      } else {
+        suggestionsList.style.display = 'none';
+      }
+    };
+
+    const handleClearClick = (e) => {
+      e.stopPropagation();
+      searchInput.value = '';
+      searchInput.focus();
+      suggestionsList.innerHTML = '';
+      suggestionsList.style.display = 'none';
+      clearButton.style.display = 'none';
+    };
+
+    const handleInputFocus = () => {
+      searchInput.style.boxShadow = '0 2px 12px rgba(0,0,0,0.25)';
+    };
+
+    const handleInputBlur = () => {
+      searchInput.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)';
+    };
+
+    searchInput.addEventListener('input', handleInput);
+    clearButton.addEventListener('click', handleClearClick);
+    searchInput.addEventListener('focus', handleInputFocus);
+    searchInput.addEventListener('blur', handleInputBlur);
+
+    // Hide suggestions when clicking outside
+    const handleClickOutside = (e) => {
+      if (!searchInput.parentElement.contains(e.target)) {
+        suggestionsList.style.display = 'none';
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+
+    return () => {
+      searchInput.removeEventListener('input', handleInput);
+      clearButton.removeEventListener('click', handleClearClick);
+      searchInput.removeEventListener('focus', handleInputFocus);
+      searchInput.removeEventListener('blur', handleInputBlur);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, []);
+
+  // My Location button functionality
+  const handleMyLocationClick = () => {
+    if (navigator.geolocation) {
+      const searchInput = searchInputRef.current;
+      setIsMyLocationLoading(true);
+
+      if (searchInput) {
+        searchInput.disabled = true;
+        searchInput.style.opacity = '1';
+        searchInput.style.backgroundColor = 'white';
+      }
+
+      document.body.style.cursor = 'wait';
+      const restore = () => {
+        setIsMyLocationLoading(false);
+        if (searchInput) {
+          searchInput.disabled = false;
+          searchInput.style.opacity = '';
+          searchInput.style.backgroundColor = '';
+        }
+        document.body.style.cursor = '';
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          setCenter([latitude, longitude]);
+          setZoom(15);
+          handleLocationFound({ lat: latitude, lng: longitude, accuracy: accuracy ?? 100 });
+          restore();
+        },
+        (error) => {
+          alert('Unable to get your location. Please enable location services.');
+          restore();
+        }
+      );
+    }
+  };
+
+  // Zoom out button functionality
+  const handleZoomOutClick = () => {
+    const currentCenter = mapType === 'osm' && leafletMapInstance 
+      ? leafletMapInstance.getCenter() 
+      : mapType === 'google' && googleMapInstance 
+        ? googleMapInstance.getCenter() 
+        : { lat: center[0], lng: center[1] };
+    
+    if (mapType === 'osm' && leafletMapInstance) {
+      leafletMapInstance.setView([currentCenter.lat, currentCenter.lng], STATE_LEVEL_ZOOM);
+    } else if (mapType === 'google' && googleMapInstance) {
+      googleMapInstance.setZoom(STATE_LEVEL_ZOOM);
+      googleMapInstance.panTo(currentCenter);
+      setZoom(STATE_LEVEL_ZOOM);
+    } else {
+      setZoom(STATE_LEVEL_ZOOM);
+    }
+  };
+
   // When flyToPinId changes (click in All Pins panel or map pin), fly/pan map to that pin (not on hover)
   useEffect(() => {
     if (!flyToPinId || !pins.length) return;
@@ -919,96 +609,264 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       onMouseMove={isAddPinMode ? handlePointerMove : undefined}
       onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
     >
-      {/* Map Layers + Clustering - after location and zoom-out buttons */}
-      <div ref={layersDropdownRef} className="map-layers-controls" style={{ position: 'absolute', top: '10px', left: '402px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <button
-          type="button"
-          onClick={() => setLayersDropdownOpen((prev) => !prev)}
-          title="Map layers"
-          style={{
-            width: '36px',
-            height: '36px',
-            padding: 0,
-            border: 'none',
-            borderRadius: '6px',
-            background: 'white',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#374151',
-          }}
-        >
-          <span className="material-icons-round" style={{ fontSize: '20px' }}>layers</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setClusteringEnabled((prev) => !prev)}
-          title={clusteringEnabled ? 'Disable pin clustering' : 'Enable pin clustering'}
-          style={{
-            width: '36px',
-            height: '36px',
-            padding: 0,
-            border: 'none',
-            borderRadius: '6px',
-            background: clusteringEnabled ? '#6366f1' : 'white',
-            color: clusteringEnabled ? 'white' : '#374151',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span className="material-icons-round" style={{ fontSize: '20px' }}>bubble_chart</span>
-        </button>
-        {layersDropdownOpen && (
-          <div
+      {/* Floating Controls Overlay - contains all search and button elements */}
+      <div className="map-floating-controls" style={{ 
+        position: 'absolute', 
+        top: '10px', 
+        left: '10px', 
+        right: '10px',
+        zIndex: 1000, 
+        display: 'flex', 
+        flexWrap: 'wrap',
+        flexDirection: 'row',
+        gap: '8px',
+      }}>
+        {/* Search Box */}
+        <div style={{ position: 'relative', maxWidth: '400px', width: '100%' }}>
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder="Search location..."
+            style={{
+              width: '100%',
+              padding: '8px',
+              border: 'none',
+              borderRadius: '6px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              fontSize: '14px',
+              boxSizing: 'border-box',
+              outline: 'none',
+              transition: 'box-shadow 0.2s'
+            }}
+            onFocus={(e) => e.target.style.boxShadow = '0 2px 12px rgba(0,0,0,0.25)'}
+            onBlur={(e) => e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
+          />
+          <button
+            ref={clearButtonRef}
+            type="button"
             style={{
               position: 'absolute',
-              top: '42px',
+              right: '8px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              color: '#999',
+              cursor: 'pointer',
+              padding: 0,
+              width: '24px',
+              height: '24px',
+              display: 'none',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: '1',
+              transition: 'color 0.2s',
+              zIndex: 1002
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.color = '#333'}
+            onMouseLeave={(e) => e.currentTarget.style.color = '#999'}
+          >
+            ×
+          </button>
+          <div
+            ref={suggestionsListRef}
+            id="location-suggestions"
+            style={{
+              position: 'absolute',
+              top: '100%',
               left: 0,
-              minWidth: '140px',
+              right: 0,
+              marginTop: '5px',
               background: 'white',
               borderRadius: '6px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              overflow: 'hidden',
-              zIndex: 1001,
+              maxHeight: '300px',
+              overflowY: 'auto',
+              display: 'none',
+              zIndex: 1001
             }}
+          />
+        </div>
+
+        {/* Buttons Row */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* My Location Button */}
+          <button
+            type="button"
+            className="map-location-btn"
+            title={isMyLocationLoading ? 'Finding location...' : 'My Location'}
+            onClick={handleMyLocationClick}
+            disabled={isMyLocationLoading}
+            style={{
+              width: '36px',
+              height: '36px',
+              padding: 0,
+              border: 'none',
+              borderRadius: '6px',
+              background: 'white',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              cursor: isMyLocationLoading ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#374151',
+              transition: 'transform 0.1s',
+              opacity: isMyLocationLoading ? 1 : undefined,
+            }}
+            onMouseDown={(e) => !isMyLocationLoading && (e.currentTarget.style.transform = 'scale(0.95)')}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >
-            {MAP_LAYERS.map((layer) => (
-              <button
-                key={layer.id}
-                type="button"
-                onClick={() => handleSelectLayer(layer)}
+            {isMyLocationLoading ? (
+              <span
+                className="map-location-spinner"
                 style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  border: 'none',
-                  background: selectedLayerId === layer.id ? '#f3f4f6' : 'white',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: selectedLayerId === layer.id ? 600 : 400,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  width: 20,
+                  height: 20,
+                  border: '2px solid #e5e7eb',
+                  borderTopColor: '#3b82f6',
+                  borderRadius: '50%',
+                  animation: 'mapLocationSpin 0.6s linear infinite',
+                  boxSizing: 'border-box',
                 }}
-                onMouseEnter={(e) => {
-                  if (selectedLayerId !== layer.id) e.currentTarget.style.background = '#f9fafb';
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedLayerId !== layer.id) e.currentTarget.style.background = 'white';
+                aria-hidden
+              />
+            ) : (
+              <img src="/icons/location.svg" alt="" width="20" height="20" style={{ display: 'block', pointerEvents: 'none' }} />
+            )}
+          </button>
+
+          {/* Map Layers Button */}
+          <div ref={layersDropdownRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setLayersDropdownOpen((prev) => !prev)}
+              title="Map layers"
+              style={{
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                border: 'none',
+                borderRadius: '6px',
+                background: 'white',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#374151',
+                transition: 'transform 0.1s'
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span className="material-icons-round" style={{ fontSize: '20px' }}>layers</span>
+            </button>
+            {layersDropdownOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '42px',
+                  left: 0,
+                  minWidth: '140px',
+                  background: 'white',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                  overflow: 'hidden',
+                  zIndex: 1001,
                 }}
               >
-                <span style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: selectedLayerId === layer.id ? '#6366f1' : '#f9fafb' }} />
-                {layer.label}
-              </button>
-            ))}
+                {MAP_LAYERS.map((layer) => (
+                  <button
+                    key={layer.id}
+                    type="button"
+                    onClick={() => handleSelectLayer(layer)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: 'none',
+                      background: selectedLayerId === layer.id ? '#f3f4f6' : 'white',
+                      color: '#374151',
+                      fontSize: '14px',
+                      fontWeight: selectedLayerId === layer.id ? 600 : 400,
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (selectedLayerId !== layer.id) e.currentTarget.style.background = '#f9fafb';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (selectedLayerId !== layer.id) e.currentTarget.style.background = 'white';
+                    }}
+                  >
+                    <span style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: selectedLayerId === layer.id ? '#6366f1' : '#f9fafb' }} />
+                    {layer.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Clustering Button */}
+          <button
+            type="button"
+            onClick={() => setClusteringEnabled((prev) => !prev)}
+            title={clusteringEnabled ? 'Disable pin clustering' : 'Enable pin clustering'}
+            style={{
+              width: '36px',
+              height: '36px',
+              padding: 0,
+              border: 'none',
+              borderRadius: '6px',
+              background: clusteringEnabled ? '#6366f1' : 'white',
+              color: clusteringEnabled ? 'white' : '#374151',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'transform 0.1s'
+            }}
+            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <span className="material-icons-round" style={{ fontSize: '20px' }}>bubble_chart</span>
+          </button>
+
+          {/* Zoom Out Button */}
+          <button
+            type="button"
+            className="map-zoom-out-btn"
+            title="Zoom out to state level"
+            onClick={handleZoomOutClick}
+            style={{
+              width: '36px',
+              height: '36px',
+              padding: 0,
+              border: 'none',
+              borderRadius: '6px',
+              background: 'white',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#374151',
+              transition: 'transform 0.1s'
+            }}
+            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <span className="material-icons-round" style={{ fontSize: '20px' }}>fullscreen_exit</span>
+          </button>
+        </div>
       </div>
 
       {isAddPinMode && (

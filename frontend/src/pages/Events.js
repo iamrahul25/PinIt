@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../config';
 import './Events.css';
 
 const EVENTS_QUERY_KEY = ['events'];
-const STALE_TIME_MS = 60 * 1000;
+const STALE_TIME_MS = 5 * 60 * 1000; //5 mins – no refetch on route remount when data is fresh
 const PAGE_SIZE = 10;
 
 

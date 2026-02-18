@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import BackendHealthChecker from './components/BackendHealthChecker';
+import { register as registerServiceWorker } from './serviceWorkerRegistration';
 import LoginSignup from './pages/LoginSignup';
 import MainLayout from './pages/MainLayout';
 import App from './App';
@@ -37,3 +38,5 @@ root.render(
     </QueryClientProvider>
   </React.StrictMode>
 );
+
+registerServiceWorker();

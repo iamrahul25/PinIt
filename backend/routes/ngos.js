@@ -27,9 +27,13 @@ router.get('/', async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
     const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
     const level = req.query.level;
+    const city = (req.query.city || '').trim();
     const userId = req.auth?.userId;
 
-    const query = level && NGO_LEVELS.includes(level) ? { level } : {};
+    const query = {};
+    if (level && NGO_LEVELS.includes(level)) query.level = level;
+    if (city) query.cities = new RegExp(city, 'i');
+
     const raw = await Ngo.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -129,6 +133,17 @@ router.post('/', async (req, res) => {
     res.status(201).json(ngo);
   } catch (error) {
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Get distinct cities across all NGOs
+router.get('/cities', async (req, res) => {
+  try {
+    const cities = await Ngo.distinct('cities');
+    const sorted = cities.filter((c) => c && c.trim()).sort((a, b) => a.localeCompare(b));
+    res.json({ cities: sorted });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

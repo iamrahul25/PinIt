@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate, Link } from 'react-router-dom';
@@ -78,6 +78,11 @@ export default function Events() {
   const [cityInput, setCityInput] = useState('');
   const [appliedDate, setAppliedDate] = useState('');
   const [appliedCity, setAppliedCity] = useState('');
+  // City combobox state
+  const [allCities, setAllCities] = useState([]);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const cityComboRef = useRef(null);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -259,9 +264,45 @@ export default function Events() {
     setSubmitting(false);
   }, [editingEvent]);
 
+  // Fetch distinct cities from backend
+  const fetchCities = useCallback(async () => {
+    if (allCities.length > 0) return; // already loaded
+    setCitiesLoading(true);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/events/cities`);
+      if (res.ok) {
+        const data = await res.json();
+        setAllCities(data.cities || []);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, [authFetch, allCities.length]);
+
+  // Close city dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e) => {
+      if (cityComboRef.current && !cityComboRef.current.contains(e.target)) {
+        setCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Filtered city suggestions based on current input
+  const citySuggestions = useMemo(() => {
+    if (!cityInput.trim()) return allCities;
+    const q = cityInput.trim().toLowerCase();
+    return allCities.filter((c) => c.toLowerCase().includes(q));
+  }, [allCities, cityInput]);
+
   const handleFilterSearch = () => {
     setAppliedCity(cityInput);
     setAppliedDate(dateInput);
+    setCityDropdownOpen(false);
   };
 
   const handleFilterReset = () => {
@@ -269,6 +310,7 @@ export default function Events() {
     setDateInput('');
     setAppliedCity('');
     setAppliedDate('');
+    setCityDropdownOpen(false);
   };
 
   const handleVerifyFoundation = async () => {
@@ -536,225 +578,225 @@ export default function Events() {
                     {editingEvent ? 'Update the details of the event.' : 'Add an upcoming event conducted by an NGO or a group. Others can see it and mark their attendance.'}
                   </p>
                   <form className="events-form" onSubmit={handleSubmit}>
-                <div className="events-field">
-                  <label className="events-label">Title of Event <span className="events-required">*</span></label>
-                  <input
-                    type="text"
-                    className="events-input"
-                    placeholder="e.g. Community Cleanup Drive"
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </div>
-                <div className="events-field">
-                  <label className="events-label">Foundation Name <span className="events-required">*</span></label>
-                  <p className="events-field-hint">NGO / foundation conducting the event. Must exist in the NGO list.</p>
-                  <div className="events-pin-link-row">
-                    <input
-                      type="text"
-                      className="events-input"
-                      placeholder="e.g. Green Earth Foundation"
-                      value={form.foundationName}
-                      onChange={(e) => {
-                        setForm((f) => ({ ...f, foundationName: e.target.value }));
-                        setFoundationVerified(null);
-                        setSuccess('');
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="events-verify-btn"
-                      onClick={handleVerifyFoundation}
-                      disabled={verifyingFoundation || !form.foundationName.trim()}
-                    >
-                      {verifyingFoundation ? 'Checking…' : foundationVerified ? 'Verified ✓' : 'Verify'}
-                    </button>
-                  </div>
-                </div>
-                <div className="events-field">
-                  <label className="events-label">Description of Event</label>
-                  <textarea
-                    className="events-input events-textarea"
-                    placeholder="What will be happening / what will people have to do..."
-                    rows={4}
-                    value={form.description}
-                    onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                </div>
-                <div className="events-field-group">
-                  <span className="events-group-label">Location</span>
-                  <div className="events-field">
-                    <label className="events-label">Complete address</label>
-                    <input
-                      type="text"
-                      className="events-input"
-                      placeholder="Street, area, landmark"
-                      value={form.address}
-                      onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                    />
-                  </div>
-                  <div className="events-field">
-                    <label className="events-label">City and State</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="events-field">
+                      <label className="events-label">Title of Event <span className="events-required">*</span></label>
                       <input
                         type="text"
                         className="events-input"
-                        placeholder="City"
-                        value={form.city}
-                        onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                        style={{ flex: 1 }}
-                      />
-                      <input
-                        type="text"
-                        className="events-input"
-                        placeholder="State"
-                        value={form.state}
-                        onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
-                        style={{ flex: 1 }}
+                        placeholder="e.g. Community Cleanup Drive"
+                        value={form.title}
+                        onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                       />
                     </div>
-                  </div>
-                  <div className="events-field">
-                    <label className="events-label">Exact location (Google Map shared URL)</label>
-                    <input
-                      type="url"
-                      className="events-input"
-                      placeholder="https://maps.google.com/..."
-                      value={form.mapUrl}
-                      onChange={(e) => setForm((f) => ({ ...f, mapUrl: e.target.value }))}
-                    />
-                  </div>
-                </div>
-                <div className="events-field">
-                  <label className="events-label">Type of drive</label>
-                  <select
-                    className="events-input events-select"
-                    value={form.driveType}
-                    onChange={(e) => setForm((f) => ({ ...f, driveType: e.target.value }))}
-                  >
-                    <option value="">Select type</option>
-                    {DRIVE_TYPES.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                  {form.driveType === 'Other' && (
-                    <input
-                      type="text"
-                      className="events-input"
-                      placeholder="Enter drive name"
-                      value={form.otherDriveName}
-                      onChange={(e) => setForm((f) => ({ ...f, otherDriveName: e.target.value }))}
-                      style={{ marginTop: '0.5rem' }}
-                    />
-                  )}
-                </div>
-                <div className="events-field">
-                  <label className="events-label">Link to Pin (optional)</label>
-                  <p className="events-field-hint">Full URL of a Pin on Pin-it, e.g. https://yoursite.com/pin/abc123</p>
-                  <div className="events-pin-link-row">
-                    <input
-                      type="url"
-                      className="events-input"
-                      placeholder="https://.../pin/pin-id"
-                      value={form.pinLink}
-                      onChange={(e) => {
-                        setForm((f) => ({ ...f, pinLink: e.target.value }));
-                        setPinVerified(false);
-                        setSuccess('');
-                      }}
-                    />
-                    <button
-                      type="button"
-                      className="events-verify-btn"
-                      onClick={handleVerifyPinLink}
-                      disabled={verifyingPin || !form.pinLink.trim()}
-                    >
-                      {verifyingPin ? 'Checking…' : pinVerified ? 'Verified ✓' : 'Verify'}
-                    </button>
-                  </div>
-                </div>
-                <div className="events-field">
-                  <label className="events-label">Banner / drive location photo (max 1)</label>
-                  <div className="events-banner-upload">
-                    {bannerPreview ? (
-                      <div className="events-banner-preview-wrap">
-                        <img src={bannerPreview} alt="Banner preview" className="events-banner-preview" />
-                        <button type="button" className="events-banner-remove" onClick={removeBanner} aria-label="Remove banner">
-                          <span className="material-icons-round">close</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <>
+                    <div className="events-field">
+                      <label className="events-label">Foundation Name <span className="events-required">*</span></label>
+                      <p className="events-field-hint">NGO / foundation conducting the event. Must exist in the NGO list.</p>
+                      <div className="events-pin-link-row">
                         <input
-                          ref={bannerInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleBannerChange}
-                          className="events-file-input"
-                          aria-label="Upload banner"
+                          type="text"
+                          className="events-input"
+                          placeholder="e.g. Green Earth Foundation"
+                          value={form.foundationName}
+                          onChange={(e) => {
+                            setForm((f) => ({ ...f, foundationName: e.target.value }));
+                            setFoundationVerified(null);
+                            setSuccess('');
+                          }}
                         />
                         <button
                           type="button"
-                          className="events-upload-banner-btn"
-                          onClick={() => bannerInputRef.current?.click()}
+                          className="events-verify-btn"
+                          onClick={handleVerifyFoundation}
+                          disabled={verifyingFoundation || !form.foundationName.trim()}
                         >
-                          <span className="material-icons-round">add_photo_alternate</span>
-                          Add banner image
+                          {verifyingFoundation ? 'Checking…' : foundationVerified ? 'Verified ✓' : 'Verify'}
                         </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="events-field">
-                  <label className="events-label">Date <span className="events-required">*</span></label>
-                  <input
-                    type="date"
-                    className="events-input"
-                    value={form.date}
-                    onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                  />
-                </div>
-                <div className="events-field-group">
-                  <span className="events-group-label">Time</span>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <div className="events-field" style={{ flex: '1 1 120px' }}>
-                      <label className="events-label">Start time (24h format)</label>
-                      <input
-                        type="time"
-                        className="events-input"
-                        value={form.startTime}
-                        onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                      </div>
+                    </div>
+                    <div className="events-field">
+                      <label className="events-label">Description of Event</label>
+                      <textarea
+                        className="events-input events-textarea"
+                        placeholder="What will be happening / what will people have to do..."
+                        rows={4}
+                        value={form.description}
+                        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                       />
                     </div>
-                    <div className="events-field" style={{ flex: '1 1 120px' }}>
-                      <label className="events-label">Duration (hours)</label>
+                    <div className="events-field-group">
+                      <span className="events-group-label">Location</span>
+                      <div className="events-field">
+                        <label className="events-label">Complete address</label>
+                        <input
+                          type="text"
+                          className="events-input"
+                          placeholder="Street, area, landmark"
+                          value={form.address}
+                          onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                        />
+                      </div>
+                      <div className="events-field">
+                        <label className="events-label">City and State</label>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <input
+                            type="text"
+                            className="events-input"
+                            placeholder="City"
+                            value={form.city}
+                            onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                            style={{ flex: 1 }}
+                          />
+                          <input
+                            type="text"
+                            className="events-input"
+                            placeholder="State"
+                            value={form.state}
+                            onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                            style={{ flex: 1 }}
+                          />
+                        </div>
+                      </div>
+                      <div className="events-field">
+                        <label className="events-label">Exact location (Google Map shared URL)</label>
+                        <input
+                          type="url"
+                          className="events-input"
+                          placeholder="https://maps.google.com/..."
+                          value={form.mapUrl}
+                          onChange={(e) => setForm((f) => ({ ...f, mapUrl: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+                    <div className="events-field">
+                      <label className="events-label">Type of drive</label>
                       <select
                         className="events-input events-select"
-                        value={form.durationHours}
-                        onChange={(e) => setForm((f) => ({ ...f, durationHours: e.target.value }))}
+                        value={form.driveType}
+                        onChange={(e) => setForm((f) => ({ ...f, driveType: e.target.value }))}
                       >
-                        <option value="">Select</option>
-                        {DURATION_HOURS_OPTIONS.map((h) => (
-                          <option key={h} value={h}>{h} {h === 1 ? 'hour' : 'hours'}</option>
+                        <option value="">Select type</option>
+                        {DRIVE_TYPES.map((d) => (
+                          <option key={d} value={d}>{d}</option>
                         ))}
                       </select>
+                      {form.driveType === 'Other' && (
+                        <input
+                          type="text"
+                          className="events-input"
+                          placeholder="Enter drive name"
+                          value={form.otherDriveName}
+                          onChange={(e) => setForm((f) => ({ ...f, otherDriveName: e.target.value }))}
+                          style={{ marginTop: '0.5rem' }}
+                        />
+                      )}
                     </div>
-                  </div>
-                </div>
-                {error && <div className="events-msg events-msg-error" role="alert">{error}</div>}
-                {success && <div className="events-msg events-msg-success">{success}</div>}
-                <div className="events-form-actions">
-                  {editingEvent && (
-                    <button type="button" className="events-cancel-btn" onClick={() => setEditingEvent(null)}>
-                      Cancel
-                    </button>
-                  )}
-                  <button type="submit" className="events-submit-btn" disabled={submitting}>
-                    <span className="material-icons-round" aria-hidden="true">event</span>
-                    {editingEvent ? 'Save Changes' : 'Create Event'}
-                  </button>
-                </div>
-              </form>
+                    <div className="events-field">
+                      <label className="events-label">Link to Pin (optional)</label>
+                      <p className="events-field-hint">Full URL of a Pin on Pin-it, e.g. https://yoursite.com/pin/abc123</p>
+                      <div className="events-pin-link-row">
+                        <input
+                          type="url"
+                          className="events-input"
+                          placeholder="https://.../pin/pin-id"
+                          value={form.pinLink}
+                          onChange={(e) => {
+                            setForm((f) => ({ ...f, pinLink: e.target.value }));
+                            setPinVerified(false);
+                            setSuccess('');
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="events-verify-btn"
+                          onClick={handleVerifyPinLink}
+                          disabled={verifyingPin || !form.pinLink.trim()}
+                        >
+                          {verifyingPin ? 'Checking…' : pinVerified ? 'Verified ✓' : 'Verify'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="events-field">
+                      <label className="events-label">Banner / drive location photo (max 1)</label>
+                      <div className="events-banner-upload">
+                        {bannerPreview ? (
+                          <div className="events-banner-preview-wrap">
+                            <img src={bannerPreview} alt="Banner preview" className="events-banner-preview" />
+                            <button type="button" className="events-banner-remove" onClick={removeBanner} aria-label="Remove banner">
+                              <span className="material-icons-round">close</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              ref={bannerInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleBannerChange}
+                              className="events-file-input"
+                              aria-label="Upload banner"
+                            />
+                            <button
+                              type="button"
+                              className="events-upload-banner-btn"
+                              onClick={() => bannerInputRef.current?.click()}
+                            >
+                              <span className="material-icons-round">add_photo_alternate</span>
+                              Add banner image
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="events-field">
+                      <label className="events-label">Date <span className="events-required">*</span></label>
+                      <input
+                        type="date"
+                        className="events-input"
+                        value={form.date}
+                        onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                      />
+                    </div>
+                    <div className="events-field-group">
+                      <span className="events-group-label">Time</span>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div className="events-field" style={{ flex: '1 1 120px' }}>
+                          <label className="events-label">Start time (24h format)</label>
+                          <input
+                            type="time"
+                            className="events-input"
+                            value={form.startTime}
+                            onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
+                          />
+                        </div>
+                        <div className="events-field" style={{ flex: '1 1 120px' }}>
+                          <label className="events-label">Duration (hours)</label>
+                          <select
+                            className="events-input events-select"
+                            value={form.durationHours}
+                            onChange={(e) => setForm((f) => ({ ...f, durationHours: e.target.value }))}
+                          >
+                            <option value="">Select</option>
+                            {DURATION_HOURS_OPTIONS.map((h) => (
+                              <option key={h} value={h}>{h} {h === 1 ? 'hour' : 'hours'}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                    {error && <div className="events-msg events-msg-error" role="alert">{error}</div>}
+                    {success && <div className="events-msg events-msg-success">{success}</div>}
+                    <div className="events-form-actions">
+                      {editingEvent && (
+                        <button type="button" className="events-cancel-btn" onClick={() => setEditingEvent(null)}>
+                          Cancel
+                        </button>
+                      )}
+                      <button type="submit" className="events-submit-btn" disabled={submitting}>
+                        <span className="material-icons-round" aria-hidden="true">event</span>
+                        {editingEvent ? 'Save Changes' : 'Create Event'}
+                      </button>
+                    </div>
+                  </form>
                 </>
               )}
               <div className="events-quick-links">
@@ -810,17 +852,71 @@ export default function Events() {
                       style={{ marginLeft: '0.4rem' }}
                     />
                   </label>
-                  <label className="events-filter-label">
-                    City:
-                    <input
-                      type="text"
-                      className="events-filter-input"
-                      placeholder="Filter by city"
-                      value={cityInput}
-                      onChange={(e) => setCityInput(e.target.value)}
-                      style={{ marginLeft: '0.4rem', minWidth: '120px' }}
-                    />
-                  </label>
+                  <div className="events-city-combobox" ref={cityComboRef}>
+                    <div className="events-city-combobox-input-wrap">
+                      <span className="material-icons-round events-city-combobox-icon">location_on</span>
+                      <input
+                        id="events-city-filter"
+                        type="text"
+                        className="events-filter-input events-city-combobox-input"
+                        placeholder="Search city..."
+                        value={cityInput}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          setCityInput(e.target.value);
+                          setCityDropdownOpen(true);
+                        }}
+                        onFocus={() => { setCityDropdownOpen(true); fetchCities(); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setCityDropdownOpen(false);
+                          if (e.key === 'Enter') {
+                            handleFilterSearch();
+                          }
+                        }}
+                        aria-label="Filter by city"
+                        aria-autocomplete="list"
+                        aria-expanded={cityDropdownOpen}
+                      />
+                      {cityInput && (
+                        <button
+                          type="button"
+                          className="events-city-combobox-clear"
+                          onClick={() => { setCityInput(''); setCityDropdownOpen(true); }}
+                          aria-label="Clear city"
+                        >
+                          <span className="material-icons-round">close</span>
+                        </button>
+                      )}
+                    </div>
+                    {cityDropdownOpen && (
+                      <div className="events-city-dropdown" role="listbox" aria-label="City suggestions">
+                        {citiesLoading ? (
+                          <div className="events-city-dropdown-loading">
+                            <span className="material-icons-round events-city-dropdown-spinner">sync</span>
+                            Loading cities…
+                          </div>
+                        ) : citySuggestions.length === 0 ? (
+                          <div className="events-city-dropdown-empty">No cities found</div>
+                        ) : (
+                          citySuggestions.map((city) => (
+                            <button
+                              key={city}
+                              type="button"
+                              role="option"
+                              className={`events-city-option${cityInput === city ? ' selected' : ''}`}
+                              onClick={() => {
+                                setCityInput(city);
+                                setCityDropdownOpen(false);
+                              }}
+                            >
+                              <span className="material-icons-round events-city-option-icon">place</span>
+                              {city}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     className="events-filter-btn"
@@ -911,131 +1007,131 @@ export default function Events() {
                       </div>
                     )}
                     <div className="events-card-row">
-                    <div className="events-card-body">
-                      <div className="events-card-head">
-                        <h3 className="events-card-title">{ev.title}</h3>
-                        <div className="events-card-head-right">
-                          {(user?.role === 'admin' || ev.authorId === user?.id) && (
-                            <>
-                              <button
-                                type="button"
-                                className="events-edit-btn"
-                                onClick={() => setEditingEvent(ev)}
-                                aria-label="Edit event"
-                                title="Edit event"
-                              >
-                                <span className="material-icons-round">edit</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="events-delete-btn"
-                                onClick={() => handleDeleteEvent(ev._id)}
-                                aria-label="Delete event"
-                                title="Delete event"
-                              >
-                                <span className="material-icons-round">delete</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {(ev.foundationName || ev.foundationLogoUrl) && (
-                        <div className="events-card-foundation">
-                          {ev.foundationLogoUrl && (
-                            <img src={ev.foundationLogoUrl} alt="" className="events-card-foundation-logo" />
-                          )}
-                          <span className="events-card-foundation-name">{ev.foundationName}</span>
-                        </div>
-                      )}
-                      {ev.description && (
-                        <div className="events-card-desc-wrap">
-                          <p className="events-card-desc">
-                            {expandedDescIds.has(ev._id) || ev.description.length <= DESC_PREVIEW_LEN ? (
-                              ev.description
-                            ) : (
+                      <div className="events-card-body">
+                        <div className="events-card-head">
+                          <h3 className="events-card-title">{ev.title}</h3>
+                          <div className="events-card-head-right">
+                            {(user?.role === 'admin' || ev.authorId === user?.id) && (
                               <>
-                                {ev.description.slice(0, DESC_PREVIEW_LEN).trim()}
-                                …{' '}
                                 <button
                                   type="button"
-                                  className="events-show-more-btn"
-                                  onClick={() => toggleDesc(ev._id)}
+                                  className="events-edit-btn"
+                                  onClick={() => setEditingEvent(ev)}
+                                  aria-label="Edit event"
+                                  title="Edit event"
                                 >
-                                  Show more
+                                  <span className="material-icons-round">edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="events-delete-btn"
+                                  onClick={() => handleDeleteEvent(ev._id)}
+                                  aria-label="Delete event"
+                                  title="Delete event"
+                                >
+                                  <span className="material-icons-round">delete</span>
                                 </button>
                               </>
                             )}
-                            {ev.description.length > DESC_PREVIEW_LEN && expandedDescIds.has(ev._id) && (
-                              <>
-                                {' '}
-                                <button
-                                  type="button"
-                                  className="events-show-more-btn"
-                                  onClick={() => toggleDesc(ev._id)}
-                                >
-                                  Show less
-                                </button>
-                              </>
+                          </div>
+                        </div>
+                        {(ev.foundationName || ev.foundationLogoUrl) && (
+                          <div className="events-card-foundation">
+                            {ev.foundationLogoUrl && (
+                              <img src={ev.foundationLogoUrl} alt="" className="events-card-foundation-logo" />
+                            )}
+                            <span className="events-card-foundation-name">{ev.foundationName}</span>
+                          </div>
+                        )}
+                        {ev.description && (
+                          <div className="events-card-desc-wrap">
+                            <p className="events-card-desc">
+                              {expandedDescIds.has(ev._id) || ev.description.length <= DESC_PREVIEW_LEN ? (
+                                ev.description
+                              ) : (
+                                <>
+                                  {ev.description.slice(0, DESC_PREVIEW_LEN).trim()}
+                                  …{' '}
+                                  <button
+                                    type="button"
+                                    className="events-show-more-btn"
+                                    onClick={() => toggleDesc(ev._id)}
+                                  >
+                                    Show more
+                                  </button>
+                                </>
+                              )}
+                              {ev.description.length > DESC_PREVIEW_LEN && expandedDescIds.has(ev._id) && (
+                                <>
+                                  {' '}
+                                  <button
+                                    type="button"
+                                    className="events-show-more-btn"
+                                    onClick={() => toggleDesc(ev._id)}
+                                  >
+                                    Show less
+                                  </button>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        {(ev.location?.address || ev.location?.city || ev.location?.state) && (
+                          <p className="events-card-location">
+                            📍 {[ev.location.address, ev.location.city, ev.location.state].filter(Boolean).join(', ')}
+                            {ev.location?.mapUrl && (
+                              <> · <a href={ev.location.mapUrl} target="_blank" rel="noopener noreferrer">View on map</a></>
                             )}
                           </p>
-                        </div>
-                      )}
-                      {(ev.location?.address || ev.location?.city || ev.location?.state) && (
-                        <p className="events-card-location">
-                          📍 {[ev.location.address, ev.location.city, ev.location.state].filter(Boolean).join(', ')}
-                          {ev.location?.mapUrl && (
-                            <> · <a href={ev.location.mapUrl} target="_blank" rel="noopener noreferrer">View on map</a></>
-                          )}
-                        </p>
-                      )}
-                      {(ev.date || ev.startTime || ev.durationHours != null || ev.endTime) && (
-                        <p className="events-card-time">
-                          🕐 {formatEventDateOnly(ev.date)}
-                          {(ev.startTime || ev.durationHours != null || ev.endTime) && ' · '}
-                          {ev.durationHours != null
-                            ? formatEventTime(ev.startTime, ev.durationHours)
-                            : ev.startTime && ev.endTime
-                              ? `${formatTimeToAMPM(ev.startTime)} – ${formatTimeToAMPM(ev.endTime)}`
-                              : formatEventTime(ev.startTime, ev.durationHours)}
-                        </p>
-                      )}
-                      {(ev.driveType || ev.otherDriveName) && (
-                        <div className="events-card-tags">
-                          <span className="events-tag">
-                            {ev.driveType === 'Other' && ev.otherDriveName ? ev.otherDriveName : (ev.driveType || ev.otherDriveName)}
-                          </span>
-                        </div>
-                      )}
-                      {ev.pinId && (
-                        <p className="events-card-pin-link">
-                          <span className="events-card-pin-label">Pin URL: </span>
-                          <Link to={`/pin/${ev.pinId}`}>
-                            {`${window.location.origin}/pin/${ev.pinId}`}
-                          </Link>
-                        </p>
-                      )}
-                    </div>
-                    <div className="events-card-attend-wrap">
-                      <button
-                        type="button"
-                        className={`events-attend-btn ${ev.hasAttending ? 'attending' : ''}`}
-                        onClick={() => handleAttend(ev._id)}
-                        aria-label={ev.hasAttending ? "You're attending" : "I'll join"}
-                      >
-                        <span className="material-icons-round">{ev.hasAttending ? 'check_circle' : 'person_add'}</span>
-                        {ev.hasAttending ? "I'm in" : "I'll join"}
-                      </button>
-                      <span className="events-volunteer-count">{ev.volunteerCount ?? 0} volunteers</span>
-                      <span className="events-card-author">By {ev.authorName || 'Anonymous'}</span>
-                      <div className="events-card-meta">
-                        <Link
-                          to={`/events/${ev._id}`}
-                          className="events-card-detail-link"
-                        >
-                          View full event details
-                        </Link>
+                        )}
+                        {(ev.date || ev.startTime || ev.durationHours != null || ev.endTime) && (
+                          <p className="events-card-time">
+                            🕐 {formatEventDateOnly(ev.date)}
+                            {(ev.startTime || ev.durationHours != null || ev.endTime) && ' · '}
+                            {ev.durationHours != null
+                              ? formatEventTime(ev.startTime, ev.durationHours)
+                              : ev.startTime && ev.endTime
+                                ? `${formatTimeToAMPM(ev.startTime)} – ${formatTimeToAMPM(ev.endTime)}`
+                                : formatEventTime(ev.startTime, ev.durationHours)}
+                          </p>
+                        )}
+                        {(ev.driveType || ev.otherDriveName) && (
+                          <div className="events-card-tags">
+                            <span className="events-tag">
+                              {ev.driveType === 'Other' && ev.otherDriveName ? ev.otherDriveName : (ev.driveType || ev.otherDriveName)}
+                            </span>
+                          </div>
+                        )}
+                        {ev.pinId && (
+                          <p className="events-card-pin-link">
+                            <span className="events-card-pin-label">Pin URL: </span>
+                            <Link to={`/pin/${ev.pinId}`}>
+                              {`${window.location.origin}/pin/${ev.pinId}`}
+                            </Link>
+                          </p>
+                        )}
                       </div>
-                    </div>
+                      <div className="events-card-attend-wrap">
+                        <button
+                          type="button"
+                          className={`events-attend-btn ${ev.hasAttending ? 'attending' : ''}`}
+                          onClick={() => handleAttend(ev._id)}
+                          aria-label={ev.hasAttending ? "You're attending" : "I'll join"}
+                        >
+                          <span className="material-icons-round">{ev.hasAttending ? 'check_circle' : 'person_add'}</span>
+                          {ev.hasAttending ? "I'm in" : "I'll join"}
+                        </button>
+                        <span className="events-volunteer-count">{ev.volunteerCount ?? 0} volunteers</span>
+                        <span className="events-card-author">By {ev.authorName || 'Anonymous'}</span>
+                        <div className="events-card-meta">
+                          <Link
+                            to={`/events/${ev._id}`}
+                            className="events-card-detail-link"
+                          >
+                            View full event details
+                          </Link>
+                        </div>
+                      </div>
                     </div>
                   </article>
                 ))}
@@ -1058,5 +1154,5 @@ export default function Events() {
         </div>
       </main>
     </div>
-  );  
+  );
 }

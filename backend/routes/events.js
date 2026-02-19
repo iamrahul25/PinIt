@@ -144,6 +144,17 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Get distinct cities that have events
+router.get('/cities', async (req, res) => {
+  try {
+    const cities = await Event.distinct('location.city');
+    const sorted = cities.filter((c) => c && c.trim()).sort((a, b) => a.localeCompare(b));
+    res.json({ cities: sorted });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Get current user's created events
 router.get('/my/submissions', async (req, res) => {
   try {

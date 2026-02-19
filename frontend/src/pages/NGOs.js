@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
@@ -51,6 +51,12 @@ export default function NGOs() {
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
   const [view, setView] = useState('board');
   const [levelFilter, setLevelFilter] = useState('');
+  const [cityFilter, setCityFilter] = useState('');
+  const [filterCityInput, setFilterCityInput] = useState('');
+  const [allCities, setAllCities] = useState([]);
+  const [cityDropdownOpen, setCityDropdownOpen] = useState(false);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const cityComboRef = useRef(null);
   const [sortBy, setSortBy] = useState('');
   const [sortOrder, setSortOrder] = useState('asc');
   const [form, setForm] = useState({
@@ -125,11 +131,12 @@ export default function NGOs() {
   const fetchBoardPage = useCallback(async ({ pageParam = 0 }) => {
     const params = new URLSearchParams({ limit: PAGE_SIZE, skip: pageParam });
     if (levelFilter) params.set('level', levelFilter);
+    if (cityFilter.trim()) params.set('city', cityFilter.trim());
     const res = await authFetch(`${API_BASE_URL}/api/ngos?${params}`);
     if (!res.ok) throw new Error('Failed to fetch NGOs');
     const data = await res.json();
     return { ngos: data.ngos || [], total: data.total ?? 0 };
-  }, [authFetch, levelFilter]);
+  }, [authFetch, levelFilter, cityFilter]);
 
   const enabled = Boolean(isSignedIn && !authLoading);
   const myQuery = useQuery({
@@ -140,7 +147,7 @@ export default function NGOs() {
   });
 
   const boardQuery = useInfiniteQuery({
-    queryKey: [...NGOS_QUERY_KEY, 'board', levelFilter],
+    queryKey: [...NGOS_QUERY_KEY, 'board', levelFilter, cityFilter],
     queryFn: fetchBoardPage,
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
@@ -209,6 +216,46 @@ export default function NGOs() {
   };
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
+
+  // Fetch distinct cities from NGOs
+  const fetchCities = useCallback(async () => {
+    if (allCities.length > 0) return;
+    setCitiesLoading(true);
+    try {
+      const res = await authFetch(`${API_BASE_URL}/api/ngos/cities`);
+      if (res.ok) {
+        const data = await res.json();
+        setAllCities(data.cities || []);
+      }
+    } catch {
+      // silently ignore
+    } finally {
+      setCitiesLoading(false);
+    }
+  }, [authFetch, allCities.length]);
+
+  // Close city dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (cityComboRef.current && !cityComboRef.current.contains(e.target)) {
+        setCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const citySuggestions = useMemo(() => {
+    if (!filterCityInput.trim()) return allCities;
+    const q = filterCityInput.trim().toLowerCase();
+    return allCities.filter((c) => c.toLowerCase().includes(q));
+  }, [allCities, filterCityInput]);
+
+  const handleCityFilterReset = () => {
+    setFilterCityInput('');
+    setCityFilter('');
+    setCityDropdownOpen(false);
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -564,277 +611,277 @@ export default function NGOs() {
                   </div>
                   <p className="ngos-form-desc">{editingNgo ? 'Update the details of the NGO.' : 'Share details of an NGO so others can discover and connect.'}</p>
                   <form className="ngos-form" onSubmit={handleSubmit}>
-                <div className="ngos-field">
-                  <label className="ngos-label">NGO name <span className="ngos-required">*</span></label>
-                  <div className="ngos-input-wrap">
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="Name of the NGO"
-                      value={form.name}
-                      onChange={handleNameChange}
-                    />
-                    <button
-                      type="button"
-                      className="ngos-verify-btn"
-                      onClick={handleVerify}
-                      disabled={verifying}
-                    >
-                      {verifying ? '...' : 'Verify'}
-                    </button>
-                  </div>
-                  {verificationResult && (
-                    <div className={`ngos-verification-result ${verificationResult.toLowerCase()}`}>
-                      {verificationResult}
-                    </div>
-                  )}
-                </div>
-                <div className="ngos-field">
-                  <label className="ngos-label">NGO email <span className="ngos-optional">(optional)</span></label>
-                  <input
-                    type="email"
-                    className="ngos-input"
-                    placeholder="contact@ngo.org"
-                    value={form.email}
-                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  />
-                </div>
-                <div className="ngos-field">
-                  <label className="ngos-label">NGO level</label>
-                  <select
-                    className="ngos-input ngos-select"
-                    value={form.level}
-                    onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
-                  >
-                    {NGO_LEVELS.map((l) => (
-                      <option key={l} value={l}>{l}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="ngos-field">
-                  <label className="ngos-label">Found in Year <span className="ngos-optional">(optional)</span></label>
-                  <input
-                    type="number"
-                    className="ngos-input"
-                    placeholder="e.g. 2015"
-                    min="1900"
-                    max={new Date().getFullYear()}
-                    value={form.foundInYear}
-                    onChange={(e) => setForm((f) => ({ ...f, foundInYear: e.target.value }))}
-                  />
-                </div>
-                <div className="ngos-field">
-                  <label className="ngos-label">No. of cities it operates in <span className="ngos-optional">(optional)</span></label>
-                  <input
-                    type="number"
-                    className="ngos-input"
-                    placeholder="e.g. 10"
-                    min="0"
-                    value={form.numberOfCities}
-                    onChange={(e) => setForm((f) => ({ ...f, numberOfCities: e.target.value }))}
-                  />
-                </div>
-                <div className="ngos-field">
-                  <label className="ngos-label">Name of cities it operates in <span className="ngos-optional">(optional)</span></label>
-                  <p className="ngos-field-hint">Type a city name and press Enter to add. Add more cities by pressing Enter after each one.</p>
-                  <input
-                    type="text"
-                    className="ngos-input"
-                    placeholder="e.g. Mumbai — press Enter to add"
-                    value={cityInput}
-                    onChange={(e) => setCityInput(e.target.value)}
-                    onKeyDown={handleCityKeyDown}
-                  />
-                  {form.cities.length > 0 && (
-                    <div className="ngos-cities-tags">
-                      {form.cities.map((city, index) => (
-                        <span key={`${city}-${index}`} className="ngos-city-tag">
-                          {city}
-                          <button
-                            type="button"
-                            className="ngos-city-tag-remove"
-                            onClick={() => handleRemoveCity(city)}
-                            aria-label={`Remove ${city}`}
-                          >
-                            <span className="material-icons-round">close</span>
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="ngos-field-group">
-                  <span className="ngos-group-label">Social media</span>
-                  <div className="ngos-field">
-                    <label className="ngos-label">Website</label>
-                    <input
-                      type="url"
-                      className="ngos-input"
-                      placeholder="https://..."
-                      value={form.website}
-                      onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
-                    />
-                  </div>
-                  <div className="ngos-field">
-                    <label className="ngos-label">Instagram username only</label>
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="e.g. vrikshitfoundation (link: https://www.instagram.com/vrikshitfoundation)"
-                      value={form.instagram}
-                      onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))}
-                    />
-                  </div>
-                  <div className="ngos-field">
-                    <label className="ngos-label">No. of followers on Instagram <span className="ngos-optional">(optional)</span></label>
-                    <input
-                      type="number"
-                      className="ngos-input"
-                      placeholder="e.g. 15000"
-                      min="0"
-                      value={form.instagramFollowers}
-                      onChange={(e) => setForm((f) => ({ ...f, instagramFollowers: e.target.value }))}
-                    />
-                  </div>
-                  <div className="ngos-field">
-                    <label className="ngos-label">LinkedIn</label>
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="URL or profile"
-                      value={form.linkedin}
-                      onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))}
-                    />
-                  </div>
-                  <div className="ngos-field">
-                    <label className="ngos-label">Facebook</label>
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="URL or page name"
-                      value={form.facebook}
-                      onChange={(e) => setForm((f) => ({ ...f, facebook: e.target.value }))}
-                    />
-                  </div>
-                  <div className="ngos-field">
-                    <label className="ngos-label">Other</label>
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="Other social media"
-                      value={form.otherSocial}
-                      onChange={(e) => setForm((f) => ({ ...f, otherSocial: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="ngos-field">
-                  <label className="ngos-label">What they do</label>
-                  <div className="ngos-checkbox-group">
-                    {WHAT_THEY_DO_OPTIONS.map((opt) => (
-                      <label key={opt} className="ngos-checkbox-wrap">
+                    <div className="ngos-field">
+                      <label className="ngos-label">NGO name <span className="ngos-required">*</span></label>
+                      <div className="ngos-input-wrap">
                         <input
-                          type="checkbox"
-                          checked={form.whatTheyDo.includes(opt)}
-                          onChange={() => handleWhatTheyDoToggle(opt)}
-                        />
-                        <span>{opt}</span>
-                      </label>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    className="ngos-input ngos-input-small"
-                    placeholder="Other (e.g. Health drive, Women empowerment)"
-                    value={form.otherWhatTheyDo}
-                    onChange={(e) => setForm((f) => ({ ...f, otherWhatTheyDo: e.target.value }))}
-                  />
-                </div>
-
-                <div className="ngos-field">
-                  <label className="ngos-label">About the NGO</label>
-                  <textarea
-                    className="ngos-input ngos-textarea"
-                    placeholder="Brief description of the NGO..."
-                    rows={4}
-                    value={form.aboutDescription}
-                    onChange={(e) => setForm((f) => ({ ...f, aboutDescription: e.target.value }))}
-                  />
-                </div>
-
-                <div className="ngos-field-group">
-                  <span className="ngos-group-label">Founder detail <span className="ngos-optional">(optional)</span></span>
-                  <div className="ngos-field">
-                    <label className="ngos-label">Name</label>
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="Founder name"
-                      value={form.founderName}
-                      onChange={(e) => setForm((f) => ({ ...f, founderName: e.target.value }))}
-                    />
-                  </div>
-                  <div className="ngos-field">
-                    <label className="ngos-label">City</label>
-                    <input
-                      type="text"
-                      className="ngos-input"
-                      placeholder="City"
-                      value={form.founderCity}
-                      onChange={(e) => setForm((f) => ({ ...f, founderCity: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div className="ngos-field">
-                  <label className="ngos-label">Image / Logo of NGO <span className="ngos-required">*</span></label>
-                  <div className="ngos-logo-upload">
-                    {logoPreview ? (
-                      <div className="ngos-logo-preview-wrap">
-                        <img src={logoPreview} alt="NGO logo preview" className="ngos-logo-preview" />
-                        <button type="button" className="ngos-logo-remove" onClick={removeLogo} aria-label="Remove logo">
-                          <span className="material-icons-round">close</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoChange}
-                          className="ngos-file-input"
-                          aria-label="Upload NGO logo"
+                          type="text"
+                          className="ngos-input"
+                          placeholder="Name of the NGO"
+                          value={form.name}
+                          onChange={handleNameChange}
                         />
                         <button
                           type="button"
-                          className="ngos-upload-btn"
-                          onClick={() => fileInputRef.current?.click()}
+                          className="ngos-verify-btn"
+                          onClick={handleVerify}
+                          disabled={verifying}
                         >
-                          <span className="material-icons-round">add_photo_alternate</span>
-                          Upload image (1 only)
+                          {verifying ? '...' : 'Verify'}
                         </button>
-                      </>
-                    )}
-                  </div>
-                </div>
+                      </div>
+                      {verificationResult && (
+                        <div className={`ngos-verification-result ${verificationResult.toLowerCase()}`}>
+                          {verificationResult}
+                        </div>
+                      )}
+                    </div>
+                    <div className="ngos-field">
+                      <label className="ngos-label">NGO email <span className="ngos-optional">(optional)</span></label>
+                      <input
+                        type="email"
+                        className="ngos-input"
+                        placeholder="contact@ngo.org"
+                        value={form.email}
+                        onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                      />
+                    </div>
+                    <div className="ngos-field">
+                      <label className="ngos-label">NGO level</label>
+                      <select
+                        className="ngos-input ngos-select"
+                        value={form.level}
+                        onChange={(e) => setForm((f) => ({ ...f, level: e.target.value }))}
+                      >
+                        {NGO_LEVELS.map((l) => (
+                          <option key={l} value={l}>{l}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                {error && <div className="ngos-msg ngos-msg-error" role="alert">{error}</div>}
-                {success && <div className="ngos-msg ngos-msg-success">{success}</div>}
-                <div className="ngos-form-actions">
-                  {editingNgo && (
-                    <button type="button" className="ngos-cancel-btn" onClick={() => setEditingNgo(null)}>
-                      Cancel
-                    </button>
-                  )}
-                  <button type="submit" className="ngos-submit-btn" disabled={submitting}>
-                    <span className="material-icons-round" aria-hidden="true">add_box</span>
-                    {editingNgo ? 'Save Changes' : 'Submit NGO'}
-                  </button>
-                </div>
-              </form>
+                    <div className="ngos-field">
+                      <label className="ngos-label">Found in Year <span className="ngos-optional">(optional)</span></label>
+                      <input
+                        type="number"
+                        className="ngos-input"
+                        placeholder="e.g. 2015"
+                        min="1900"
+                        max={new Date().getFullYear()}
+                        value={form.foundInYear}
+                        onChange={(e) => setForm((f) => ({ ...f, foundInYear: e.target.value }))}
+                      />
+                    </div>
+                    <div className="ngos-field">
+                      <label className="ngos-label">No. of cities it operates in <span className="ngos-optional">(optional)</span></label>
+                      <input
+                        type="number"
+                        className="ngos-input"
+                        placeholder="e.g. 10"
+                        min="0"
+                        value={form.numberOfCities}
+                        onChange={(e) => setForm((f) => ({ ...f, numberOfCities: e.target.value }))}
+                      />
+                    </div>
+                    <div className="ngos-field">
+                      <label className="ngos-label">Name of cities it operates in <span className="ngos-optional">(optional)</span></label>
+                      <p className="ngos-field-hint">Type a city name and press Enter to add. Add more cities by pressing Enter after each one.</p>
+                      <input
+                        type="text"
+                        className="ngos-input"
+                        placeholder="e.g. Mumbai — press Enter to add"
+                        value={cityInput}
+                        onChange={(e) => setCityInput(e.target.value)}
+                        onKeyDown={handleCityKeyDown}
+                      />
+                      {form.cities.length > 0 && (
+                        <div className="ngos-cities-tags">
+                          {form.cities.map((city, index) => (
+                            <span key={`${city}-${index}`} className="ngos-city-tag">
+                              {city}
+                              <button
+                                type="button"
+                                className="ngos-city-tag-remove"
+                                onClick={() => handleRemoveCity(city)}
+                                aria-label={`Remove ${city}`}
+                              >
+                                <span className="material-icons-round">close</span>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="ngos-field-group">
+                      <span className="ngos-group-label">Social media</span>
+                      <div className="ngos-field">
+                        <label className="ngos-label">Website</label>
+                        <input
+                          type="url"
+                          className="ngos-input"
+                          placeholder="https://..."
+                          value={form.website}
+                          onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+                        />
+                      </div>
+                      <div className="ngos-field">
+                        <label className="ngos-label">Instagram username only</label>
+                        <input
+                          type="text"
+                          className="ngos-input"
+                          placeholder="e.g. vrikshitfoundation (link: https://www.instagram.com/vrikshitfoundation)"
+                          value={form.instagram}
+                          onChange={(e) => setForm((f) => ({ ...f, instagram: e.target.value }))}
+                        />
+                      </div>
+                      <div className="ngos-field">
+                        <label className="ngos-label">No. of followers on Instagram <span className="ngos-optional">(optional)</span></label>
+                        <input
+                          type="number"
+                          className="ngos-input"
+                          placeholder="e.g. 15000"
+                          min="0"
+                          value={form.instagramFollowers}
+                          onChange={(e) => setForm((f) => ({ ...f, instagramFollowers: e.target.value }))}
+                        />
+                      </div>
+                      <div className="ngos-field">
+                        <label className="ngos-label">LinkedIn</label>
+                        <input
+                          type="text"
+                          className="ngos-input"
+                          placeholder="URL or profile"
+                          value={form.linkedin}
+                          onChange={(e) => setForm((f) => ({ ...f, linkedin: e.target.value }))}
+                        />
+                      </div>
+                      <div className="ngos-field">
+                        <label className="ngos-label">Facebook</label>
+                        <input
+                          type="text"
+                          className="ngos-input"
+                          placeholder="URL or page name"
+                          value={form.facebook}
+                          onChange={(e) => setForm((f) => ({ ...f, facebook: e.target.value }))}
+                        />
+                      </div>
+                      <div className="ngos-field">
+                        <label className="ngos-label">Other</label>
+                        <input
+                          type="text"
+                          className="ngos-input"
+                          placeholder="Other social media"
+                          value={form.otherSocial}
+                          onChange={(e) => setForm((f) => ({ ...f, otherSocial: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="ngos-field">
+                      <label className="ngos-label">What they do</label>
+                      <div className="ngos-checkbox-group">
+                        {WHAT_THEY_DO_OPTIONS.map((opt) => (
+                          <label key={opt} className="ngos-checkbox-wrap">
+                            <input
+                              type="checkbox"
+                              checked={form.whatTheyDo.includes(opt)}
+                              onChange={() => handleWhatTheyDoToggle(opt)}
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        className="ngos-input ngos-input-small"
+                        placeholder="Other (e.g. Health drive, Women empowerment)"
+                        value={form.otherWhatTheyDo}
+                        onChange={(e) => setForm((f) => ({ ...f, otherWhatTheyDo: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="ngos-field">
+                      <label className="ngos-label">About the NGO</label>
+                      <textarea
+                        className="ngos-input ngos-textarea"
+                        placeholder="Brief description of the NGO..."
+                        rows={4}
+                        value={form.aboutDescription}
+                        onChange={(e) => setForm((f) => ({ ...f, aboutDescription: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="ngos-field-group">
+                      <span className="ngos-group-label">Founder detail <span className="ngos-optional">(optional)</span></span>
+                      <div className="ngos-field">
+                        <label className="ngos-label">Name</label>
+                        <input
+                          type="text"
+                          className="ngos-input"
+                          placeholder="Founder name"
+                          value={form.founderName}
+                          onChange={(e) => setForm((f) => ({ ...f, founderName: e.target.value }))}
+                        />
+                      </div>
+                      <div className="ngos-field">
+                        <label className="ngos-label">City</label>
+                        <input
+                          type="text"
+                          className="ngos-input"
+                          placeholder="City"
+                          value={form.founderCity}
+                          onChange={(e) => setForm((f) => ({ ...f, founderCity: e.target.value }))}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="ngos-field">
+                      <label className="ngos-label">Image / Logo of NGO <span className="ngos-required">*</span></label>
+                      <div className="ngos-logo-upload">
+                        {logoPreview ? (
+                          <div className="ngos-logo-preview-wrap">
+                            <img src={logoPreview} alt="NGO logo preview" className="ngos-logo-preview" />
+                            <button type="button" className="ngos-logo-remove" onClick={removeLogo} aria-label="Remove logo">
+                              <span className="material-icons-round">close</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              onChange={handleLogoChange}
+                              className="ngos-file-input"
+                              aria-label="Upload NGO logo"
+                            />
+                            <button
+                              type="button"
+                              className="ngos-upload-btn"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              <span className="material-icons-round">add_photo_alternate</span>
+                              Upload image (1 only)
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {error && <div className="ngos-msg ngos-msg-error" role="alert">{error}</div>}
+                    {success && <div className="ngos-msg ngos-msg-success">{success}</div>}
+                    <div className="ngos-form-actions">
+                      {editingNgo && (
+                        <button type="button" className="ngos-cancel-btn" onClick={() => setEditingNgo(null)}>
+                          Cancel
+                        </button>
+                      )}
+                      <button type="submit" className="ngos-submit-btn" disabled={submitting}>
+                        <span className="material-icons-round" aria-hidden="true">add_box</span>
+                        {editingNgo ? 'Save Changes' : 'Submit NGO'}
+                      </button>
+                    </div>
+                  </form>
                 </>
               )}
               <div className="ngos-quick-links">
@@ -878,21 +925,100 @@ export default function NGOs() {
                 </button>
               </div>
               {view === 'board' && (
-                <div className="ngos-level-filter-wrap">
-                  <label htmlFor="ngos-level-filter" className="ngos-level-filter-label">NGO Level</label>
-                  <select
-                    id="ngos-level-filter"
-                    className="ngos-level-filter-select"
-                    value={levelFilter}
-                    onChange={(e) => setLevelFilter(e.target.value)}
-                    aria-label="NGO level"
-                  >
-                    <option value="">All</option>
-                    <option value="City">City</option>
-                    <option value="State">State</option>
-                    <option value="National">National</option>
-                    <option value="International">International</option>
-                  </select>
+                <div className="ngos-filters-row">
+                  <div className="ngos-level-filter-wrap">
+                    <label htmlFor="ngos-level-filter" className="ngos-level-filter-label">NGO Level</label>
+                    <select
+                      id="ngos-level-filter"
+                      className="ngos-level-filter-select"
+                      value={levelFilter}
+                      onChange={(e) => setLevelFilter(e.target.value)}
+                      aria-label="NGO level"
+                    >
+                      <option value="">All</option>
+                      <option value="City">City</option>
+                      <option value="State">State</option>
+                      <option value="National">National</option>
+                      <option value="International">International</option>
+                    </select>
+                  </div>
+                  <div className="ngos-city-combobox" ref={cityComboRef}>
+                    <div className="ngos-city-combobox-input-wrap">
+                      <span className="material-icons-round ngos-city-combobox-icon">location_on</span>
+                      <input
+                        id="ngos-city-filter"
+                        type="text"
+                        className="ngos-city-combobox-input"
+                        placeholder="Search city..."
+                        value={filterCityInput}
+                        autoComplete="off"
+                        onChange={(e) => {
+                          setFilterCityInput(e.target.value);
+                          setCityDropdownOpen(true);
+                        }}
+                        onFocus={() => { setCityDropdownOpen(true); fetchCities(); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') setCityDropdownOpen(false);
+                          if (e.key === 'Enter') {
+                            setCityFilter(filterCityInput);
+                            setCityDropdownOpen(false);
+                          }
+                        }}
+                        aria-label="Filter by city"
+                        aria-autocomplete="list"
+                        aria-expanded={cityDropdownOpen}
+                      />
+                      {filterCityInput && (
+                        <button
+                          type="button"
+                          className="ngos-city-combobox-clear"
+                          onClick={() => { setFilterCityInput(''); setCityDropdownOpen(true); }}
+                          aria-label="Clear city"
+                        >
+                          <span className="material-icons-round">close</span>
+                        </button>
+                      )}
+                    </div>
+                    {cityDropdownOpen && (
+                      <div className="ngos-city-dropdown" role="listbox" aria-label="City suggestions">
+                        {citiesLoading ? (
+                          <div className="ngos-city-dropdown-loading">
+                            <span className="material-icons-round ngos-city-dropdown-spinner">sync</span>
+                            Loading cities…
+                          </div>
+                        ) : citySuggestions.length === 0 ? (
+                          <div className="ngos-city-dropdown-empty">No cities found</div>
+                        ) : (
+                          citySuggestions.map((city) => (
+                            <button
+                              key={city}
+                              type="button"
+                              role="option"
+                              className={`ngos-city-option${filterCityInput === city ? ' selected' : ''}`}
+                              onClick={() => {
+                                setFilterCityInput(city);
+                                setCityFilter(city);
+                                setCityDropdownOpen(false);
+                              }}
+                            >
+                              <span className="material-icons-round ngos-city-option-icon">place</span>
+                              {city}
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {(cityFilter || levelFilter) && (
+                    <button
+                      type="button"
+                      className="ngos-filter-reset-btn"
+                      onClick={() => { handleCityFilterReset(); setLevelFilter(''); }}
+                    >
+                      <span className="material-icons-round">close</span>
+                      Reset filters
+                    </button>
+                  )}
                 </div>
               )}
               <div className="ngos-sort-wrap">
@@ -944,141 +1070,141 @@ export default function NGOs() {
                   const hasVoted = n.hasVoted === true;
                   const upvotes = n.upvotes ?? 0;
                   return (
-                  <article key={n._id} className="ngos-card">
-                    <div className="ngos-card-logo-wrap">
-                      <div className="ngos-card-logo">
-                        {n.logoUrl ? (
-                          <img src={n.logoUrl} alt="" className="ngos-card-logo-img" />
-                        ) : (
-                          <span className="ngos-card-logo-placeholder">
-                            <span className="material-icons-round">business</span>
-                          </span>
-                        )}
-                      </div>
-                      <div className="ngos-card-vote">
-                        <button
-                          type="button"
-                          className={`ngos-vote-btn ${hasVoted ? 'voted' : ''}`}
-                          onClick={() => handleVote(n._id)}
-                          aria-label={hasVoted ? 'Remove like' : 'Like this NGO'}
-                        >
-                          <span className="material-icons-round">favorite</span>
-                          <span className="ngos-vote-count">{upvotes}</span>
-                        </button>
-                      </div>
-                    </div>
-                    <div className="ngos-card-body">
-                      <div className="ngos-card-head">
-                        <h3 className="ngos-card-title">{n.name}</h3>
-                        <div className="ngos-card-head-right">
-                          <span className="ngos-level-pill">{n.level}</span>
-                          {(user?.role === 'admin' || n.authorId === user?.id) && (
-                            <>
-                              <button
-                                type="button"
-                                className="ngos-edit-btn"
-                                onClick={() => setEditingNgo(n)}
-                                aria-label="Edit NGO"
-                                title="Edit NGO"
-                              >
-                                <span className="material-icons-round">edit</span>
-                              </button>
-                              <button
-                                type="button"
-                                className="ngos-delete-btn"
-                                onClick={() => handleDeleteNgo(n._id)}
-                                aria-label="Delete NGO"
-                                title="Delete NGO"
-                              >
-                                <span className="material-icons-round">delete</span>
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0) || (n.cities && n.cities.length > 0)) && (
-                        <p className="ngos-card-extra">
-                          {n.foundInYear != null && <span>Founded {n.foundInYear}</span>}
-                          {n.foundInYear != null && (n.numberOfCities != null && n.numberOfCities > 0 || (n.cities && n.cities.length > 0)) && ' · '}
-                          {n.numberOfCities != null && n.numberOfCities > 0 && (
-                            <span>Operates in {n.numberOfCities} {n.numberOfCities === 1 ? 'city' : 'cities'}</span>
-                          )}
-                          {n.cities && n.cities.length > 0 && (
-                            <span className="ngos-card-cities">
-                              {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0)) ? ' · ' : ''}
-                              Cities: {n.cities.join(', ')}
+                    <article key={n._id} className="ngos-card">
+                      <div className="ngos-card-logo-wrap">
+                        <div className="ngos-card-logo">
+                          {n.logoUrl ? (
+                            <img src={n.logoUrl} alt="" className="ngos-card-logo-img" />
+                          ) : (
+                            <span className="ngos-card-logo-placeholder">
+                              <span className="material-icons-round">business</span>
                             </span>
                           )}
-                        </p>
-                      )}
-                      {n.aboutDescription && (
-                        <div className="ngos-card-desc-wrap">
-                          <p className="ngos-card-desc">
-                            {expandedDescIds.has(n._id) || n.aboutDescription.length <= DESC_PREVIEW_LEN ? (
-                              n.aboutDescription
-                            ) : (
+                        </div>
+                        <div className="ngos-card-vote">
+                          <button
+                            type="button"
+                            className={`ngos-vote-btn ${hasVoted ? 'voted' : ''}`}
+                            onClick={() => handleVote(n._id)}
+                            aria-label={hasVoted ? 'Remove like' : 'Like this NGO'}
+                          >
+                            <span className="material-icons-round">favorite</span>
+                            <span className="ngos-vote-count">{upvotes}</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="ngos-card-body">
+                        <div className="ngos-card-head">
+                          <h3 className="ngos-card-title">{n.name}</h3>
+                          <div className="ngos-card-head-right">
+                            <span className="ngos-level-pill">{n.level}</span>
+                            {(user?.role === 'admin' || n.authorId === user?.id) && (
                               <>
-                                {n.aboutDescription.slice(0, DESC_PREVIEW_LEN).trim()}
-                                …{' '}
                                 <button
                                   type="button"
-                                  className="ngos-show-more-btn"
-                                  onClick={() => toggleDesc(n._id)}
+                                  className="ngos-edit-btn"
+                                  onClick={() => setEditingNgo(n)}
+                                  aria-label="Edit NGO"
+                                  title="Edit NGO"
                                 >
-                                  Read more
+                                  <span className="material-icons-round">edit</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="ngos-delete-btn"
+                                  onClick={() => handleDeleteNgo(n._id)}
+                                  aria-label="Delete NGO"
+                                  title="Delete NGO"
+                                >
+                                  <span className="material-icons-round">delete</span>
                                 </button>
                               </>
                             )}
-                            {n.aboutDescription.length > DESC_PREVIEW_LEN && expandedDescIds.has(n._id) && (
-                              <>
-                                {' '}
-                                <button
-                                  type="button"
-                                  className="ngos-show-more-btn"
-                                  onClick={() => toggleDesc(n._id)}
-                                >
-                                  Read less
-                                </button>
-                              </>
+                          </div>
+                        </div>
+                        {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0) || (n.cities && n.cities.length > 0)) && (
+                          <p className="ngos-card-extra">
+                            {n.foundInYear != null && <span>Founded {n.foundInYear}</span>}
+                            {n.foundInYear != null && (n.numberOfCities != null && n.numberOfCities > 0 || (n.cities && n.cities.length > 0)) && ' · '}
+                            {n.numberOfCities != null && n.numberOfCities > 0 && (
+                              <span>Operates in {n.numberOfCities} {n.numberOfCities === 1 ? 'city' : 'cities'}</span>
+                            )}
+                            {n.cities && n.cities.length > 0 && (
+                              <span className="ngos-card-cities">
+                                {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0)) ? ' · ' : ''}
+                                Cities: {n.cities.join(', ')}
+                              </span>
                             )}
                           </p>
+                        )}
+                        {n.aboutDescription && (
+                          <div className="ngos-card-desc-wrap">
+                            <p className="ngos-card-desc">
+                              {expandedDescIds.has(n._id) || n.aboutDescription.length <= DESC_PREVIEW_LEN ? (
+                                n.aboutDescription
+                              ) : (
+                                <>
+                                  {n.aboutDescription.slice(0, DESC_PREVIEW_LEN).trim()}
+                                  …{' '}
+                                  <button
+                                    type="button"
+                                    className="ngos-show-more-btn"
+                                    onClick={() => toggleDesc(n._id)}
+                                  >
+                                    Read more
+                                  </button>
+                                </>
+                              )}
+                              {n.aboutDescription.length > DESC_PREVIEW_LEN && expandedDescIds.has(n._id) && (
+                                <>
+                                  {' '}
+                                  <button
+                                    type="button"
+                                    className="ngos-show-more-btn"
+                                    onClick={() => toggleDesc(n._id)}
+                                  >
+                                    Read less
+                                  </button>
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        {n.whatTheyDo && n.whatTheyDo.length > 0 && (
+                          <div className="ngos-card-tags">
+                            {n.whatTheyDo.slice(0, 5).map((w) => (
+                              <span key={w} className="ngos-tag">{w}</span>
+                            ))}
+                            {n.whatTheyDo.length > 5 && (
+                              <span className="ngos-tag">+{n.whatTheyDo.length - 5}</span>
+                            )}
+                          </div>
+                        )}
+                        {(n.founder?.name || n.founder?.city) && (
+                          <p className="ngos-card-founder">
+                            Founder: {[n.founder.name, n.founder.city].filter(Boolean).join(', ')}
+                          </p>
+                        )}
+                        <div className="ngos-card-meta">
+                          <div className="ngos-card-links">
+                            {n.socialMedia?.website && (
+                              <a href={n.socialMedia.website} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-website" title="Website" aria-label="Website"><FaGlobe /></a>
+                            )}
+                            {n.socialMedia?.instagram && (
+                              <a href={instagramUrl(n.socialMedia.instagram)} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-instagram" title="Instagram" aria-label="Instagram"><FaInstagram /></a>
+                            )}
+                            {n.socialMedia?.linkedin && (
+                              <a href={n.socialMedia.linkedin.startsWith('http') ? n.socialMedia.linkedin : `https://linkedin.com/company/${n.socialMedia.linkedin}`} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-linkedin" title="LinkedIn" aria-label="LinkedIn"><FaLinkedin /></a>
+                            )}
+                            {n.socialMedia?.facebook && (
+                              <a href={n.socialMedia.facebook.startsWith('http') ? n.socialMedia.facebook : `https://facebook.com/${n.socialMedia.facebook}`} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-facebook" title="Facebook" aria-label="Facebook"><FaFacebookF /></a>
+                            )}
+                          </div>
+                          <span className="ngos-followers">Followers: {n.socialMedia?.instagramFollowers > 0 ? n.socialMedia.instagramFollowers : 'NA'}</span>
+                          <span className="ngos-time">{formatTimeAgo(n.createdAt)}</span>
                         </div>
-                      )}
-                      {n.whatTheyDo && n.whatTheyDo.length > 0 && (
-                        <div className="ngos-card-tags">
-                          {n.whatTheyDo.slice(0, 5).map((w) => (
-                            <span key={w} className="ngos-tag">{w}</span>
-                          ))}
-                          {n.whatTheyDo.length > 5 && (
-                            <span className="ngos-tag">+{n.whatTheyDo.length - 5}</span>
-                          )}
-                        </div>
-                      )}
-                      {(n.founder?.name || n.founder?.city) && (
-                        <p className="ngos-card-founder">
-                          Founder: {[n.founder.name, n.founder.city].filter(Boolean).join(', ')}
-                        </p>
-                      )}
-                      <div className="ngos-card-meta">
-                        <div className="ngos-card-links">
-                          {n.socialMedia?.website && (
-                            <a href={n.socialMedia.website} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-website" title="Website" aria-label="Website"><FaGlobe /></a>
-                          )}
-                          {n.socialMedia?.instagram && (
-                            <a href={instagramUrl(n.socialMedia.instagram)} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-instagram" title="Instagram" aria-label="Instagram"><FaInstagram /></a>
-                          )}
-                          {n.socialMedia?.linkedin && (
-                            <a href={n.socialMedia.linkedin.startsWith('http') ? n.socialMedia.linkedin : `https://linkedin.com/company/${n.socialMedia.linkedin}`} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-linkedin" title="LinkedIn" aria-label="LinkedIn"><FaLinkedin /></a>
-                          )}
-                          {n.socialMedia?.facebook && (
-                            <a href={n.socialMedia.facebook.startsWith('http') ? n.socialMedia.facebook : `https://facebook.com/${n.socialMedia.facebook}`} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-facebook" title="Facebook" aria-label="Facebook"><FaFacebookF /></a>
-                          )}
-                        </div>
-                        <span className="ngos-followers">Followers: {n.socialMedia?.instagramFollowers > 0 ? n.socialMedia.instagramFollowers : 'NA'}</span>
-                        <span className="ngos-time">{formatTimeAgo(n.createdAt)}</span>
                       </div>
-                    </div>
-                  </article>
+                    </article>
                   );
                 })}
               </div>

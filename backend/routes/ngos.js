@@ -86,6 +86,7 @@ router.post('/', async (req, res) => {
       founder,
       foundInYear,
       numberOfCities,
+      cities,
       logoUrl,
       authorName,
       instagramFollowers
@@ -119,6 +120,7 @@ router.post('/', async (req, res) => {
       },
       foundInYear: foundInYear != null && foundInYear !== '' ? parseInt(foundInYear, 10) : null,
       numberOfCities: numberOfCities != null && numberOfCities !== '' ? Math.max(0, parseInt(numberOfCities, 10)) : null,
+      cities: Array.isArray(cities) ? cities.filter(Boolean).map((c) => String(c).trim()) : [],
       logoUrl: String(logoUrl).trim(),
       authorId: userId,
       authorName: authorName || 'Anonymous'
@@ -236,6 +238,7 @@ router.put('/:id', async (req, res) => {
       founder,
       foundInYear,
       numberOfCities,
+      cities,
       logoUrl,
       instagramFollowers
     } = req.body;
@@ -268,6 +271,7 @@ router.put('/:id', async (req, res) => {
     };
     ngo.foundInYear = foundInYear != null && foundInYear !== '' ? parseInt(foundInYear, 10) : null;
     ngo.numberOfCities = numberOfCities != null && numberOfCities !== '' ? Math.max(0, parseInt(numberOfCities, 10)) : null;
+    ngo.cities = Array.isArray(cities) ? cities.filter(Boolean).map((c) => String(c).trim()) : [];
     ngo.logoUrl = String(logoUrl).trim();
     ngo.updatedAt = new Date();
 

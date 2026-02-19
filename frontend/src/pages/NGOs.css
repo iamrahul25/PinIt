@@ -507,32 +507,78 @@
   font-size: 1.25rem;
 }
 
-.ngos-level-tabs {
+.ngos-level-filter-wrap {
   display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ngos-level-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.ngos-level-filter-select {
+  padding: 0.4rem 2rem 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
+  cursor: pointer;
+  appearance: auto;
+  min-width: 8rem;
+}
+
+.ngos-level-filter-select:hover,
+.ngos-level-filter-select:focus {
+  border-color: #94a3b8;
+  outline: none;
+}
+
+.ngos-sort-wrap {
+  display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-.ngos-level-tab {
-  padding: 0.4rem 1rem;
-  border-radius: 9999px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  background: rgba(226, 232, 240, 0.5);
+.ngos-sort-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  margin-right: 0.2rem;
+}
+
+.ngos-sort-btn {
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: #e2e8f0;
   border: none;
-  color: #64748b;
+  color: #475569;
   cursor: pointer;
-  transition: color 0.2s, background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
-.ngos-level-tab:hover {
+.ngos-sort-btn:hover {
+  background: #cbd5e1;
   color: #0f172a;
 }
 
-.ngos-level-tab.active {
-  background: #fff;
-  color: #0f172a;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+.ngos-sort-btn.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.ngos-sort-btn.active:hover {
+  background: #334155;
+  color: #fff;
 }
 
 .ngos-loading {
@@ -851,6 +897,50 @@
   color: #475569;
 }
 
+.ngos-field-hint {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin: 0.2rem 0 0.4rem 0;
+}
+
+.ngos-cities-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.ngos-city-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.35rem;
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.ngos-city-tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: #64748b;
+  line-height: 1;
+}
+
+.ngos-city-tag-remove:hover {
+  color: #0f172a;
+}
+
+.ngos-card-cities {
+  font-size: inherit;
+}
+
 .ngos-card-founder {
   font-size: 0.65rem;
   color: #64748b;
@@ -875,14 +965,35 @@
 }
 
 .ngos-link {
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1.1rem;
   color: #64748b;
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color 0.2s, transform 0.2s;
 }
 
 .ngos-link:hover {
+  transform: scale(1.1);
+}
+
+.ngos-link-website:hover {
   color: #4F46E5;
+}
+
+.ngos-link-instagram:hover {
+  color: #E4405F;
+}
+
+.ngos-link-linkedin:hover {
+  color: #0A66C2;
+}
+
+.ngos-link-facebook:hover {
+  color: #1877F2;
 }
 
 .ngos-time {

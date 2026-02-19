@@ -3,6 +3,7 @@ import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { FaInstagram, FaLinkedin, FaFacebookF, FaGlobe } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import './NGOs.css';
@@ -50,12 +51,15 @@ export default function NGOs() {
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
   const [view, setView] = useState('board');
   const [levelFilter, setLevelFilter] = useState('');
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [form, setForm] = useState({
     name: '',
     email: '',
     level: 'City',
     foundInYear: '',
     numberOfCities: '',
+    cities: [],
     website: '',
     instagram: '',
     linkedin: '',
@@ -68,6 +72,7 @@ export default function NGOs() {
     founderName: '',
     founderCity: ''
   });
+  const [cityInput, setCityInput] = useState('');
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -146,13 +151,62 @@ export default function NGOs() {
     staleTime: STALE_TIME_MS,
   });
 
-  const ngos = view === 'my'
+  const ngosRaw = view === 'my'
     ? (myQuery.data ?? [])
     : (boardQuery.data?.pages?.flatMap((p) => p.ngos ?? []) ?? []);
+  const ngos = React.useMemo(() => {
+    if (!sortBy) return ngosRaw;
+    const list = [...ngosRaw];
+    const mult = sortOrder === 'asc' ? 1 : -1;
+    if (sortBy === 'foundInYear') {
+      list.sort((a, b) => {
+        const ay = a.foundInYear ?? 0;
+        const by = b.foundInYear ?? 0;
+        if (ay !== by) return mult * (ay - by);
+        return 0;
+      });
+    } else if (sortBy === 'followers') {
+      list.sort((a, b) => {
+        const af = a.socialMedia?.instagramFollowers ?? 0;
+        const bf = b.socialMedia?.instagramFollowers ?? 0;
+        if (af !== bf) return mult * (af - bf);
+        return 0;
+      });
+    } else if (sortBy === 'numberOfCities') {
+      list.sort((a, b) => {
+        const ac = a.numberOfCities ?? 0;
+        const bc = b.numberOfCities ?? 0;
+        if (ac !== bc) return mult * (ac - bc);
+        return 0;
+      });
+    } else if (sortBy === 'upvotes') {
+      list.sort((a, b) => {
+        const au = a.upvotes ?? 0;
+        const bu = b.upvotes ?? 0;
+        if (au !== bu) return mult * (au - bu);
+        return 0;
+      });
+    }
+    return list;
+  }, [ngosRaw, sortBy, sortOrder]);
   const total = view === 'my'
     ? (myQuery.data?.length ?? 0)
     : (boardQuery.data?.pages?.[0]?.total ?? 0);
   const loading = view === 'my' ? myQuery.isLoading : boardQuery.isLoading;
+
+  const handleSort = useCallback((field) => {
+    if (sortBy === field) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  }, [sortBy]);
+
+  const sortIndicator = (field) => {
+    if (sortBy !== field) return null;
+    return sortOrder === 'asc' ? ' ↑' : ' ↓';
+  };
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
 
@@ -193,6 +247,7 @@ export default function NGOs() {
         level: editingNgo.level || 'City',
         foundInYear: editingNgo.foundInYear || '',
         numberOfCities: editingNgo.numberOfCities || '',
+        cities: editingNgo.cities || [],
         website: editingNgo.socialMedia?.website || '',
         instagram: editingNgo.socialMedia?.instagram || '',
         linkedin: editingNgo.socialMedia?.linkedin || '',
@@ -215,6 +270,7 @@ export default function NGOs() {
         level: 'City',
         foundInYear: '',
         numberOfCities: '',
+        cities: [],
         website: '',
         instagram: '',
         linkedin: '',
@@ -231,6 +287,7 @@ export default function NGOs() {
       setLogoPreview('');
       setVerificationResult('');
     }
+    setCityInput('');
     setError('');
     setSuccess('');
     setSubmitting(false);
@@ -248,6 +305,21 @@ export default function NGOs() {
   const handleNameChange = (e) => {
     setForm((f) => ({ ...f, name: e.target.value }));
     setVerificationResult(''); // Reset verification result on name change
+  };
+
+  const handleCityKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const city = cityInput.trim();
+      if (city && !form.cities.includes(city)) {
+        setForm((f) => ({ ...f, cities: [...f.cities, city] }));
+        setCityInput('');
+      }
+    }
+  };
+
+  const handleRemoveCity = (cityToRemove) => {
+    setForm((f) => ({ ...f, cities: f.cities.filter((c) => c !== cityToRemove) }));
   };
 
   const handleVerify = async () => {
@@ -347,6 +419,7 @@ export default function NGOs() {
           level: form.level,
           foundInYear: form.foundInYear.toString().trim() ? parseInt(form.foundInYear, 10) : undefined,
           numberOfCities: form.numberOfCities.toString().trim() ? Math.max(0, parseInt(form.numberOfCities, 10)) : undefined,
+          cities: form.cities,
           socialMedia: {
             website: form.website.trim() || '',
             instagram: instagramUsername,
@@ -378,6 +451,7 @@ export default function NGOs() {
         level: 'City',
         foundInYear: '',
         numberOfCities: '',
+        cities: [],
         website: '',
         instagram: '',
         linkedin: '',
@@ -390,6 +464,7 @@ export default function NGOs() {
         founderName: '',
         founderCity: ''
       });
+      setCityInput('');
       removeLogo();
       queryClient.invalidateQueries({ queryKey: NGOS_QUERY_KEY });
     } catch (err) {
@@ -559,6 +634,35 @@ export default function NGOs() {
                     value={form.numberOfCities}
                     onChange={(e) => setForm((f) => ({ ...f, numberOfCities: e.target.value }))}
                   />
+                </div>
+                <div className="ngos-field">
+                  <label className="ngos-label">Name of cities it operates in <span className="ngos-optional">(optional)</span></label>
+                  <p className="ngos-field-hint">Type a city name and press Enter to add. Add more cities by pressing Enter after each one.</p>
+                  <input
+                    type="text"
+                    className="ngos-input"
+                    placeholder="e.g. Mumbai — press Enter to add"
+                    value={cityInput}
+                    onChange={(e) => setCityInput(e.target.value)}
+                    onKeyDown={handleCityKeyDown}
+                  />
+                  {form.cities.length > 0 && (
+                    <div className="ngos-cities-tags">
+                      {form.cities.map((city, index) => (
+                        <span key={`${city}-${index}`} className="ngos-city-tag">
+                          {city}
+                          <button
+                            type="button"
+                            className="ngos-city-tag-remove"
+                            onClick={() => handleRemoveCity(city)}
+                            aria-label={`Remove ${city}`}
+                          >
+                            <span className="material-icons-round">close</span>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="ngos-field-group">
@@ -774,26 +878,62 @@ export default function NGOs() {
                 </button>
               </div>
               {view === 'board' && (
-                <div className="ngos-level-tabs">
-                  <button
-                    type="button"
-                    className={`ngos-level-tab ${!levelFilter ? 'active' : ''}`}
-                    onClick={() => setLevelFilter('')}
+                <div className="ngos-level-filter-wrap">
+                  <label htmlFor="ngos-level-filter" className="ngos-level-filter-label">NGO Level</label>
+                  <select
+                    id="ngos-level-filter"
+                    className="ngos-level-filter-select"
+                    value={levelFilter}
+                    onChange={(e) => setLevelFilter(e.target.value)}
+                    aria-label="NGO level"
                   >
-                    All
-                  </button>
-                  {NGO_LEVELS.map((l) => (
-                    <button
-                      key={l}
-                      type="button"
-                      className={`ngos-level-tab ${levelFilter === l ? 'active' : ''}`}
-                      onClick={() => setLevelFilter(l)}
-                    >
-                      {l}
-                    </button>
-                  ))}
+                    <option value="">All</option>
+                    <option value="City">City</option>
+                    <option value="State">State</option>
+                    <option value="National">National</option>
+                    <option value="International">International</option>
+                  </select>
                 </div>
               )}
+              <div className="ngos-sort-wrap">
+                <span className="ngos-sort-label">Sort:</span>
+                <button
+                  type="button"
+                  className={`ngos-sort-btn ${sortBy === 'foundInYear' ? 'active' : ''}`}
+                  onClick={() => handleSort('foundInYear')}
+                  aria-pressed={sortBy === 'foundInYear'}
+                  aria-label={sortBy === 'foundInYear' ? `Founding Year ${sortOrder === 'asc' ? 'ascending' : 'descending'}, click to reverse` : 'Sort by Founding Year'}
+                >
+                  Founding Year{sortIndicator('foundInYear')}
+                </button>
+                <button
+                  type="button"
+                  className={`ngos-sort-btn ${sortBy === 'followers' ? 'active' : ''}`}
+                  onClick={() => handleSort('followers')}
+                  aria-pressed={sortBy === 'followers'}
+                  aria-label={sortBy === 'followers' ? `Number of followers ${sortOrder === 'asc' ? 'ascending' : 'descending'}, click to reverse` : 'Sort by Number of followers'}
+                >
+                  Number of followers{sortIndicator('followers')}
+                </button>
+                <button
+                  type="button"
+                  className={`ngos-sort-btn ${sortBy === 'numberOfCities' ? 'active' : ''}`}
+                  onClick={() => handleSort('numberOfCities')}
+                  aria-pressed={sortBy === 'numberOfCities'}
+                  aria-label={sortBy === 'numberOfCities' ? `No. of cities ${sortOrder === 'asc' ? 'ascending' : 'descending'}, click to reverse` : 'Sort by No. of cities it operates'}
+                >
+                  No. of cities it operates{sortIndicator('numberOfCities')}
+                </button>
+                <button
+                  type="button"
+                  className={`ngos-sort-btn ${sortBy === 'upvotes' ? 'active' : ''}`}
+                  onClick={() => handleSort('upvotes')}
+                  aria-pressed={sortBy === 'upvotes'}
+                  aria-label={sortBy === 'upvotes' ? `Number of likes ${sortOrder === 'asc' ? 'ascending' : 'descending'}, click to reverse` : 'Sort by number of likes'}
+                >
+                  Number of likes{sortIndicator('upvotes')}
+                </button>
+              </div>
             </div>
 
             {loading ? (
@@ -856,12 +996,18 @@ export default function NGOs() {
                           )}
                         </div>
                       </div>
-                      {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0)) && (
+                      {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0) || (n.cities && n.cities.length > 0)) && (
                         <p className="ngos-card-extra">
                           {n.foundInYear != null && <span>Founded {n.foundInYear}</span>}
-                          {n.foundInYear != null && n.numberOfCities != null && n.numberOfCities > 0 && ' · '}
+                          {n.foundInYear != null && (n.numberOfCities != null && n.numberOfCities > 0 || (n.cities && n.cities.length > 0)) && ' · '}
                           {n.numberOfCities != null && n.numberOfCities > 0 && (
                             <span>Operates in {n.numberOfCities} {n.numberOfCities === 1 ? 'city' : 'cities'}</span>
+                          )}
+                          {n.cities && n.cities.length > 0 && (
+                            <span className="ngos-card-cities">
+                              {(n.foundInYear != null || (n.numberOfCities != null && n.numberOfCities > 0)) ? ' · ' : ''}
+                              Cities: {n.cities.join(', ')}
+                            </span>
                           )}
                         </p>
                       )}
@@ -916,16 +1062,16 @@ export default function NGOs() {
                       <div className="ngos-card-meta">
                         <div className="ngos-card-links">
                           {n.socialMedia?.website && (
-                            <a href={n.socialMedia.website} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Website">🌐</a>
+                            <a href={n.socialMedia.website} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-website" title="Website" aria-label="Website"><FaGlobe /></a>
                           )}
                           {n.socialMedia?.instagram && (
-                            <a href={instagramUrl(n.socialMedia.instagram)} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Instagram">📷</a>
+                            <a href={instagramUrl(n.socialMedia.instagram)} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-instagram" title="Instagram" aria-label="Instagram"><FaInstagram /></a>
                           )}
                           {n.socialMedia?.linkedin && (
-                            <a href={n.socialMedia.linkedin.startsWith('http') ? n.socialMedia.linkedin : `https://linkedin.com/company/${n.socialMedia.linkedin}`} target="_blank" rel="noopener noreferrer" className="ngos-link" title="LinkedIn">in</a>
+                            <a href={n.socialMedia.linkedin.startsWith('http') ? n.socialMedia.linkedin : `https://linkedin.com/company/${n.socialMedia.linkedin}`} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-linkedin" title="LinkedIn" aria-label="LinkedIn"><FaLinkedin /></a>
                           )}
                           {n.socialMedia?.facebook && (
-                            <a href={n.socialMedia.facebook.startsWith('http') ? n.socialMedia.facebook : `https://facebook.com/${n.socialMedia.facebook}`} target="_blank" rel="noopener noreferrer" className="ngos-link" title="Facebook">f</a>
+                            <a href={n.socialMedia.facebook.startsWith('http') ? n.socialMedia.facebook : `https://facebook.com/${n.socialMedia.facebook}`} target="_blank" rel="noopener noreferrer" className="ngos-link ngos-link-facebook" title="Facebook" aria-label="Facebook"><FaFacebookF /></a>
                           )}
                         </div>
                         <span className="ngos-followers">Followers: {n.socialMedia?.instagramFollowers > 0 ? n.socialMedia.instagramFollowers : 'NA'}</span>

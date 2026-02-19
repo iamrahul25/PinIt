@@ -42,6 +42,10 @@ const ngoSchema = new mongoose.Schema({
   },
   foundInYear: { type: Number, default: null },
   numberOfCities: { type: Number, default: null },
+  cities: {
+    type: [String],
+    default: []
+  },
   upvotes: { type: Number, default: 0 },
   votes: [{ userId: String, voteType: { type: String, default: 'upvote' } }],
   logoUrl: {

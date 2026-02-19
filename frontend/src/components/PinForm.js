@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
+import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import './PinForm.css';
 
 // Compress image in frontend before upload (reduces size sent to Cloudinary)
@@ -16,11 +17,11 @@ const COMPRESSION_OPTIONS = {
 };
 
 const PROBLEM_TYPES = [
-  { value: 'Trash Pile', label: 'Trash Pile', icon: 'delete_outline' },
-  { value: 'Pothole', label: 'Pothole', icon: 'construction' },
-  { value: 'Broken Pipe', label: 'Broken Pipe', icon: 'plumbing' },
-  { value: 'Fuse Street Light', label: 'Fuse Street Light', icon: 'lightbulb_outline' },
-  { value: 'Other', label: 'Other', icon: 'category' }
+  { value: 'Trash Pile', label: 'Trash Pile' },
+  { value: 'Pothole', label: 'Pothole' },
+  { value: 'Broken Pipe', label: 'Broken Pipe' },
+  { value: 'Fuse Street Light', label: 'Street Light' },
+  { value: 'Other', label: 'Other' }
 ];
 
 const getSeverityClass = (value) => {
@@ -47,7 +48,24 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const [loading, setLoading] = useState(false);
   const [compressingImages, setCompressingImages] = useState(false);
   const [error, setError] = useState('');
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const typeDropdownRef = useRef(null);
+
+  // Close type dropdown on outside click or Escape
+  useEffect(() => {
+    if (!typeDropdownOpen) return;
+    const handle = (e) => {
+      if (typeDropdownRef.current && !typeDropdownRef.current.contains(e.target)) setTypeDropdownOpen(false);
+      if (e.key === 'Escape') setTypeDropdownOpen(false);
+    };
+    document.addEventListener('click', handle);
+    document.addEventListener('keydown', handle);
+    return () => {
+      document.removeEventListener('click', handle);
+      document.removeEventListener('keydown', handle);
+    };
+  }, [typeDropdownOpen]);
 
   // Keep contributor_name in sync when user prop is available (e.g. after login)
   useEffect(() => {
@@ -215,24 +233,57 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           </div>
 
           <div className="form-grid">
-            <div className="form-group">
+            <div className="form-group" ref={typeDropdownRef}>
               <label>Problem Type <span className="required">*</span></label>
-              <div className="form-input-wrap form-input-with-icon form-select-wrap">
-                <span className="material-icons-round form-icon form-icon-muted">
-                  {PROBLEM_TYPES.find((t) => t.value === formData.problemType)?.icon || 'delete_outline'}
-                </span>
-                <select
-                  name="problemType"
-                  value={formData.problemType}
-                  onChange={handleInputChange}
-                  required
-                  className="form-input form-select"
+              <div
+                className={`pin-form-type-select ${typeDropdownOpen ? 'open' : ''}`}
+                role="combobox"
+                aria-expanded={typeDropdownOpen}
+                aria-haspopup="listbox"
+                aria-label="Problem type"
+              >
+                <button
+                  type="button"
+                  className="pin-form-type-trigger"
+                  onClick={() => setTypeDropdownOpen((o) => !o)}
+                  aria-label="Choose problem type"
                 >
+                  <span
+                    className="pin-form-type-trigger-icon"
+                    dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(formData.problemType, 28) }}
+                    aria-hidden="true"
+                  />
+                  <span className="pin-form-type-trigger-label">
+                    {PROBLEM_TYPES.find((t) => t.value === formData.problemType)?.label || formData.problemType}
+                  </span>
+                  <span className="material-icons-round pin-form-type-chevron">expand_more</span>
+                </button>
+                <div className="pin-form-type-dropdown" role="listbox">
                   {PROBLEM_TYPES.map(({ value, label }) => (
-                    <option key={value} value={value}>{label}</option>
+                    <button
+                      key={value}
+                      type="button"
+                      role="option"
+                      aria-selected={formData.problemType === value}
+                      className={`pin-form-type-option ${formData.problemType === value ? 'selected' : ''}`}
+                      style={{ ['--option-color']: PROBLEM_TYPE_COLORS[value] || PROBLEM_TYPE_COLORS['Other'] }}
+                      onClick={() => {
+                        setFormData((prev) => ({ ...prev, problemType: value }));
+                        setTypeDropdownOpen(false);
+                      }}
+                    >
+                      <span
+                        className="pin-form-type-option-icon"
+                        dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(value, 24) }}
+                        aria-hidden="true"
+                      />
+                      <span className="pin-form-type-option-label">{label}</span>
+                      {formData.problemType === value && (
+                        <span className="material-icons-round pin-form-type-option-check">check</span>
+                      )}
+                    </button>
                   ))}
-                </select>
-                <span className="material-icons-round form-icon form-icon-right">expand_more</span>
+                </div>
               </div>
             </div>
             <div className="form-group">

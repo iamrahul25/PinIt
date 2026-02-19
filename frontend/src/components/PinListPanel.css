@@ -175,10 +175,11 @@
   gap: calc(2rem * var(--pins-scale));
 }
 
-/* Filter checkboxes (90% scale) */
+/* Filter checkboxes (90% scale) - one line with wrap */
 .pins-filters-section {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: calc(0.75rem * var(--pins-scale));
 }
 .pins-filter-check {
@@ -227,9 +228,8 @@
 }
 .pins-type-pills {
   display: flex;
+  flex-wrap: wrap;
   gap: calc(0.5rem * var(--pins-scale));
-  overflow-x: auto;
-  padding-bottom: calc(0.5rem * var(--pins-scale));
 }
 .pins-pill {
   flex-shrink: 0;
@@ -242,6 +242,17 @@
   font-weight: 500;
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s, color 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(0.5rem * var(--pins-scale));
+}
+.pins-pill-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+.pins-pill-icon-wrap > div {
+  flex-shrink: 0;
 }
 .pins-pill:hover {
   border-color: var(--pins-primary);
@@ -249,6 +260,18 @@
 .pins-pill.active {
   border-color: var(--pins-primary);
   background: var(--pins-primary);
+  color: #fff;
+}
+/* Type pills: use type color when active, tint border when inactive */
+.pins-pill-type {
+  --pills-type-color: var(--pins-border);
+}
+.pins-pill-type:hover {
+  border-color: var(--pills-type-color);
+}
+.pins-pill-type.active {
+  border-color: var(--pills-type-color);
+  background: var(--pills-type-color);
   color: #fff;
 }
 

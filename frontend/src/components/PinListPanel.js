@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser, FaThLarge, FaList } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
-import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
+import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './PinListPanel.css';
 
@@ -152,7 +152,7 @@ const PinListPanel = ({
                 onChange={(e) => setFilterSavedOnly(e.target.checked)}
               />
               <span className="pins-filter-icon pins-filter-icon-saved" aria-hidden="true"><FaBookmark /></span>
-              <span>Saved pins only</span>
+              <span>Saved Pins</span>
             </label>
             {user?.id && (
               <label className="pins-filter-check">
@@ -162,17 +162,17 @@ const PinListPanel = ({
                   onChange={(e) => setFilterContributedOnly(e.target.checked)}
                 />
                 <span className="pins-filter-icon pins-filter-icon-user" aria-hidden="true"><FaUser /></span>
-                <span>Your contributed pins</span>
+                <span>Contributed Pins</span>
               </label>
             )}
           </section>
 
           <section className="pins-type-section">
             <h3 className="pins-section-heading">Filter by type</h3>
-            <div className="pins-type-pills hide-scrollbar">
+            <div className="pins-type-pills">
               <button
                 type="button"
-                className={`pins-pill ${typeFilter === null ? 'active' : ''}`}
+                className={`pins-pill pins-pill-all ${typeFilter === null ? 'active' : ''}`}
                 onClick={() => setTypeFilter(null)}
               >
                 All
@@ -181,10 +181,19 @@ const PinListPanel = ({
                 <button
                   key={value}
                   type="button"
-                  className={`pins-pill ${typeFilter === value ? 'active' : ''}`}
-                  onClick={() => setTypeFilter(value)}
+                  className={`pins-pill pins-pill-type ${typeFilter === value ? 'active' : ''}`}
+                  data-type={value}
+                  onClick={() => setTypeFilter(typeFilter === value ? null : value)}
+                  style={{
+                    ['--pills-type-color']: PROBLEM_TYPE_COLORS[value] || PROBLEM_TYPE_COLORS['Other'],
+                  }}
                 >
-                  {label}
+                  <span
+                    className="pins-pill-icon-wrap"
+                    dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(value, 20) }}
+                    aria-hidden="true"
+                  />
+                  <span className="pins-pill-label">{label}</span>
                 </button>
               ))}
             </div>

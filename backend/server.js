@@ -48,8 +48,8 @@ app.use(requestLogger({ includeQuery: true, includeBody: showReqBody, includeRes
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pinit';
 
 mongoose.connect(MONGODB_URI)
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('MongoDB connected successfully'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Health check – lightweight route to verify backend is listening (200 + message)
 app.get('/api/health', (req, res) => {
@@ -77,6 +77,7 @@ app.use('/api/images', require('./routes/images'));
 app.use('/api/suggestions', require('./routes/suggestions'));
 app.use('/api/ngos', require('./routes/ngos'));
 app.use('/api/events', require('./routes/events'));
+app.use('/api/leaderboard', require('./routes/leaderboard'));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

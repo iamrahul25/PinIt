@@ -43,8 +43,13 @@
 }
 
 @keyframes pinFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes pinSlideUp {
@@ -52,6 +57,7 @@
     transform: translateY(30px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -197,11 +203,11 @@
   flex-shrink: 0;
 }
 
-.pin-type-icon-detail > div {
+.pin-type-icon-detail>div {
   flex-shrink: 0;
 }
 
-.pin-type-icon-detail > div {
+.pin-type-icon-detail>div {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -797,7 +803,8 @@
   font-size: 0.875rem;
   color: var(--pin-slate-600);
   line-height: 1.6;
-  white-space: pre-wrap; /* preserve newlines and spaces from description */
+  white-space: pre-wrap;
+  /* preserve newlines and spaces from description */
 }
 
 /* Visual Evidence */
@@ -1018,6 +1025,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
   margin-bottom: 0.25rem;
 }
 
@@ -1037,6 +1046,155 @@
   color: var(--pin-slate-600);
   margin: 0;
   line-height: 1.5;
+}
+
+.comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--pin-slate-100);
+}
+
+.comment-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--pin-slate-600);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.comment-action-btn:hover:not(:disabled) {
+  background: var(--pin-slate-100);
+  color: var(--pin-slate-800);
+}
+
+.comment-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.comment-action-btn.active {
+  color: var(--pin-primary);
+}
+
+.comment-action-btn .material-icons-round {
+  font-size: 1rem;
+}
+
+.comment-action-count {
+  min-width: 1.25rem;
+  text-align: left;
+}
+
+.comment-reply-to {
+  font-size: 0.7rem;
+  color: var(--pin-slate-500);
+  font-weight: 400;
+  margin-left: 0.35rem;
+}
+
+.pin-details-comment-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pin-details-replies {
+  margin-left: 2.5rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--pin-slate-200);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pin-details-replies-nested {
+  margin-left: 1.5rem;
+  padding-left: 0.75rem;
+}
+
+.pin-details-comment-reply .comment-body {
+  background: rgba(241, 245, 249, 0.9);
+}
+
+.pin-details-comment-nested .comment-body {
+  background: rgba(248, 250, 252, 0.95);
+}
+
+.pin-details-reply-form {
+  margin-left: 2.5rem;
+  padding: 0.75rem;
+  background: var(--pin-slate-50);
+  border-radius: 12px;
+  border: 1px solid var(--pin-slate-200);
+}
+
+.pin-details-reply-form-nested {
+  margin-left: 1.5rem;
+}
+
+.pin-details-reply-textarea {
+  margin-bottom: 0.5rem;
+  padding-right: 1rem;
+}
+
+.pin-details-reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pin-details-reply-cancel {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--pin-slate-600);
+  background: transparent;
+  border: 1px solid var(--pin-slate-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.pin-details-reply-cancel:hover {
+  background: var(--pin-slate-100);
+  border-color: var(--pin-slate-300);
+}
+
+.pin-details-reply-submit {
+  position: static;
+}
+
+.pin-details-reply-context {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.5rem;
+  background: rgba(79, 70, 229, 0.06);
+  border-left: 3px solid var(--pin-indigo-600);
+  border-radius: 0 6px 6px 0;
+  font-size: 0.75rem;
+  color: var(--pin-slate-600);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pin-details-reply-context .material-icons-round {
+  font-size: 0.875rem;
+  color: var(--pin-indigo-600);
+  flex-shrink: 0;
 }
 
 /* Footer */
@@ -1083,7 +1241,6 @@
 }
 
 .pin-details-post-btn {
-  position: absolute;
   right: 1rem;
   bottom: 1rem;
   padding: 0.625rem 1.25rem;

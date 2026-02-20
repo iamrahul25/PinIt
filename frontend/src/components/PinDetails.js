@@ -23,6 +23,23 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.75
 };
 
+// Truncate a reply-preview string to keep the badge compact.
+const truncateReplyText = (text, max = 60) =>
+  text && text.length > max ? `${text.slice(0, max)}…` : (text || '…');
+
+// Recursively collect all descendants beyond level 3, flattened with parent-message info.
+// Each returned entry has an extra `replyingToText` field for the "Replied to \"…\"" badge.
+const flattenDeepReplies = (parentId, parentText, repliesMap) => {
+  const children = repliesMap[parentId] || [];
+  const result = [];
+  for (const child of children) {
+    result.push({ ...child, replyingToText: parentText });
+    // Recurse so level-5, 6, … are also captured
+    result.push(...flattenDeepReplies(child._id, child.text, repliesMap));
+  }
+  return result;
+};
+
 const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
   const navigate = useNavigate();
   const { loading: authLoading, getToken } = useAuth();
@@ -30,6 +47,9 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const displayName = user?.fullName || user?.email || 'Anonymous';
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [commentActionLoading, setCommentActionLoading] = useState(null);
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -187,6 +207,88 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
       setLoading(false);
     }
   };
+
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim() || !replyingTo) return;
+    if (!userId) {
+      alert('Please log in to reply.');
+      return;
+    }
+    if (authLoading) return;
+
+    const parentId = replyingTo;
+    setCommentActionLoading(parentId);
+    try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
+      await axios.post(`${API_BASE_URL}/api/comments`, {
+        pinId: pin._id,
+        author: displayName,
+        text: replyText.trim(),
+        parentId
+      }, config);
+      setReplyingTo(null);
+      setReplyText('');
+      fetchComments();
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+    } finally {
+      setCommentActionLoading(null);
+    }
+  };
+
+  const handleCommentLike = async (commentId) => {
+    if (!userId) {
+      alert('Please log in to like.');
+      return;
+    }
+    if (authLoading) return;
+    setCommentActionLoading(commentId);
+    try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
+      await axios.post(`${API_BASE_URL}/api/comments/${commentId}/like`, {}, config);
+      fetchComments();
+    } catch (error) {
+      console.error('Error liking comment:', error);
+    } finally {
+      setCommentActionLoading(null);
+    }
+  };
+
+  const handleCommentDislike = async (commentId) => {
+    if (!userId) {
+      alert('Please log in to dislike.');
+      return;
+    }
+    if (authLoading) return;
+    setCommentActionLoading(commentId);
+    try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
+      await axios.post(`${API_BASE_URL}/api/comments/${commentId}/dislike`, {}, config);
+      fetchComments();
+    } catch (error) {
+      console.error('Error disliking comment:', error);
+    } finally {
+      setCommentActionLoading(null);
+    }
+  };
+
+  // Build comment tree: top-level comments and replies grouped by parentId
+  const commentTree = React.useMemo(() => {
+    const topLevel = comments.filter((c) => !c.parentId);
+    const repliesMap = {};
+    comments.forEach((c) => {
+      if (c.parentId) {
+        const pid = typeof c.parentId === 'string' ? c.parentId : c.parentId?._id || c.parentId;
+        if (!repliesMap[pid]) repliesMap[pid] = [];
+        repliesMap[pid].push(c);
+      }
+    });
+    Object.keys(repliesMap).forEach((pid) => {
+      repliesMap[pid].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    });
+    return { topLevel, repliesMap };
+  }, [comments]);
 
   const openImageModal = (index) => {
     setSelectedImageIndex(index);
@@ -500,423 +602,729 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
             </button>
           )}
           <div className="pin-details-container">
-          <header className="pin-details-header">
-            <div className="pin-details-header-content">
-              <div
-                className="pin-type-icon-detail"
-                dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 40) }}
-              />
-              <div>
-                <div className="pin-details-title-row">
-                  <h2 className="pin-details-title">{pin.problemType}</h2>
-                  {/* <span className="pin-details-badge">Report</span> */}
+            <header className="pin-details-header">
+              <div className="pin-details-header-content">
+                <div
+                  className="pin-type-icon-detail"
+                  dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 40) }}
+                />
+                <div>
+                  <div className="pin-details-title-row">
+                    <h2 className="pin-details-title">{pin.problemType}</h2>
+                    {/* <span className="pin-details-badge">Report</span> */}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="pin-details-header-actions">
-              {user && (
+              <div className="pin-details-header-actions">
+                {user && (
+                  <button
+                    type="button"
+                    className={`pin-details-btn pin-details-btn-primary ${isSaved ? 'saved' : ''}`}
+                    onClick={handleSaveToggle}
+                    disabled={saving}
+                    title={isSaved ? 'Unsave this pin' : 'Save this pin'}
+                  >
+                    <span className="material-icons-round">bookmark</span>
+                    <span className="pin-details-btn-label">{saving ? '...' : isSaved ? 'Saved' : 'Save'}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  className={`pin-details-btn pin-details-btn-primary ${isSaved ? 'saved' : ''}`}
-                  onClick={handleSaveToggle}
-                  disabled={saving}
-                  title={isSaved ? 'Unsave this pin' : 'Save this pin'}
+                  className="pin-details-btn pin-details-btn-secondary"
+                  onClick={handleShare}
+                  title="Share this pin"
                 >
-                  <span className="material-icons-round">bookmark</span>
-                  <span className="pin-details-btn-label">{saving ? '...' : isSaved ? 'Saved' : 'Save'}</span>
+                  <span className="material-icons-round">share</span>
+                  <span className="pin-details-btn-label">{shareCopied ? 'Copied!' : 'Share'}</span>
                 </button>
-              )}
-              <button
-                type="button"
-                className="pin-details-btn pin-details-btn-secondary"
-                onClick={handleShare}
-                title="Share this pin"
-              >
-                <span className="material-icons-round">share</span>
-                <span className="pin-details-btn-label">{shareCopied ? 'Copied!' : 'Share'}</span>
-              </button>
-              <button className="pin-details-close" onClick={onClose} aria-label="Close">
-                <span className="material-icons-round">close</span>
-              </button>
-            </div>
-          </header>
+                <button className="pin-details-close" onClick={onClose} aria-label="Close">
+                  <span className="material-icons-round">close</span>
+                </button>
+              </div>
+            </header>
 
-          <main className="pin-details-main">
-            {isEditing && editForm ? (
-              <form onSubmit={handleSaveEdit} className="pin-details-edit-form">
-                {editError && <div className="pin-details-edit-error" role="alert">{editError}</div>}
-                <div className="pin-details-edit-group">
-                  <label>Address <span className="pin-details-edit-optional">(read-only)</span></label>
-                  <input
-                    type="text"
-                    className="pin-details-edit-input"
-                    value={pin.location?.address ?? '—'}
-                    readOnly
-                    aria-readonly="true"
-                  />
-                </div>
-                <div className="pin-details-edit-row">
+            <main className="pin-details-main">
+              {isEditing && editForm ? (
+                <form onSubmit={handleSaveEdit} className="pin-details-edit-form">
+                  {editError && <div className="pin-details-edit-error" role="alert">{editError}</div>}
                   <div className="pin-details-edit-group">
-                    <label>Problem Type <span className="required">*</span></label>
-                    <select
-                      name="problemType"
-                      value={editForm.problemType}
-                      onChange={handleEditInputChange}
-                      className="pin-details-edit-input pin-details-edit-select"
-                    >
-                      {PROBLEM_TYPES.map(({ value, label }) => (
-                        <option key={value} value={value}>{label}</option>
-                      ))}
-                    </select>
+                    <label>Address <span className="pin-details-edit-optional">(read-only)</span></label>
+                    <input
+                      type="text"
+                      className="pin-details-edit-input"
+                      value={pin.location?.address ?? '—'}
+                      readOnly
+                      aria-readonly="true"
+                    />
                   </div>
-                  <div className="pin-details-edit-group">
-                    <label>Severity (1–10) <span className="required">*</span></label>
-                    <div className="pin-details-edit-severity-wrap">
-                      <input
-                        type="range"
-                        name="severity"
-                        min="1"
-                        max="10"
-                        value={editForm.severity}
+                  <div className="pin-details-edit-row">
+                    <div className="pin-details-edit-group">
+                      <label>Problem Type <span className="required">*</span></label>
+                      <select
+                        name="problemType"
+                        value={editForm.problemType}
                         onChange={handleEditInputChange}
-                        className="pin-details-edit-severity"
-                      />
-                      <span className="pin-details-edit-severity-value">{editForm.severity}/10</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="pin-details-edit-group">
-                  <label>Problem Heading <span className="required">*</span></label>
-                  <input
-                    type="text"
-                    name="problemHeading"
-                    value={editForm.problemHeading}
-                    onChange={handleEditInputChange}
-                    placeholder="e.g. Garbage pile near the park"
-                    className="pin-details-edit-input"
-                    required
-                  />
-                </div>
-                <div className="pin-details-edit-group">
-                  <label>Description <span className="pin-details-edit-optional">(optional)</span></label>
-                  <textarea
-                    name="description"
-                    value={editForm.description}
-                    onChange={handleEditInputChange}
-                    placeholder="Describe the problem..."
-                    rows={3}
-                    className="pin-details-edit-input pin-details-edit-textarea"
-                  />
-                </div>
-                <div className="pin-details-edit-group">
-                  <label>Images <span className="required">*</span> (at least 1, max 5)</label>
-                  <div className="pin-details-edit-images">
-                    {editImages.map((url, index) => (
-                      <div key={`existing-${index}`} className="pin-details-edit-thumb-wrap">
-                        <img src={getEditImageUrl(url)} alt="" />
-                        <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeEditImage(index)} aria-label="Remove image">×</button>
-                      </div>
-                    ))}
-                    {newImagePreviews.map((src, index) => (
-                      <div key={`new-${index}`} className="pin-details-edit-thumb-wrap">
-                        <img src={src} alt="" />
-                        <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImage(index)} aria-label="Remove image">×</button>
-                      </div>
-                    ))}
-                    {editImages.length + newImageFiles.length < 5 && (
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
-                        onClick={() => !compressingNewImages && editFileInputRef.current?.click()}
-                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileInputRef.current?.click()}
-                        aria-label="Add image"
+                        className="pin-details-edit-input pin-details-edit-select"
                       >
-                        <span className="material-icons-round">add_photo_alternate</span>
-                        {compressingNewImages ? 'Compressing...' : 'Add'}
+                        {PROBLEM_TYPES.map(({ value, label }) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="pin-details-edit-group">
+                      <label>Severity (1–10) <span className="required">*</span></label>
+                      <div className="pin-details-edit-severity-wrap">
+                        <input
+                          type="range"
+                          name="severity"
+                          min="1"
+                          max="10"
+                          value={editForm.severity}
+                          onChange={handleEditInputChange}
+                          className="pin-details-edit-severity"
+                        />
+                        <span className="pin-details-edit-severity-value">{editForm.severity}/10</span>
                       </div>
-                    )}
+                    </div>
                   </div>
-                  <input
-                    ref={editFileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleNewEditImages}
-                    className="pin-details-edit-file-hidden"
-                    aria-hidden="true"
-                  />
-                </div>
-                <div className="pin-details-edit-actions">
-                  <button type="button" className="pin-details-btn pin-details-btn-secondary" onClick={cancelEditing} disabled={savingEdit}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="pin-details-btn pin-details-btn-primary" disabled={savingEdit}>
-                    {savingEdit ? 'Saving…' : 'Save changes'}
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <>
-            <p className="pin-details-meta pin-details-published-below">
-              - Published {formatDate(pin.createdAt)}
-            </p>
-            <div className="pin-details-stats">
-              <div className="pin-details-stat-card">
-                <p className="pin-details-stat-label">Severity Score</p>
-                <div className="pin-details-stat-value">
-                  <span className={`severity-score severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>{pin.severity}/10</span>
-                  <span className={`severity-label severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>
-                    {getSeverityLabel(pin.severity)}
-                  </span>
-                </div>
-              </div>
-              <div className="pin-details-stat-card">
-                <p className="pin-details-stat-label">Reported By</p>
-                <div className="pin-details-stat-reported">
-                  <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
-                  <span className="reporter-name">{reporterName}</span>
-                </div>
-              </div>
-              <div className="pin-details-stat-card pin-details-stat-votes">
-                <p className="pin-details-stat-label">Community Response</p>
-                <div className="pin-details-votes">
-                  <button
-                    type="button"
-                    className={`vote-inline upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
-                    onClick={() => handleVote('upvote')}
-                  >
-                    <span className="material-icons-round">thumb_up</span>
-                    {voteStatus.upvotes}
-                  </button>
-                  <button
-                    type="button"
-                    className={`vote-inline downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
-                    onClick={() => handleVote('downvote')}
-                  >
-                    <span className="material-icons-round">thumb_down</span>
-                    {voteStatus.downvotes}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {images.length > 0 && (
-              <section className="pin-details-section">
-                <div className="pin-details-section-header">
-                  <h3 className="pin-details-section-title">
-                    <span className="material-icons-round">photo_library</span>
-                    Visual Evidence
-                  </h3>
-                  <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
-                </div>
-                <div className="pin-details-images-grid">
-                  {images.map((url, index) => (
-                    <div
-                      key={index}
-                      className="pin-details-image-wrap"
-                      onClick={() => openImageModal(index)}
-                    >
-                      <img src={url} alt={`Evidence ${index + 1}`} />
+                  <div className="pin-details-edit-group">
+                    <label>Problem Heading <span className="required">*</span></label>
+                    <input
+                      type="text"
+                      name="problemHeading"
+                      value={editForm.problemHeading}
+                      onChange={handleEditInputChange}
+                      placeholder="e.g. Garbage pile near the park"
+                      className="pin-details-edit-input"
+                      required
+                    />
+                  </div>
+                  <div className="pin-details-edit-group">
+                    <label>Description <span className="pin-details-edit-optional">(optional)</span></label>
+                    <textarea
+                      name="description"
+                      value={editForm.description}
+                      onChange={handleEditInputChange}
+                      placeholder="Describe the problem..."
+                      rows={3}
+                      className="pin-details-edit-input pin-details-edit-textarea"
+                    />
+                  </div>
+                  <div className="pin-details-edit-group">
+                    <label>Images <span className="required">*</span> (at least 1, max 5)</label>
+                    <div className="pin-details-edit-images">
+                      {editImages.map((url, index) => (
+                        <div key={`existing-${index}`} className="pin-details-edit-thumb-wrap">
+                          <img src={getEditImageUrl(url)} alt="" />
+                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeEditImage(index)} aria-label="Remove image">×</button>
+                        </div>
+                      ))}
+                      {newImagePreviews.map((src, index) => (
+                        <div key={`new-${index}`} className="pin-details-edit-thumb-wrap">
+                          <img src={src} alt="" />
+                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImage(index)} aria-label="Remove image">×</button>
+                        </div>
+                      ))}
+                      {editImages.length + newImageFiles.length < 5 && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
+                          onClick={() => !compressingNewImages && editFileInputRef.current?.click()}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileInputRef.current?.click()}
+                          aria-label="Add image"
+                        >
+                          <span className="material-icons-round">add_photo_alternate</span>
+                          {compressingNewImages ? 'Compressing...' : 'Add'}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {pin.problemHeading && (
-              <section className="pin-details-section">
-                <h3 className="pin-details-section-title">
-                  <span className="material-icons-round">title</span>
-                  Problem Heading
-                </h3>
-                <div className="pin-details-problem-heading">
-                  <p>{pin.problemHeading}</p>
-                </div>
-              </section>
-            )}
-
-            {pin.description && (
-              <section className="pin-details-section">
-                <h3 className="pin-details-section-title">
-                  <span className="material-icons-round">subject</span>
-                  Description
-                </h3>
-                <div className="pin-details-description">
-                  <p>{pin.description}</p>
-                </div>
-              </section>
-            )}
-
-            {(pin.location?.address || (pin.location?.latitude != null && pin.location?.longitude != null)) && (
-              <section className="pin-details-section">
-                <h3 className="pin-details-section-title">
-                  <span className="material-icons-round">pin_drop</span>
-                  Precise Location
-                </h3>
-                <div className="pin-details-location">
-                  {pin.location?.address && (
-                    <div className="location-address-row">
-                      <p className="location-address">{pin.location.address}</p>
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleNewEditImages}
+                      className="pin-details-edit-file-hidden"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="pin-details-edit-actions">
+                    <button type="button" className="pin-details-btn pin-details-btn-secondary" onClick={cancelEditing} disabled={savingEdit}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="pin-details-btn pin-details-btn-primary" disabled={savingEdit}>
+                      {savingEdit ? 'Saving…' : 'Save changes'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <p className="pin-details-meta pin-details-published-below">
+                    - Published {formatDate(pin.createdAt)}
+                  </p>
+                  <div className="pin-details-stats">
+                    <div className="pin-details-stat-card">
+                      <p className="pin-details-stat-label">Severity Score</p>
+                      <div className="pin-details-stat-value">
+                        <span className={`severity-score severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>{pin.severity}/10</span>
+                        <span className={`severity-label severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>
+                          {getSeverityLabel(pin.severity)}
+                        </span>
+                      </div>
                     </div>
+                    <div className="pin-details-stat-card">
+                      <p className="pin-details-stat-label">Reported By</p>
+                      <div className="pin-details-stat-reported">
+                        <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
+                        <span className="reporter-name">{reporterName}</span>
+                      </div>
+                    </div>
+                    <div className="pin-details-stat-card pin-details-stat-votes">
+                      <p className="pin-details-stat-label">Community Response</p>
+                      <div className="pin-details-votes">
+                        <button
+                          type="button"
+                          className={`vote-inline upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
+                          onClick={() => handleVote('upvote')}
+                        >
+                          <span className="material-icons-round">thumb_up</span>
+                          {voteStatus.upvotes}
+                        </button>
+                        <button
+                          type="button"
+                          className={`vote-inline downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
+                          onClick={() => handleVote('downvote')}
+                        >
+                          <span className="material-icons-round">thumb_down</span>
+                          {voteStatus.downvotes}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {images.length > 0 && (
+                    <section className="pin-details-section">
+                      <div className="pin-details-section-header">
+                        <h3 className="pin-details-section-title">
+                          <span className="material-icons-round">photo_library</span>
+                          Visual Evidence
+                        </h3>
+                        <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
+                      </div>
+                      <div className="pin-details-images-grid">
+                        {images.map((url, index) => (
+                          <div
+                            key={index}
+                            className="pin-details-image-wrap"
+                            onClick={() => openImageModal(index)}
+                          >
+                            <img src={url} alt={`Evidence ${index + 1}`} />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
                   )}
-                  {pin.location?.latitude != null && pin.location?.longitude != null && (
-                    <div className="location-coords">
-                      <span>LAT: {pin.location.latitude.toFixed(5)}° N</span>
-                      <span>LONG: {pin.location.longitude.toFixed(5)}° E</span>
-                    </div>
-                  )}
-                  <div className="pin-details-location-actions">
-                    {pin.location?.address && (
-                      <button
-                        type="button"
-                        className="pin-details-copy-btn"
-                        onClick={() => {
-                          let text = `Location: ${pin.location.address || '—'}`;
-                          if (pin.location.latitude != null && pin.location.longitude != null) {
-                            text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
-                          }
-                          copyLocationToClipboard(text, 'location');
-                        }}
-                        title="Copy address and coordinates"
-                        aria-label="Copy address and coordinates"
-                      >
-                        <span className="material-icons-round">{copiedLocation === 'location' ? 'check' : 'content_copy'}</span>
-                        {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
-                      </button>
-                    )}
-                    {onViewOnMap && (pin.location?.latitude != null && pin.location?.longitude != null) && (
-                      <button
-                        type="button"
-                        className="pin-details-view-on-map-btn"
-                        onClick={() => onViewOnMap(pin)}
-                        title="Focus this pin on the map and close this panel"
-                        aria-label="View on map"
-                      >
-                        <span className="material-icons-round">map</span>
-                        View on map
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </section>
-            )}
 
-            {(eventsLoading || scheduledEvents.length > 0) && (
-              <section className="pin-details-section pin-details-events-section">
-                <h3 className="pin-details-section-title">
-                  <span className="material-icons-round">event</span>
-                  Event scheduled for this pin
-                </h3>
-                {eventsLoading ? (
-                  <p className="pin-details-events-loading">Loading events...</p>
-                ) : (
-                  <div className="pin-details-events-list">
-                    {scheduledEvents.map((ev) => (
-                      <div key={ev._id} className="pin-details-event-card">
-                        <div className="pin-details-event-meta">
-                          <span className="pin-details-event-date">{formatEventDate(ev.date)}</span>
-                          {(ev.startTime || ev.endTime || ev.durationHours) && (
-                            <span className="pin-details-event-time">
-                              {formatEventTime(ev.startTime, ev.endTime, ev.durationHours)}
-                            </span>
+                  {pin.problemHeading && (
+                    <section className="pin-details-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">title</span>
+                        Problem Heading
+                      </h3>
+                      <div className="pin-details-problem-heading">
+                        <p>{pin.problemHeading}</p>
+                      </div>
+                    </section>
+                  )}
+
+                  {pin.description && (
+                    <section className="pin-details-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">subject</span>
+                        Description
+                      </h3>
+                      <div className="pin-details-description">
+                        <p>{pin.description}</p>
+                      </div>
+                    </section>
+                  )}
+
+                  {(pin.location?.address || (pin.location?.latitude != null && pin.location?.longitude != null)) && (
+                    <section className="pin-details-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">pin_drop</span>
+                        Precise Location
+                      </h3>
+                      <div className="pin-details-location">
+                        {pin.location?.address && (
+                          <div className="location-address-row">
+                            <p className="location-address">{pin.location.address}</p>
+                          </div>
+                        )}
+                        {pin.location?.latitude != null && pin.location?.longitude != null && (
+                          <div className="location-coords">
+                            <span>LAT: {pin.location.latitude.toFixed(5)}° N</span>
+                            <span>LONG: {pin.location.longitude.toFixed(5)}° E</span>
+                          </div>
+                        )}
+                        <div className="pin-details-location-actions">
+                          {pin.location?.address && (
+                            <button
+                              type="button"
+                              className="pin-details-copy-btn"
+                              onClick={() => {
+                                let text = `Location: ${pin.location.address || '—'}`;
+                                if (pin.location.latitude != null && pin.location.longitude != null) {
+                                  text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
+                                }
+                                copyLocationToClipboard(text, 'location');
+                              }}
+                              title="Copy address and coordinates"
+                              aria-label="Copy address and coordinates"
+                            >
+                              <span className="material-icons-round">{copiedLocation === 'location' ? 'check' : 'content_copy'}</span>
+                              {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
+                            </button>
+                          )}
+                          {onViewOnMap && (pin.location?.latitude != null && pin.location?.longitude != null) && (
+                            <button
+                              type="button"
+                              className="pin-details-view-on-map-btn"
+                              onClick={() => onViewOnMap(pin)}
+                              title="Focus this pin on the map and close this panel"
+                              aria-label="View on map"
+                            >
+                              <span className="material-icons-round">map</span>
+                              View on map
+                            </button>
                           )}
                         </div>
-                        <p className="pin-details-event-title">{ev.title}</p>
-                        <Link
-                          to={`/events/${ev._id}`}
-                          className="pin-details-event-link"
-                          onClick={() => onClose()}
-                        >
-                          View full event details
-                        </Link>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
+                    </section>
+                  )}
 
-            <section className="pin-details-section pin-details-comments-section">
-              <h3 className="pin-details-section-title">
-                <span className="material-icons-round">forum</span>
-                Comments ({comments.length})
-              </h3>
-              <div className="pin-details-comments-list">
-                {comments.length === 0 ? (
-                  <p className="pin-details-no-comments">No comments yet. Be the first to comment!</p>
-                ) : (
-                  comments.map((comment) => (
-                    <div key={comment._id} className="pin-details-comment">
-                      <img
-                        alt=""
-                        className="comment-avatar"
-                        src={comment.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author)}&background=e2e8f0&color=64748b`}
-                      />
-                      <div className="comment-body">
-                        <div className="comment-header">
-                          <span className="comment-author">{comment.author}</span>
-                          <span className="comment-date">{formatDate(comment.createdAt)}</span>
+                  {(eventsLoading || scheduledEvents.length > 0) && (
+                    <section className="pin-details-section pin-details-events-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">event</span>
+                        Event scheduled for this pin
+                      </h3>
+                      {eventsLoading ? (
+                        <p className="pin-details-events-loading">Loading events...</p>
+                      ) : (
+                        <div className="pin-details-events-list">
+                          {scheduledEvents.map((ev) => (
+                            <div key={ev._id} className="pin-details-event-card">
+                              <div className="pin-details-event-meta">
+                                <span className="pin-details-event-date">{formatEventDate(ev.date)}</span>
+                                {(ev.startTime || ev.endTime || ev.durationHours) && (
+                                  <span className="pin-details-event-time">
+                                    {formatEventTime(ev.startTime, ev.endTime, ev.durationHours)}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="pin-details-event-title">{ev.title}</p>
+                              <Link
+                                to={`/events/${ev._id}`}
+                                className="pin-details-event-link"
+                                onClick={() => onClose()}
+                              >
+                                View full event details
+                              </Link>
+                            </div>
+                          ))}
                         </div>
-                        <p className="comment-text">{comment.text}</p>
-                      </div>
+                      )}
+                    </section>
+                  )}
+
+                  <section className="pin-details-section pin-details-comments-section">
+                    <h3 className="pin-details-section-title">
+                      <span className="material-icons-round">forum</span>
+                      Comments ({comments.length})
+                    </h3>
+                    <div className="pin-details-comments-list">
+                      {comments.length === 0 ? (
+                        <p className="pin-details-no-comments">No comments yet. Be the first to comment!</p>
+                      ) : (
+                        commentTree.topLevel.map((comment) => {
+                          const replies = commentTree.repliesMap[comment._id] || [];
+                          const isReplyingThis = replyingTo === comment._id;
+                          const isLoading = commentActionLoading === comment._id;
+                          return (
+                            <div key={comment._id} className="pin-details-comment-wrapper">
+                              <div className="pin-details-comment">
+                                <img
+                                  alt=""
+                                  className="comment-avatar"
+                                  src={comment.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author)}&background=e2e8f0&color=64748b`}
+                                />
+                                <div className="comment-body">
+                                  <div className="comment-header">
+                                    <span className="comment-author">{comment.author}</span>
+                                    <span className="comment-date">{formatDate(comment.createdAt)}</span>
+                                  </div>
+                                  <p className="comment-text">{comment.text}</p>
+                                  <div className="comment-actions">
+                                    <button
+                                      type="button"
+                                      className={`comment-action-btn ${comment.userLiked ? 'active' : ''}`}
+                                      onClick={() => handleCommentLike(comment._id)}
+                                      disabled={!userId || isLoading}
+                                      title="Like"
+                                    >
+                                      <span className="material-icons-round">thumb_up</span>
+                                      <span className="comment-action-count">{comment.likes || 0}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className={`comment-action-btn ${comment.userDisliked ? 'active' : ''}`}
+                                      onClick={() => handleCommentDislike(comment._id)}
+                                      disabled={!userId || isLoading}
+                                      title="Dislike"
+                                    >
+                                      <span className="material-icons-round">thumb_down</span>
+                                      <span className="comment-action-count">{comment.dislikes || 0}</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="comment-action-btn"
+                                      onClick={() => setReplyingTo(isReplyingThis ? null : comment._id)}
+                                      disabled={!userId}
+                                      title="Reply"
+                                    >
+                                      <span className="material-icons-round">reply</span>
+                                      Reply
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                              {isReplyingThis && (
+                                <form
+                                  className="pin-details-reply-form"
+                                  onSubmit={handleReplySubmit}
+                                >
+                                  <textarea
+                                    placeholder={`Reply to ${comment.author}...`}
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    rows={2}
+                                    className="pin-details-textarea pin-details-reply-textarea"
+                                    autoFocus
+                                  />
+                                  <div className="pin-details-reply-actions">
+                                    <button
+                                      type="submit"
+                                      disabled={commentActionLoading === comment._id || !replyText.trim()}
+                                      className="pin-details-post-btn pin-details-reply-submit"
+                                    >
+                                      Reply
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="pin-details-reply-cancel"
+                                      onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </form>
+                              )}
+                              {replies.length > 0 && (
+                                <div className="pin-details-replies">
+                                  {replies.map((reply) => {
+                                    const replyIsReplying = replyingTo === reply._id;
+                                    const replyLoading = commentActionLoading === reply._id;
+                                    const replyReplies = commentTree.repliesMap[reply._id] || [];
+                                    return (
+                                      <div key={reply._id} className="pin-details-reply-block">
+                                        <div className="pin-details-comment pin-details-comment-reply">
+                                          <img
+                                            alt=""
+                                            className="comment-avatar"
+                                            src={reply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author)}&background=e2e8f0&color=64748b`}
+                                          />
+                                          <div className="comment-body">
+                                            <div className="comment-header">
+                                              <span className="comment-author">{reply.author}</span>
+                                              <span className="comment-date">{formatDate(reply.createdAt)}</span>
+                                            </div>
+                                            <p className="comment-text">{reply.text}</p>
+                                            <div className="comment-actions">
+                                              <button
+                                                type="button"
+                                                className={`comment-action-btn ${reply.userLiked ? 'active' : ''}`}
+                                                onClick={() => handleCommentLike(reply._id)}
+                                                disabled={!userId || replyLoading}
+                                                title="Like"
+                                              >
+                                                <span className="material-icons-round">thumb_up</span>
+                                                <span className="comment-action-count">{reply.likes || 0}</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className={`comment-action-btn ${reply.userDisliked ? 'active' : ''}`}
+                                                onClick={() => handleCommentDislike(reply._id)}
+                                                disabled={!userId || replyLoading}
+                                                title="Dislike"
+                                              >
+                                                <span className="material-icons-round">thumb_down</span>
+                                                <span className="comment-action-count">{reply.dislikes || 0}</span>
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="comment-action-btn"
+                                                onClick={() => setReplyingTo(replyIsReplying ? null : reply._id)}
+                                                disabled={!userId}
+                                                title="Reply"
+                                              >
+                                                <span className="material-icons-round">reply</span>
+                                                Reply
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                        {replyIsReplying && (
+                                          <form
+                                            className="pin-details-reply-form pin-details-reply-form-nested"
+                                            onSubmit={handleReplySubmit}
+                                          >
+                                            <textarea
+                                              placeholder={`Reply to ${reply.author}...`}
+                                              value={replyText}
+                                              onChange={(e) => setReplyText(e.target.value)}
+                                              rows={2}
+                                              className="pin-details-textarea pin-details-reply-textarea"
+                                              autoFocus
+                                            />
+                                            <div className="pin-details-reply-actions">
+                                              <button
+                                                type="submit"
+                                                disabled={commentActionLoading === reply._id || !replyText.trim()}
+                                                className="pin-details-post-btn pin-details-reply-submit"
+                                              >
+                                                Reply
+                                              </button>
+                                              <button
+                                                type="button"
+                                                className="pin-details-reply-cancel"
+                                                onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                              >
+                                                Cancel
+                                              </button>
+                                            </div>
+                                          </form>
+                                        )}
+                                        {(() => {
+                                          const flatDeepReplies = replyReplies.flatMap((nr) =>
+                                            flattenDeepReplies(nr._id, nr.text, commentTree.repliesMap)
+                                          );
+                                          const replyingToDeep = replyingTo
+                                            ? flatDeepReplies.find((r) => r._id === replyingTo) || null
+                                            : null;
+                                          const showNestedSection = replyReplies.length > 0 || flatDeepReplies.length > 0;
+                                          if (!showNestedSection) return null;
+                                          return (
+                                            <div className="pin-details-replies pin-details-replies-nested">
+                                              {replyReplies.map((nestedReply) => {
+                                                const nestedLoading = commentActionLoading === nestedReply._id;
+                                                return (
+                                                  <div key={nestedReply._id} className="pin-details-comment pin-details-comment-reply pin-details-comment-nested">
+                                                    <img
+                                                      alt=""
+                                                      className="comment-avatar"
+                                                      src={nestedReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(nestedReply.author)}&background=e2e8f0&color=64748b`}
+                                                    />
+                                                    <div className="comment-body">
+                                                      <div className="comment-header">
+                                                        <span className="comment-author">{nestedReply.author}</span>
+                                                        <span className="comment-date">{formatDate(nestedReply.createdAt)}</span>
+                                                      </div>
+                                                      <p className="comment-text">{nestedReply.text}</p>
+                                                      <div className="comment-actions">
+                                                        <button
+                                                          type="button"
+                                                          className={`comment-action-btn ${nestedReply.userLiked ? 'active' : ''}`}
+                                                          onClick={() => handleCommentLike(nestedReply._id)}
+                                                          disabled={!userId || nestedLoading}
+                                                          title="Like"
+                                                        >
+                                                          <span className="material-icons-round">thumb_up</span>
+                                                          <span className="comment-action-count">{nestedReply.likes || 0}</span>
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          className={`comment-action-btn ${nestedReply.userDisliked ? 'active' : ''}`}
+                                                          onClick={() => handleCommentDislike(nestedReply._id)}
+                                                          disabled={!userId || nestedLoading}
+                                                          title="Dislike"
+                                                        >
+                                                          <span className="material-icons-round">thumb_down</span>
+                                                          <span className="comment-action-count">{nestedReply.dislikes || 0}</span>
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          className="comment-action-btn"
+                                                          onClick={() => setReplyingTo(replyingTo === nestedReply._id ? null : nestedReply._id)}
+                                                          disabled={!userId}
+                                                          title="Reply"
+                                                        >
+                                                          <span className="material-icons-round">reply</span>
+                                                          Reply
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+
+                                              {/* ── Level 4+ replies: flattened at level 3 ── */}
+                                              {flatDeepReplies.map((deepReply) => {
+                                                const deepLoading = commentActionLoading === deepReply._id;
+                                                return (
+                                                  <div key={deepReply._id} className="pin-details-comment pin-details-comment-reply pin-details-comment-nested">
+                                                    <img
+                                                      alt=""
+                                                      className="comment-avatar"
+                                                      src={deepReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(deepReply.author)}&background=e2e8f0&color=64748b`}
+                                                    />
+                                                    <div className="comment-body">
+                                                      <div className="comment-header">
+                                                        <span className="comment-author">{deepReply.author}</span>
+                                                        <span className="comment-reply-to" title={deepReply.replyingToText}>Replied to "{truncateReplyText(deepReply.replyingToText)}"</span>
+                                                        <span className="comment-date">{formatDate(deepReply.createdAt)}</span>
+                                                      </div>
+                                                      <p className="comment-text">{deepReply.text}</p>
+                                                      <div className="comment-actions">
+                                                        <button
+                                                          type="button"
+                                                          className={`comment-action-btn ${deepReply.userLiked ? 'active' : ''}`}
+                                                          onClick={() => handleCommentLike(deepReply._id)}
+                                                          disabled={!userId || deepLoading}
+                                                          title="Like"
+                                                        >
+                                                          <span className="material-icons-round">thumb_up</span>
+                                                          <span className="comment-action-count">{deepReply.likes || 0}</span>
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          className={`comment-action-btn ${deepReply.userDisliked ? 'active' : ''}`}
+                                                          onClick={() => handleCommentDislike(deepReply._id)}
+                                                          disabled={!userId || deepLoading}
+                                                          title="Dislike"
+                                                        >
+                                                          <span className="material-icons-round">thumb_down</span>
+                                                          <span className="comment-action-count">{deepReply.dislikes || 0}</span>
+                                                        </button>
+                                                        <button
+                                                          type="button"
+                                                          className="comment-action-btn"
+                                                          onClick={() => setReplyingTo(replyingTo === deepReply._id ? null : deepReply._id)}
+                                                          disabled={!userId}
+                                                          title="Reply"
+                                                        >
+                                                          <span className="material-icons-round">reply</span>
+                                                          Reply
+                                                        </button>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+
+                                              {/* ── Unified reply form: handles level-3 and level-4+ targets ── */}
+                                              {replyingTo && (replyReplies.some((r) => r._id === replyingTo) || replyingToDeep) && (
+                                                <form
+                                                  className="pin-details-reply-form pin-details-reply-form-nested"
+                                                  onSubmit={handleReplySubmit}
+                                                >
+                                                  {replyingToDeep && (
+                                                    <div className="pin-details-reply-context" title={replyingToDeep.text}>
+                                                      <span className="material-icons-round">reply</span>
+                                                      Replying to "{truncateReplyText(replyingToDeep.text)}"
+                                                    </div>
+                                                  )}
+                                                  <textarea
+                                                    placeholder="Write a reply..."
+                                                    value={replyText}
+                                                    onChange={(e) => setReplyText(e.target.value)}
+                                                    rows={2}
+                                                    className="pin-details-textarea pin-details-reply-textarea"
+                                                    autoFocus
+                                                  />
+                                                  <div className="pin-details-reply-actions">
+                                                    <button type="submit" disabled={!replyText.trim()} className="pin-details-post-btn pin-details-reply-submit">Reply</button>
+                                                    <button type="button" className="pin-details-reply-cancel" onClick={() => { setReplyingTo(null); setReplyText(''); }}>Cancel</button>
+                                                  </div>
+                                                </form>
+                                              )}
+                                            </div>
+                                          );
+                                        })()}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
-            </section>
+                  </section>
 
-            {(user?.role === 'admin' || pin.contributor_id === user?.id) && (
-              <div className="pin-details-bottom-actions">
-                <button
-                  type="button"
-                  className="pin-details-btn pin-details-btn-edit"
-                  onClick={startEditing}
-                  disabled={savingEdit}
-                  title="Edit"
-                >
-                  <span className="material-icons-round">edit</span>
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="pin-details-btn pin-details-btn-danger"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  title="Delete"
-                >
-                  <span className="material-icons-round">delete</span>
-                  {deleting ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
-            )}
-              </>
-            )}
-          </main>
+                  {(user?.role === 'admin' || pin.contributor_id === user?.id) && (
+                    <div className="pin-details-bottom-actions">
+                      <button
+                        type="button"
+                        className="pin-details-btn pin-details-btn-edit"
+                        onClick={startEditing}
+                        disabled={savingEdit}
+                        title="Edit"
+                      >
+                        <span className="material-icons-round">edit</span>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="pin-details-btn pin-details-btn-danger"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        title="Delete"
+                      >
+                        <span className="material-icons-round">delete</span>
+                        {deleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </main>
 
-          {!isEditing && (
-          <footer className="pin-details-footer">
-            <p className="pin-details-footer-label">
-              Posting as <span className="primary-text">{displayName}</span>
-            </p>
-            <form onSubmit={handleCommentSubmit} className="pin-details-comment-form">
-              <textarea
-                placeholder="Add a comment..."
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                rows={2}
-                className="pin-details-textarea"
-              />
-              <button
-                type="submit"
-                disabled={loading || !newComment.trim()}
-                className="pin-details-post-btn"
-              >
-                Post Note
-              </button>
-            </form>
-          </footer>
-          )}
+            {!isEditing && (
+              <footer className="pin-details-footer">
+                <p className="pin-details-footer-label">
+                  Posting as <span className="primary-text">{displayName}</span>
+                </p>
+                <form onSubmit={handleCommentSubmit} className="pin-details-comment-form">
+                  <textarea
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    rows={2}
+                    className="pin-details-textarea"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading || !newComment.trim()}
+                    className="pin-details-post-btn"
+                  >
+                    Post Note
+                  </button>
+                </form>
+              </footer>
+            )}
           </div>
           {nextPin && (
             <button

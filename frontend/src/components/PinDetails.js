@@ -70,6 +70,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const [savingEdit, setSavingEdit] = useState(false);
   const [compressingNewImages, setCompressingNewImages] = useState(false);
   const [copiedLocation, setCopiedLocation] = useState(null);
+  const [expandedReplies, setExpandedReplies] = useState(new Set());
   const editFileInputRef = useRef(null);
 
   useEffect(() => {
@@ -939,332 +940,372 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                     </section>
                   )}
 
-                  <section className="pin-details-section pin-details-comments-section">
-                    <h3 className="pin-details-section-title">
+                  <section className="yt-comments-section">
+                    <h3 className="yt-comments-title">
                       <span className="material-icons-round">forum</span>
-                      Comments ({comments.length})
+                      {comments.length} Comments
                     </h3>
-                    <div className="pin-details-comments-list">
+                    <div className="yt-comments-list">
                       {comments.length === 0 ? (
-                        <p className="pin-details-no-comments">No comments yet. Be the first to comment!</p>
+                        <p className="yt-no-comments">No comments yet. Be the first to comment!</p>
                       ) : (
                         commentTree.topLevel.map((comment) => {
                           const replies = commentTree.repliesMap[comment._id] || [];
                           const isReplyingThis = replyingTo === comment._id;
                           const isLoading = commentActionLoading === comment._id;
+                          const isExpanded = expandedReplies.has(comment._id);
+                          const toggleReplies = () =>
+                            setExpandedReplies((prev) => {
+                              const next = new Set(prev);
+                              if (next.has(comment._id)) next.delete(comment._id);
+                              else next.add(comment._id);
+                              return next;
+                            });
+
                           return (
-                            <div key={comment._id} className="pin-details-comment-wrapper">
-                              <div className="pin-details-comment">
+                            <div key={comment._id} className="yt-comment-thread">
+                              {/* Top-level comment */}
+                              <div className="yt-comment">
                                 <img
                                   alt=""
-                                  className="comment-avatar"
+                                  className="yt-avatar yt-avatar-lg"
                                   src={comment.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author)}&background=e2e8f0&color=64748b`}
                                 />
-                                <div className="comment-body">
-                                  <div className="comment-header">
-                                    <span className="comment-author">{comment.author}</span>
-                                    <span className="comment-date">{formatDate(comment.createdAt)}</span>
+                                <div className="yt-comment-content">
+                                  <div className="yt-comment-meta">
+                                    <span className="yt-comment-author">{comment.author}</span>
+                                    <span className="yt-comment-date">{formatDate(comment.createdAt)}</span>
                                   </div>
-                                  <p className="comment-text">{comment.text}</p>
-                                  <div className="comment-actions">
+                                  <p className="yt-comment-text">{comment.text}</p>
+                                  <div className="yt-comment-actions">
                                     <button
                                       type="button"
-                                      className={`comment-action-btn ${comment.userLiked ? 'active' : ''}`}
+                                      className={`yt-action-btn ${comment.userLiked ? 'active' : ''}`}
                                       onClick={() => handleCommentLike(comment._id)}
                                       disabled={!userId || isLoading}
                                       title="Like"
                                     >
                                       <span className="material-icons-round">thumb_up</span>
-                                      <span className="comment-action-count">{comment.likes || 0}</span>
+                                      {comment.likes > 0 && <span className="yt-action-count">{comment.likes}</span>}
                                     </button>
                                     <button
                                       type="button"
-                                      className={`comment-action-btn ${comment.userDisliked ? 'active' : ''}`}
+                                      className={`yt-action-btn ${comment.userDisliked ? 'active' : ''}`}
                                       onClick={() => handleCommentDislike(comment._id)}
                                       disabled={!userId || isLoading}
                                       title="Dislike"
                                     >
                                       <span className="material-icons-round">thumb_down</span>
-                                      <span className="comment-action-count">{comment.dislikes || 0}</span>
                                     </button>
                                     <button
                                       type="button"
-                                      className="comment-action-btn"
+                                      className="yt-reply-btn"
                                       onClick={() => setReplyingTo(isReplyingThis ? null : comment._id)}
                                       disabled={!userId}
-                                      title="Reply"
                                     >
-                                      <span className="material-icons-round">reply</span>
                                       Reply
                                     </button>
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Reply form for top-level */}
                               {isReplyingThis && (
-                                <form
-                                  className="pin-details-reply-form"
-                                  onSubmit={handleReplySubmit}
-                                >
-                                  <textarea
-                                    placeholder={`Reply to ${comment.author}...`}
-                                    value={replyText}
-                                    onChange={(e) => setReplyText(e.target.value)}
-                                    rows={2}
-                                    className="pin-details-textarea pin-details-reply-textarea"
-                                    autoFocus
+                                <div className="yt-reply-form-wrap">
+                                  <img
+                                    alt=""
+                                    className="yt-avatar yt-avatar-sm"
+                                    src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`}
                                   />
-                                  <div className="pin-details-reply-actions">
-                                    <button
-                                      type="submit"
-                                      disabled={commentActionLoading === comment._id || !replyText.trim()}
-                                      className="pin-details-post-btn pin-details-reply-submit"
-                                    >
-                                      Reply
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="pin-details-reply-cancel"
-                                      onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </form>
+                                  <form className="yt-reply-form" onSubmit={handleReplySubmit}>
+                                    <textarea
+                                      placeholder={`Reply to ${comment.author}...`}
+                                      value={replyText}
+                                      onChange={(e) => setReplyText(e.target.value)}
+                                      rows={1}
+                                      className="yt-reply-textarea"
+                                      autoFocus
+                                    />
+                                    <div className="yt-reply-form-actions">
+                                      <button
+                                        type="button"
+                                        className="yt-form-cancel-btn"
+                                        onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                      >
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="submit"
+                                        disabled={commentActionLoading === comment._id || !replyText.trim()}
+                                        className="yt-form-submit-btn"
+                                      >
+                                        Reply
+                                      </button>
+                                    </div>
+                                  </form>
+                                </div>
                               )}
+
+                              {/* Replies toggle + replies */}
                               {replies.length > 0 && (
-                                <div className="pin-details-replies">
-                                  {replies.map((reply) => {
-                                    const replyIsReplying = replyingTo === reply._id;
-                                    const replyLoading = commentActionLoading === reply._id;
-                                    const replyReplies = commentTree.repliesMap[reply._id] || [];
-                                    return (
-                                      <div key={reply._id} className="pin-details-reply-block">
-                                        <div className="pin-details-comment pin-details-comment-reply">
-                                          <img
-                                            alt=""
-                                            className="comment-avatar"
-                                            src={reply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author)}&background=e2e8f0&color=64748b`}
-                                          />
-                                          <div className="comment-body">
-                                            <div className="comment-header">
-                                              <span className="comment-author">{reply.author}</span>
-                                              <span className="comment-date">{formatDate(reply.createdAt)}</span>
-                                            </div>
-                                            <p className="comment-text">{reply.text}</p>
-                                            <div className="comment-actions">
-                                              <button
-                                                type="button"
-                                                className={`comment-action-btn ${reply.userLiked ? 'active' : ''}`}
-                                                onClick={() => handleCommentLike(reply._id)}
-                                                disabled={!userId || replyLoading}
-                                                title="Like"
-                                              >
-                                                <span className="material-icons-round">thumb_up</span>
-                                                <span className="comment-action-count">{reply.likes || 0}</span>
-                                              </button>
-                                              <button
-                                                type="button"
-                                                className={`comment-action-btn ${reply.userDisliked ? 'active' : ''}`}
-                                                onClick={() => handleCommentDislike(reply._id)}
-                                                disabled={!userId || replyLoading}
-                                                title="Dislike"
-                                              >
-                                                <span className="material-icons-round">thumb_down</span>
-                                                <span className="comment-action-count">{reply.dislikes || 0}</span>
-                                              </button>
-                                              <button
-                                                type="button"
-                                                className="comment-action-btn"
-                                                onClick={() => setReplyingTo(replyIsReplying ? null : reply._id)}
-                                                disabled={!userId}
-                                                title="Reply"
-                                              >
-                                                <span className="material-icons-round">reply</span>
-                                                Reply
-                                              </button>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        {replyIsReplying && (
-                                          <form
-                                            className="pin-details-reply-form pin-details-reply-form-nested"
-                                            onSubmit={handleReplySubmit}
-                                          >
-                                            <textarea
-                                              placeholder={`Reply to ${reply.author}...`}
-                                              value={replyText}
-                                              onChange={(e) => setReplyText(e.target.value)}
-                                              rows={2}
-                                              className="pin-details-textarea pin-details-reply-textarea"
-                                              autoFocus
-                                            />
-                                            <div className="pin-details-reply-actions">
-                                              <button
-                                                type="submit"
-                                                disabled={commentActionLoading === reply._id || !replyText.trim()}
-                                                className="pin-details-post-btn pin-details-reply-submit"
-                                              >
-                                                Reply
-                                              </button>
-                                              <button
-                                                type="button"
-                                                className="pin-details-reply-cancel"
-                                                onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                              >
-                                                Cancel
-                                              </button>
-                                            </div>
-                                          </form>
-                                        )}
-                                        {(() => {
-                                          const flatDeepReplies = replyReplies.flatMap((nr) =>
-                                            flattenDeepReplies(nr._id, nr.text, commentTree.repliesMap)
-                                          );
-                                          const replyingToDeep = replyingTo
-                                            ? flatDeepReplies.find((r) => r._id === replyingTo) || null
-                                            : null;
-                                          const showNestedSection = replyReplies.length > 0 || flatDeepReplies.length > 0;
-                                          if (!showNestedSection) return null;
-                                          return (
-                                            <div className="pin-details-replies pin-details-replies-nested">
-                                              {replyReplies.map((nestedReply) => {
-                                                const nestedLoading = commentActionLoading === nestedReply._id;
-                                                return (
-                                                  <div key={nestedReply._id} className="pin-details-comment pin-details-comment-reply pin-details-comment-nested">
-                                                    <img
-                                                      alt=""
-                                                      className="comment-avatar"
-                                                      src={nestedReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(nestedReply.author)}&background=e2e8f0&color=64748b`}
-                                                    />
-                                                    <div className="comment-body">
-                                                      <div className="comment-header">
-                                                        <span className="comment-author">{nestedReply.author}</span>
-                                                        <span className="comment-date">{formatDate(nestedReply.createdAt)}</span>
-                                                      </div>
-                                                      <p className="comment-text">{nestedReply.text}</p>
-                                                      <div className="comment-actions">
-                                                        <button
-                                                          type="button"
-                                                          className={`comment-action-btn ${nestedReply.userLiked ? 'active' : ''}`}
-                                                          onClick={() => handleCommentLike(nestedReply._id)}
-                                                          disabled={!userId || nestedLoading}
-                                                          title="Like"
-                                                        >
-                                                          <span className="material-icons-round">thumb_up</span>
-                                                          <span className="comment-action-count">{nestedReply.likes || 0}</span>
-                                                        </button>
-                                                        <button
-                                                          type="button"
-                                                          className={`comment-action-btn ${nestedReply.userDisliked ? 'active' : ''}`}
-                                                          onClick={() => handleCommentDislike(nestedReply._id)}
-                                                          disabled={!userId || nestedLoading}
-                                                          title="Dislike"
-                                                        >
-                                                          <span className="material-icons-round">thumb_down</span>
-                                                          <span className="comment-action-count">{nestedReply.dislikes || 0}</span>
-                                                        </button>
-                                                        <button
-                                                          type="button"
-                                                          className="comment-action-btn"
-                                                          onClick={() => setReplyingTo(replyingTo === nestedReply._id ? null : nestedReply._id)}
-                                                          disabled={!userId}
-                                                          title="Reply"
-                                                        >
-                                                          <span className="material-icons-round">reply</span>
-                                                          Reply
-                                                        </button>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              })}
+                                <div className="yt-replies-section">
+                                  <button className="yt-toggle-replies-btn" onClick={toggleReplies}>
+                                    <span className="material-icons-round">
+                                      {isExpanded ? 'expand_less' : 'expand_more'}
+                                    </span>
+                                    {isExpanded ? 'Hide replies' : `View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`}
+                                  </button>
 
-                                              {/* ── Level 4+ replies: flattened at level 3 ── */}
-                                              {flatDeepReplies.map((deepReply) => {
-                                                const deepLoading = commentActionLoading === deepReply._id;
-                                                return (
-                                                  <div key={deepReply._id} className="pin-details-comment pin-details-comment-reply pin-details-comment-nested">
-                                                    <img
-                                                      alt=""
-                                                      className="comment-avatar"
-                                                      src={deepReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(deepReply.author)}&background=e2e8f0&color=64748b`}
-                                                    />
-                                                    <div className="comment-body">
-                                                      <div className="comment-header">
-                                                        <span className="comment-author">{deepReply.author}</span>
-                                                        <span className="comment-reply-to" title={deepReply.replyingToText}>Replied to "{truncateReplyText(deepReply.replyingToText)}"</span>
-                                                        <span className="comment-date">{formatDate(deepReply.createdAt)}</span>
-                                                      </div>
-                                                      <p className="comment-text">{deepReply.text}</p>
-                                                      <div className="comment-actions">
-                                                        <button
-                                                          type="button"
-                                                          className={`comment-action-btn ${deepReply.userLiked ? 'active' : ''}`}
-                                                          onClick={() => handleCommentLike(deepReply._id)}
-                                                          disabled={!userId || deepLoading}
-                                                          title="Like"
-                                                        >
-                                                          <span className="material-icons-round">thumb_up</span>
-                                                          <span className="comment-action-count">{deepReply.likes || 0}</span>
-                                                        </button>
-                                                        <button
-                                                          type="button"
-                                                          className={`comment-action-btn ${deepReply.userDisliked ? 'active' : ''}`}
-                                                          onClick={() => handleCommentDislike(deepReply._id)}
-                                                          disabled={!userId || deepLoading}
-                                                          title="Dislike"
-                                                        >
-                                                          <span className="material-icons-round">thumb_down</span>
-                                                          <span className="comment-action-count">{deepReply.dislikes || 0}</span>
-                                                        </button>
-                                                        <button
-                                                          type="button"
-                                                          className="comment-action-btn"
-                                                          onClick={() => setReplyingTo(replyingTo === deepReply._id ? null : deepReply._id)}
-                                                          disabled={!userId}
-                                                          title="Reply"
-                                                        >
-                                                          <span className="material-icons-round">reply</span>
-                                                          Reply
-                                                        </button>
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                );
-                                              })}
+                                  {isExpanded && (
+                                    <div className="yt-replies-list">
+                                      {replies.map((reply) => {
+                                        const replyIsReplying = replyingTo === reply._id;
+                                        const replyLoading = commentActionLoading === reply._id;
+                                        const replyReplies = commentTree.repliesMap[reply._id] || [];
 
-                                              {/* ── Unified reply form: handles level-3 and level-4+ targets ── */}
-                                              {replyingTo && (replyReplies.some((r) => r._id === replyingTo) || replyingToDeep) && (
-                                                <form
-                                                  className="pin-details-reply-form pin-details-reply-form-nested"
-                                                  onSubmit={handleReplySubmit}
-                                                >
-                                                  {replyingToDeep && (
-                                                    <div className="pin-details-reply-context" title={replyingToDeep.text}>
-                                                      <span className="material-icons-round">reply</span>
-                                                      Replying to "{truncateReplyText(replyingToDeep.text)}"
-                                                    </div>
-                                                  )}
+                                        // Flatten level 3+ replies
+                                        const flatDeepReplies = replyReplies.flatMap((nr) =>
+                                          flattenDeepReplies(nr._id, nr.text, commentTree.repliesMap)
+                                        );
+                                        const replyingToDeep = replyingTo
+                                          ? flatDeepReplies.find((r) => r._id === replyingTo) || null
+                                          : null;
+
+                                        return (
+                                          <div key={reply._id} className="yt-reply-thread">
+                                            {/* Level 1 reply */}
+                                            <div className="yt-comment yt-reply">
+                                              <img
+                                                alt=""
+                                                className="yt-avatar yt-avatar-sm"
+                                                src={reply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author)}&background=e2e8f0&color=64748b`}
+                                              />
+                                              <div className="yt-comment-content">
+                                                <div className="yt-comment-meta">
+                                                  <span className="yt-comment-author">{reply.author}</span>
+                                                  <span className="yt-comment-date">{formatDate(reply.createdAt)}</span>
+                                                </div>
+                                                <p className="yt-comment-text">{reply.text}</p>
+                                                <div className="yt-comment-actions">
+                                                  <button
+                                                    type="button"
+                                                    className={`yt-action-btn ${reply.userLiked ? 'active' : ''}`}
+                                                    onClick={() => handleCommentLike(reply._id)}
+                                                    disabled={!userId || replyLoading}
+                                                    title="Like"
+                                                  >
+                                                    <span className="material-icons-round">thumb_up</span>
+                                                    {reply.likes > 0 && <span className="yt-action-count">{reply.likes}</span>}
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    className={`yt-action-btn ${reply.userDisliked ? 'active' : ''}`}
+                                                    onClick={() => handleCommentDislike(reply._id)}
+                                                    disabled={!userId || replyLoading}
+                                                    title="Dislike"
+                                                  >
+                                                    <span className="material-icons-round">thumb_down</span>
+                                                  </button>
+                                                  <button
+                                                    type="button"
+                                                    className="yt-reply-btn"
+                                                    onClick={() => setReplyingTo(replyIsReplying ? null : reply._id)}
+                                                    disabled={!userId}
+                                                  >
+                                                    Reply
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            {/* Reply form for level 1 */}
+                                            {replyIsReplying && (
+                                              <div className="yt-reply-form-wrap yt-reply-form-wrap-nested">
+                                                <img
+                                                  alt=""
+                                                  className="yt-avatar yt-avatar-sm"
+                                                  src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`}
+                                                />
+                                                <form className="yt-reply-form" onSubmit={handleReplySubmit}>
                                                   <textarea
-                                                    placeholder="Write a reply..."
+                                                    placeholder={`Reply to ${reply.author}...`}
                                                     value={replyText}
                                                     onChange={(e) => setReplyText(e.target.value)}
-                                                    rows={2}
-                                                    className="pin-details-textarea pin-details-reply-textarea"
+                                                    rows={1}
+                                                    className="yt-reply-textarea"
                                                     autoFocus
                                                   />
-                                                  <div className="pin-details-reply-actions">
-                                                    <button type="submit" disabled={!replyText.trim()} className="pin-details-post-btn pin-details-reply-submit">Reply</button>
-                                                    <button type="button" className="pin-details-reply-cancel" onClick={() => { setReplyingTo(null); setReplyText(''); }}>Cancel</button>
+                                                  <div className="yt-reply-form-actions">
+                                                    <button
+                                                      type="button"
+                                                      className="yt-form-cancel-btn"
+                                                      onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                                    >
+                                                      Cancel
+                                                    </button>
+                                                    <button
+                                                      type="submit"
+                                                      disabled={commentActionLoading === reply._id || !replyText.trim()}
+                                                      className="yt-form-submit-btn"
+                                                    >
+                                                      Reply
+                                                    </button>
                                                   </div>
                                                 </form>
-                                              )}
-                                            </div>
-                                          );
-                                        })()}
-                                      </div>
-                                    );
-                                  })}
+                                              </div>
+                                            )}
+
+                                            {/* Level 2+ replies (nested, all flattened at same indent) */}
+                                            {(replyReplies.length > 0 || flatDeepReplies.length > 0) && (
+                                              <div className="yt-deep-replies-list">
+                                                {replyReplies.map((nestedReply) => {
+                                                  const nestedLoading = commentActionLoading === nestedReply._id;
+                                                  return (
+                                                    <div key={nestedReply._id} className="yt-comment yt-reply">
+                                                      <img
+                                                        alt=""
+                                                        className="yt-avatar yt-avatar-sm"
+                                                        src={nestedReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(nestedReply.author)}&background=e2e8f0&color=64748b`}
+                                                      />
+                                                      <div className="yt-comment-content">
+                                                        <div className="yt-comment-meta">
+                                                          <span className="yt-comment-author">{nestedReply.author}</span>
+                                                          <span className="yt-comment-date">{formatDate(nestedReply.createdAt)}</span>
+                                                        </div>
+                                                        <p className="yt-comment-text">{nestedReply.text}</p>
+                                                        <div className="yt-comment-actions">
+                                                          <button
+                                                            type="button"
+                                                            className={`yt-action-btn ${nestedReply.userLiked ? 'active' : ''}`}
+                                                            onClick={() => handleCommentLike(nestedReply._id)}
+                                                            disabled={!userId || nestedLoading}
+                                                            title="Like"
+                                                          >
+                                                            <span className="material-icons-round">thumb_up</span>
+                                                            {nestedReply.likes > 0 && <span className="yt-action-count">{nestedReply.likes}</span>}
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            className={`yt-action-btn ${nestedReply.userDisliked ? 'active' : ''}`}
+                                                            onClick={() => handleCommentDislike(nestedReply._id)}
+                                                            disabled={!userId || nestedLoading}
+                                                            title="Dislike"
+                                                          >
+                                                            <span className="material-icons-round">thumb_down</span>
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            className="yt-reply-btn"
+                                                            onClick={() => setReplyingTo(replyingTo === nestedReply._id ? null : nestedReply._id)}
+                                                            disabled={!userId}
+                                                          >
+                                                            Reply
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
+
+                                                {/* Level 4+ deep replies */}
+                                                {flatDeepReplies.map((deepReply) => {
+                                                  const deepLoading = commentActionLoading === deepReply._id;
+                                                  return (
+                                                    <div key={deepReply._id} className="yt-comment yt-reply">
+                                                      <img
+                                                        alt=""
+                                                        className="yt-avatar yt-avatar-sm"
+                                                        src={deepReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(deepReply.author)}&background=e2e8f0&color=64748b`}
+                                                      />
+                                                      <div className="yt-comment-content">
+                                                        <div className="yt-comment-meta">
+                                                          <span className="yt-comment-author">{deepReply.author}</span>
+                                                          <span className="yt-comment-date">{formatDate(deepReply.createdAt)}</span>
+                                                        </div>
+                                                        <p className="yt-comment-text">{deepReply.text}</p>
+                                                        <div className="yt-comment-actions">
+                                                          <button
+                                                            type="button"
+                                                            className={`yt-action-btn ${deepReply.userLiked ? 'active' : ''}`}
+                                                            onClick={() => handleCommentLike(deepReply._id)}
+                                                            disabled={!userId || deepLoading}
+                                                            title="Like"
+                                                          >
+                                                            <span className="material-icons-round">thumb_up</span>
+                                                            {deepReply.likes > 0 && <span className="yt-action-count">{deepReply.likes}</span>}
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            className={`yt-action-btn ${deepReply.userDisliked ? 'active' : ''}`}
+                                                            onClick={() => handleCommentDislike(deepReply._id)}
+                                                            disabled={!userId || deepLoading}
+                                                            title="Dislike"
+                                                          >
+                                                            <span className="material-icons-round">thumb_down</span>
+                                                          </button>
+                                                          <button
+                                                            type="button"
+                                                            className="yt-reply-btn"
+                                                            onClick={() => setReplyingTo(replyingTo === deepReply._id ? null : deepReply._id)}
+                                                            disabled={!userId}
+                                                          >
+                                                            Reply
+                                                          </button>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  );
+                                                })}
+
+                                                {/* Unified reply form for level 2+ */}
+                                                {replyingTo && (replyReplies.some((r) => r._id === replyingTo) || replyingToDeep) && (
+                                                  <div className="yt-reply-form-wrap yt-reply-form-wrap-nested">
+                                                    <img
+                                                      alt=""
+                                                      className="yt-avatar yt-avatar-sm"
+                                                      src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`}
+                                                    />
+                                                    <form className="yt-reply-form" onSubmit={handleReplySubmit}>
+                                                      {replyingToDeep && (
+                                                        <div className="yt-reply-context">
+                                                          <span className="material-icons-round">reply</span>
+                                                          Replying to "{truncateReplyText(replyingToDeep.text)}"
+                                                        </div>
+                                                      )}
+                                                      <textarea
+                                                        placeholder="Write a reply..."
+                                                        value={replyText}
+                                                        onChange={(e) => setReplyText(e.target.value)}
+                                                        rows={1}
+                                                        className="yt-reply-textarea"
+                                                        autoFocus
+                                                      />
+                                                      <div className="yt-reply-form-actions">
+                                                        <button
+                                                          type="button"
+                                                          className="yt-form-cancel-btn"
+                                                          onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                                        >
+                                                          Cancel
+                                                        </button>
+                                                        <button
+                                                          type="submit"
+                                                          disabled={!replyText.trim()}
+                                                          className="yt-form-submit-btn"
+                                                        >
+                                                          Reply
+                                                        </button>
+                                                      </div>
+                                                    </form>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>

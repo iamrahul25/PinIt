@@ -9,6 +9,7 @@ frontend/.env
 
 # Rule file
 .agent
+.cursor
 
 # Gitignore file
 .gitignore

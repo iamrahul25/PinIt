@@ -18,30 +18,71 @@ const SCORES = {
 };
 
 /**
- * GET /api/leaderboard/weekly
- * Returns ALL users ranked by their score for the current week (Mon–Sun).
- * Users with 0 contributions still appear, ranked below active contributors.
+ * Compute the [start, end) date window for a given period.
+ * Uses the requester's timezone offset for daily/weekly so "today" matches local date (fixes IST/UTC mismatch).
+ * @param {'daily'|'weekly'|'monthly'|'yearly'} period
+ * @param {number} [tzOffsetMinutes] - Timezone offset in minutes (e.g. 330 for IST). If omitted, falls back to UTC.
+ * @returns {{ periodStart: Date, periodEnd: Date }}
+ */
+function getPeriodWindow(period, tzOffsetMinutes = 0) {
+    const now = new Date();
+    // "Now" in the user's local timezone for date-boundary calculations
+    const localNow = new Date(now.getTime() + tzOffsetMinutes * 60 * 1000);
+    const y = localNow.getUTCFullYear();
+    const m = localNow.getUTCMonth();
+    const d = localNow.getUTCDate();
+    const dow = localNow.getUTCDay();
+    let periodStart, periodEnd;
+
+    if (period === 'daily') {
+        // Start of today in user's timezone, expressed as UTC
+        periodStart = new Date(Date.UTC(y, m, d) - tzOffsetMinutes * 60 * 1000);
+        periodEnd = new Date(periodStart.getTime() + 24 * 60 * 60 * 1000);
+    } else if (period === 'monthly') {
+        periodStart = new Date(Date.UTC(y, m, 1) - tzOffsetMinutes * 60 * 1000);
+        periodEnd = new Date(Date.UTC(y, m + 1, 1) - tzOffsetMinutes * 60 * 1000);
+    } else if (period === 'yearly') {
+        periodStart = new Date(Date.UTC(y, 0, 1) - tzOffsetMinutes * 60 * 1000);
+        periodEnd = new Date(Date.UTC(y + 1, 0, 1) - tzOffsetMinutes * 60 * 1000);
+    } else {
+        // default: weekly (Mon–Sun) in user's timezone
+        const daysFromMonday = (dow + 6) % 7;
+        const monDate = new Date(Date.UTC(y, m, d - daysFromMonday));
+        periodStart = new Date(monDate.getTime() - tzOffsetMinutes * 60 * 1000);
+        periodEnd = new Date(periodStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    return { periodStart, periodEnd };
+}
+
+/**
+ * GET /api/leaderboard?period=weekly|monthly|yearly
+ * Returns ALL users ranked by their score for the selected period.
+ * Users with 0 contributions still appear (seeded from UserData).
  * Response is capped at top 10.
  */
-router.get('/weekly', async (req, res) => {
+router.get('/', async (req, res) => {
     try {
-        // ── 1. Current week window (Monday 00:00:00 UTC → next Monday) ──────────
-        const now = new Date();
-        const dayOfWeek = now.getUTCDay();          // 0=Sun, 1=Mon … 6=Sat
-        const daysFromMonday = (dayOfWeek + 6) % 7; // distance back to last Monday
-        const weekStart = new Date(Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth(),
-            now.getUTCDate() - daysFromMonday,
-            0, 0, 0, 0
-        ));
-        const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const timeFilter = { $gte: weekStart, $lt: weekEnd };
+        const period = ['daily', 'weekly', 'monthly', 'yearly'].includes(req.query.period)
+            ? req.query.period
+            : 'weekly';
 
-        // ── 2. Fetch ALL registered users to seed the map with 0-point entries ──
+        // User's timezone offset in minutes (e.g. 330 for IST). Ensures "today" matches local date.
+        let tzOffsetMinutes = 0;
+        const tzParam = req.query.timezone;
+        if (tzParam !== undefined && tzParam !== '') {
+            const parsed = parseInt(tzParam, 10);
+            if (!isNaN(parsed) && Math.abs(parsed) <= 14 * 60) {
+                tzOffsetMinutes = parsed; // e.g. 330 for IST
+            }
+        }
+
+        const { periodStart, periodEnd } = getPeriodWindow(period, tzOffsetMinutes);
+        const timeFilter = { $gte: periodStart, $lt: periodEnd };
+
+        // ── 1. Seed map with every registered user at 0 ───────────────────────
         const allUsers = await UserData.find({}, { userId: 1, username: 1, email: 1, _id: 0 });
 
-        // Pre-seed every user at zero so they always appear in the leaderboard
         const userMap = {};
         const profileMap = {};
         for (const u of allUsers) {
@@ -49,7 +90,7 @@ router.get('/weekly', async (req, res) => {
             profileMap[u.userId] = { username: u.username || u.email || 'Anonymous', email: u.email || '' };
         }
 
-        // ── 3. Aggregate weekly contributions in parallel ────────────────────────
+        // ── 2. Aggregate contributions in parallel ────────────────────────────
         const [pins, ngos, events, comments, suggestions] = await Promise.all([
             Pin.aggregate([
                 { $match: { createdAt: timeFilter, contributor_id: { $ne: '', $exists: true } } },
@@ -67,15 +108,13 @@ router.get('/weekly', async (req, res) => {
                 { $match: { createdAt: timeFilter, authorId: { $ne: '', $exists: true } } },
                 { $group: { _id: '$authorId', count: { $sum: 1 } } },
             ]),
-            // Suggestions made: group by authorId directly
             Suggestion.aggregate([
                 { $match: { createdAt: timeFilter, authorId: { $ne: '', $exists: true } } },
                 { $group: { _id: '$authorId', count: { $sum: 1 } } },
             ]),
         ]);
 
-        // ── 4. Merge scores into userMap ─────────────────────────────────────────
-        // Helper: some contributors may not be in UserData (edge case) — still include them
+        // ── 3. Merge scores — also handles contributors not in UserData ───────
         const ensure = (uid) => {
             if (!userMap[uid]) {
                 userMap[uid] = { pins: 0, ngos: 0, events: 0, comments: 0, suggestion: 0, total: 0 };
@@ -83,37 +122,26 @@ router.get('/weekly', async (req, res) => {
         };
 
         for (const { _id, count } of pins) {
-            ensure(_id);
-            userMap[_id].pins += count;
-            userMap[_id].total += count * SCORES.pin;
+            ensure(_id); userMap[_id].pins += count; userMap[_id].total += count * SCORES.pin;
         }
         for (const { _id, count } of ngos) {
-            ensure(_id);
-            userMap[_id].ngos += count;
-            userMap[_id].total += count * SCORES.ngo;
+            ensure(_id); userMap[_id].ngos += count; userMap[_id].total += count * SCORES.ngo;
         }
         for (const { _id, count } of events) {
-            ensure(_id);
-            userMap[_id].events += count;
-            userMap[_id].total += count * SCORES.event;
+            ensure(_id); userMap[_id].events += count; userMap[_id].total += count * SCORES.event;
         }
         for (const { _id, count } of comments) {
-            ensure(_id);
-            userMap[_id].comments += count;
-            userMap[_id].total += count * SCORES.comment;
+            ensure(_id); userMap[_id].comments += count; userMap[_id].total += count * SCORES.comment;
         }
         for (const { _id, count } of suggestions) {
-            ensure(_id);
-            userMap[_id].suggestion += count;
-            userMap[_id].total += count * SCORES.suggestion;
+            ensure(_id); userMap[_id].suggestion += count; userMap[_id].total += count * SCORES.suggestion;
         }
 
-        // ── 5. Sort all users by score desc, cap at top 10 ──────────────────────
+        // ── 4. Sort & cap ─────────────────────────────────────────────────────
         const sorted = Object.entries(userMap)
             .sort(([, a], [, b]) => b.total - a.total)
             .slice(0, 10);
 
-        // ── 6. Build ranked response ─────────────────────────────────────────────
         const leaders = sorted.map(([uid, stats], idx) => ({
             rank: idx + 1,
             userId: uid,
@@ -122,11 +150,18 @@ router.get('/weekly', async (req, res) => {
             ...stats,
         }));
 
-        return res.json({ leaders, weekStart, weekEnd, scores: SCORES });
+        return res.json({ leaders, periodStart, periodEnd, period, scores: SCORES });
     } catch (err) {
         console.error('Leaderboard error:', err);
         return res.status(500).json({ error: 'Failed to compute leaderboard' });
     }
+});
+
+// Keep the old /weekly path alive for backward compatibility
+router.get('/weekly', (req, res) => {
+    req.query.period = 'weekly';
+    // re-use the main handler via redirect
+    res.redirect(`/api/leaderboard?period=weekly`);
 });
 
 module.exports = router;

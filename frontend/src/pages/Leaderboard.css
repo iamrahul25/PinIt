@@ -89,6 +89,72 @@
     font-weight: 600;
 }
 
+/* ── Period tab switcher ─────────────────────────────────── */
+.lb-period-tabs {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 1.5rem;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 9999px;
+    padding: 0.25rem;
+    backdrop-filter: blur(10px);
+}
+
+.lb-period-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 1.1rem;
+    border: none;
+    border-radius: 9999px;
+    background: transparent;
+    color: rgba(226, 232, 240, .55);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .2s, color .2s, box-shadow .2s;
+    white-space: nowrap;
+}
+
+.lb-period-tab:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .08);
+    color: rgba(226, 232, 240, .9);
+}
+
+.lb-period-tab:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.lb-period-tab-active {
+    background: #6366f1;
+    color: #fff !important;
+    box-shadow: 0 2px 12px rgba(99, 102, 241, .45);
+}
+
+.lb-period-tab-active:hover:not(:disabled) {
+    background: #5254cc;
+}
+
+.lb-period-tab-icon {
+    font-size: 0.95rem;
+}
+
+@media (max-width: 420px) {
+    .lb-period-tab-icon {
+        display: none;
+    }
+
+    .lb-period-tab {
+        padding: 0.45rem 0.85rem;
+        font-size: 0.75rem;
+    }
+}
+
 /* ── Main content wrapper ────────────────────────────────── */
 .lb-main {
     max-width: 760px;

@@ -195,6 +195,69 @@ router.patch('/:id/state', async (req, res) => {
   }
 });
 
+// Edit suggestion (author only, only when status === 'new')
+router.patch('/:id', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Fetch the suggestion first so we can verify author + state
+    const suggestion = await Suggestion.findById(req.params.id);
+    if (!suggestion) {
+      return res.status(404).json({ error: 'Suggestion not found' });
+    }
+
+    // ── Double verification ───────────────────────────────────────
+    // 1. Only the original author may edit
+    if (!suggestion.authorId || String(suggestion.authorId) !== String(userId)) {
+      return res.status(403).json({ error: 'Forbidden: only the original author can edit this suggestion' });
+    }
+    // 2. Editing is only allowed while the ticket is still in "new" state
+    if (suggestion.status !== 'new') {
+      return res.status(400).json({ error: 'Editing is not allowed: this suggestion is no longer in the \'new\' state' });
+    }
+    // ─────────────────────────────────────────────────────────────
+
+    const { title, category, details, images } = req.body;
+    const categoryList = ['Feature Request', 'Bug Report', 'Improvement', 'UI/UX Suggestion', 'Other'];
+
+    if (title !== undefined) {
+      if (!String(title).trim()) {
+        return res.status(400).json({ error: 'Title cannot be empty' });
+      }
+      suggestion.title = String(title).trim();
+    }
+    if (category !== undefined && categoryList.includes(category)) {
+      suggestion.category = category;
+    }
+    if (details !== undefined) {
+      const detailsStr = String(details).trim();
+      const wordCount = detailsStr ? detailsStr.split(/\s+/).filter(Boolean).length : 0;
+      if (wordCount > 1000) {
+        return res.status(400).json({ error: 'Details must be 1000 words or fewer.' });
+      }
+      suggestion.details = detailsStr;
+    }
+    if (images !== undefined) {
+      const imageList = Array.isArray(images)
+        ? images.filter((u) => typeof u === 'string' && u.trim())
+        : [];
+      if (imageList.length > 3) {
+        return res.status(400).json({ error: 'Maximum 3 images allowed.' });
+      }
+      suggestion.images = imageList;
+    }
+
+    suggestion.updatedAt = new Date();
+    await suggestion.save();
+    res.json(suggestion);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Delete suggestion (admin or suggestion author only)
 router.delete('/:id', async (req, res) => {
   try {

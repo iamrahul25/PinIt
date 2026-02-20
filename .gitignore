@@ -6,3 +6,9 @@ frontend/node_modules/
 # Environment variables
 backend/.env
 frontend/.env
+
+# Rule file
+.agent
+
+# Gitignore file
+.gitignore

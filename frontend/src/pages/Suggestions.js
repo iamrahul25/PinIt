@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../config';
 import './Suggestions.css';
 
 const SUGGESTIONS_QUERY_KEY = ['suggestions'];
-const STALE_TIME_MS = 5 * 60 * 1000; // 5 mins – no refetch on route remount when data is fresh
+const STALE_TIME_MS = 5 * 60 * 1000;
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.5,
@@ -28,7 +28,6 @@ const CATEGORY_CONFIG = {
   'UI/UX Suggestion': { icon: 'brush', color: '#7c3aed', bg: '#f5f3ff' },
   'Other': { icon: 'apps', color: '#64748b', bg: '#f1f5f9' }
 };
-
 
 const SUGGESTION_STATES = [
   { key: '', label: 'All' },
@@ -78,30 +77,130 @@ const MAX_DETAILS_WORDS = 1000;
 const DETAILS_PREVIEW_LENGTH = 200;
 const FIRST_COMMENT_PREVIEW_LENGTH = 80;
 
-// Client-side filter: match backend stateMap (including legacy status values)
-function matchesState(s, stateFilter) {
-  if (!stateFilter) return true;
-  const status = s.status || 'new';
-  if (stateFilter === 'main_issue') {
-    const closedStatuses = ['done', 'completed', 'cancelled','in_review','hold'];
-    return !closedStatuses.includes(status);
-  }
-  const stateMap = {
-    new: ['new'],
-    todo: ['todo', 'planned'],
-    in_progress: ['in_progress'],
-    hold: ['hold'],
-    in_review: ['in_review', 'under_review'],
-    done: ['done', 'completed'],
-    cancelled: ['cancelled']
-  };
-  return stateMap[stateFilter] && stateMap[stateFilter].includes(status);
+// ─────────────────────────────────────────────────────────────────────────────
+// Reusable form fields component – used for both Post and Edit
+// Props:
+//   form            { title, category, details }
+//   setForm         setter
+//   imagePreviews   string[]   – data-URLs for new uploads OR existing https:// URLs
+//   compressing     bool
+//   onFileChange    async (e) => void
+//   onRemoveImage   (index) => void
+//   imageInputRef   ref
+// ─────────────────────────────────────────────────────────────────────────────
+function SuggestionFormFields({
+  form,
+  setForm,
+  imagePreviews,
+  compressing,
+  onFileChange,
+  onRemoveImage,
+  imageInputRef
+}) {
+  const wordCount = form.details.trim().split(/\s+/).filter(Boolean).length;
+  const totalImages = imagePreviews.length;
+
+  return (
+    <>
+      {/* Title */}
+      <div className="suggestions-field">
+        <label className="suggestions-label">Title</label>
+        <input
+          type="text"
+          className="suggestions-input"
+          placeholder="Short, descriptive title"
+          value={form.title}
+          onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+        />
+      </div>
+
+      {/* Category */}
+      <div className="suggestions-field">
+        <label className="suggestions-label">Category</label>
+        <select
+          className="suggestions-input suggestions-select"
+          value={form.category}
+          onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Details */}
+      <div className="suggestions-field">
+        <label className="suggestions-label">
+          Details
+          <span className={`suggestions-word-count ${wordCount > MAX_DETAILS_WORDS ? 'over-limit' : ''}`}>
+            {wordCount} / {MAX_DETAILS_WORDS} words
+          </span>
+        </label>
+        <textarea
+          className="suggestions-input suggestions-textarea"
+          placeholder="Explain your idea or report the issue..."
+          rows={5}
+          value={form.details}
+          onChange={(e) => setForm((f) => ({ ...f, details: e.target.value }))}
+        />
+      </div>
+
+      {/* Images */}
+      <div className="suggestions-field">
+        <label className="suggestions-label">
+          Images
+          <span className="suggestions-word-count">{totalImages} / {MAX_IMAGES} max</span>
+        </label>
+        <div
+          className={`suggestions-upload-area ${totalImages >= MAX_IMAGES || compressing ? 'disabled' : ''}`}
+          onClick={() => (totalImages < MAX_IMAGES && !compressing) && imageInputRef.current?.click()}
+          onKeyDown={(e) => {
+            if ((e.key === 'Enter' || e.key === ' ') && totalImages < MAX_IMAGES && !compressing) {
+              e.preventDefault();
+              imageInputRef.current?.click();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Click to upload images"
+        >
+          <span className="material-icons-round suggestions-upload-icon">cloud_upload</span>
+          <span className="suggestions-upload-text">
+            {compressing ? 'Compressing...' : 'Click to add images (max 3)'}
+          </span>
+        </div>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={onFileChange}
+          className="suggestions-file-input"
+          aria-label="Choose image files"
+        />
+        {imagePreviews.length > 0 && (
+          <div className="suggestions-image-previews">
+            {imagePreviews.map((preview, index) => (
+              <div key={index} className="suggestions-image-preview">
+                <img src={preview} alt={`Preview ${index + 1}`} />
+                <button
+                  type="button"
+                  className="suggestions-remove-image"
+                  onClick={() => onRemoveImage(index)}
+                  aria-label={`Remove image ${index + 1}`}
+                >
+                  <span className="material-icons-round">close</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
 }
 
-function matchesCategory(s, categoryFilter) {
-  if (!categoryFilter) return true;
-  return (s.category || '') === categoryFilter;
-}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function SuggestionDescription({ text }) {
   const [expanded, setExpanded] = useState(false);
@@ -140,14 +239,47 @@ function formatTimeAgo(dateStr) {
   return d.toLocaleDateString();
 }
 
+// Client-side filter: match backend stateMap (including legacy status values)
+function matchesState(s, stateFilter) {
+  if (!stateFilter) return true;
+  const status = s.status || 'new';
+  if (stateFilter === 'main_issue') {
+    const closedStatuses = ['done', 'completed', 'cancelled', 'in_review', 'hold'];
+    return !closedStatuses.includes(status);
+  }
+  const stateMap = {
+    new: ['new'],
+    todo: ['todo', 'planned'],
+    in_progress: ['in_progress'],
+    hold: ['hold'],
+    in_review: ['in_review', 'under_review'],
+    done: ['done', 'completed'],
+    cancelled: ['cancelled']
+  };
+  return stateMap[stateFilter] && stateMap[stateFilter].includes(status);
+}
+
+function matchesCategory(s, categoryFilter) {
+  if (!categoryFilter) return true;
+  return (s.category || '') === categoryFilter;
+}
+
 export default function Suggestions() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+
+  // ── Board / filter state ─────────────────────────────────────────
   const [sort, setSort] = useState('top');
   const [stateFilter, setStateFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [view, setView] = useState('board'); // 'board' | 'my'
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth < 1024
+  );
+
+  // ── "Post a suggestion" form state ───────────────────────────────
   const [form, setForm] = useState({ title: '', category: 'Feature Request', details: '' });
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -155,14 +287,27 @@ export default function Suggestions() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const imageInputRef = useRef(null);
+
+  // ── Comment state ────────────────────────────────────────────────
   const [expandedCommentsId, setExpandedCommentsId] = useState(null);
   const [commentText, setCommentText] = useState('');
   const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [commentError, setCommentError] = useState('');
-  const [mobileFormOpen, setMobileFormOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
-  const imageInputRef = useRef(null);
 
+  // ── Edit modal state ─────────────────────────────────────────────
+  // Images in the edit form are tracked as { src: string, file?: File }[]
+  // where src is a data-URL (new upload) or an https:// URL (existing).
+  const [editTarget, setEditTarget] = useState(null);
+  const [editForm, setEditForm] = useState({ title: '', category: 'Feature Request', details: '' });
+  // editImages: array of { src: string (preview/URL), file?: File (only for new uploads) }
+  const [editImages, setEditImages] = useState([]);
+  const [editCompressing, setEditCompressing] = useState(false);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState('');
+  const editImageInputRef = useRef(null);
+
+  // ── Responsive listener ──────────────────────────────────────────
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)');
     const handleChange = (e) => setIsMobile(e.matches);
@@ -171,6 +316,7 @@ export default function Suggestions() {
     return () => mq.removeEventListener('change', handleChange);
   }, []);
 
+  // ── Auth helpers ─────────────────────────────────────────────────
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
     if (!token) throw new Error('Unable to acquire auth token');
@@ -182,6 +328,7 @@ export default function Suggestions() {
     return fetch(url, { ...options, headers });
   }, [getAuthHeaders]);
 
+  // ── React-Query fetchers ─────────────────────────────────────────
   const fetchMySuggestions = useCallback(async () => {
     const res = await authFetch(`${API_BASE_URL}/api/suggestions/my/submissions`);
     if (!res.ok) throw new Error('Failed to fetch your submissions');
@@ -198,6 +345,7 @@ export default function Suggestions() {
   }, [authFetch]);
 
   const enabled = Boolean(isSignedIn && !authLoading);
+
   const myQuery = useQuery({
     queryKey: [...SUGGESTIONS_QUERY_KEY, 'my'],
     queryFn: fetchMySuggestions,
@@ -227,11 +375,10 @@ export default function Suggestions() {
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
 
+  // ── Effects ──────────────────────────────────────────────────────
   useEffect(() => {
     if (authLoading) return;
-    if (!isSignedIn) {
-      navigate('/login', { replace: true });
-    }
+    if (!isSignedIn) navigate('/login', { replace: true });
   }, [authLoading, isSignedIn, navigate]);
 
   useEffect(() => {
@@ -239,41 +386,46 @@ export default function Suggestions() {
     else setError('');
   }, [fetchError]);
 
+  // ── Shared image compression helper ─────────────────────────────
+  /**
+   * Compress files and build { src, file } entries.
+   * Returns array of { src: dataURL, file: File }.
+   */
+  const compressToEntries = useCallback(async (files) => {
+    const compressed = await Promise.all(
+      files.map((f) => imageCompression(f, COMPRESSION_OPTIONS))
+    );
+    return await Promise.all(
+      compressed.map(
+        (file) =>
+          new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve({ src: reader.result, file });
+            reader.readAsDataURL(file);
+          })
+      )
+    );
+  }, []);
+
+  // ── "Post" form image handlers ───────────────────────────────────
   const handleImageChange = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
     const remaining = MAX_IMAGES - imageFiles.length;
     const toAdd = files.slice(0, remaining);
-    if (toAdd.length === 0) return;
-    setError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES} images allowed. Only the first allowed slots were added.` : '');
+    if (!toAdd.length) return;
+    setError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES} images allowed.` : '');
     if (e.target) e.target.value = '';
-
     setCompressingImages(true);
     try {
-      const compressed = await Promise.all(
-        toAdd.map((file) => imageCompression(file, COMPRESSION_OPTIONS))
-      );
-      const newFiles = [...imageFiles, ...compressed];
-      setImageFiles(newFiles);
-
-      const newPreviews = new Array(newFiles.length);
-      let loaded = 0;
-      newFiles.forEach((file, i) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newPreviews[i] = reader.result;
-          loaded += 1;
-          if (loaded === newFiles.length) {
-            setImagePreviews([...newPreviews]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
-    } catch (err) {
+      const entries = await compressToEntries(toAdd);
+      setImageFiles((prev) => [...prev, ...entries.map((e) => e.file)]);
+      setImagePreviews((prev) => [...prev, ...entries.map((e) => e.src)]);
+    } catch {
       setError('Failed to process images. Please try again.');
     } finally {
       setCompressingImages(false);
     }
-  }, [imageFiles]);
+  }, [imageFiles, compressToEntries]);
 
   const removeSuggestionImage = (index) => {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
@@ -281,14 +433,24 @@ export default function Suggestions() {
     setError('');
   };
 
+  // ── Upload helper: upload a File, return its URL ─────────────────
+  const uploadFile = useCallback(async (file) => {
+    const multipart = new FormData();
+    multipart.append('image', file);
+    const res = await axios.post(
+      `${API_BASE_URL}/api/images/upload`,
+      multipart,
+      { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
+    );
+    return res.data?.url || null;
+  }, [getAuthHeaders]);
+
+  // ── "Post a suggestion" submit ───────────────────────────────────
   const handleSubmitSuggestion = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
-    if (!form.title.trim()) {
-      setError('Title is required.');
-      return;
-    }
+    if (!form.title.trim()) { setError('Title is required.'); return; }
     const wordCount = form.details.trim().split(/\s+/).filter(Boolean).length;
     if (wordCount > MAX_DETAILS_WORDS) {
       setError(`Details must be ${MAX_DETAILS_WORDS} words or fewer (currently ${wordCount}).`);
@@ -298,17 +460,9 @@ export default function Suggestions() {
     try {
       const imageUrls = [];
       for (const file of imageFiles) {
-        const multipart = new FormData();
-        multipart.append('image', file);
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          multipart,
-          { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
-        );
-        const url = uploadRes.data?.url;
+        const url = await uploadFile(file);
         if (url) imageUrls.push(url);
       }
-
       const res = await authFetch(`${API_BASE_URL}/api/suggestions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -338,6 +492,7 @@ export default function Suggestions() {
     }
   };
 
+  // ── Cache updater ────────────────────────────────────────────────
   const updateSuggestionInCache = useCallback((suggestionId, updater) => {
     queryClient.setQueryData([...SUGGESTIONS_QUERY_KEY, 'my'], (prev) => {
       if (!Array.isArray(prev)) return prev;
@@ -357,19 +512,14 @@ export default function Suggestions() {
     });
   }, [queryClient]);
 
+  // ── Vote / state-change / delete / load-more ─────────────────────
   const handleVote = async (suggestionId) => {
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}/vote`, {
-        method: 'POST'
-      });
+      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}/vote`, { method: 'POST' });
       if (!res.ok) return;
       const updated = await res.json();
-      updateSuggestionInCache(suggestionId, (s) => ({
-        ...s,
-        upvotes: updated.upvotes,
-        hasVoted: !s.hasVoted
-      }));
-    } catch (_) {}
+      updateSuggestionInCache(suggestionId, (s) => ({ ...s, upvotes: updated.upvotes, hasVoted: !s.hasVoted }));
+    } catch (_) { }
   };
 
   const handleStateChange = async (suggestionId, newState) => {
@@ -393,9 +543,7 @@ export default function Suggestions() {
   const handleDelete = async (suggestionId) => {
     if (!window.confirm('Delete this suggestion? This cannot be undone.')) return;
     try {
-      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}`, {
-        method: 'DELETE'
-      });
+      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${suggestionId}`, { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to delete');
@@ -420,29 +568,107 @@ export default function Suggestions() {
     }
   };
 
-  const handleLoadMore = () => {
-    boardQuery.fetchNextPage();
+  const handleLoadMore = () => boardQuery.fetchNextPage();
+
+  // ── Edit modal handlers ──────────────────────────────────────────
+  const openEditModal = (suggestion) => {
+    setEditTarget(suggestion);
+    setEditForm({
+      title: suggestion.title || '',
+      category: suggestion.category || 'Feature Request',
+      details: suggestion.details || ''
+    });
+    // Pre-load existing images as URL entries (no File object = already uploaded)
+    const existingEntries = (suggestion.images || []).map((src) => ({ src }));
+    setEditImages(existingEntries);
+    setEditError('');
   };
 
+  const closeEditModal = () => {
+    setEditTarget(null);
+    setEditImages([]);
+    setEditError('');
+  };
 
-
-  const displayedSuggestions = useMemo(() => {
-    const filtered = suggestions.filter(
-      (s) => matchesState(s, stateFilter) && matchesCategory(s, categoryFilter)
-    );
-
-    switch (sort) {
-      case 'new':
-        return [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      case 'oldest':
-        return [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      case 'top':
-        return [...filtered].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0));
-      default:
-        return filtered;
+  // Handle file selection inside the edit form
+  const handleEditImageChange = useCallback(async (e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_IMAGES - editImages.length;
+    const toAdd = files.slice(0, remaining);
+    if (!toAdd.length) return;
+    setEditError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES} images allowed.` : '');
+    if (e.target) e.target.value = '';
+    setEditCompressing(true);
+    try {
+      const entries = await compressToEntries(toAdd);
+      setEditImages((prev) => [...prev, ...entries]);
+    } catch {
+      setEditError('Failed to process images. Please try again.');
+    } finally {
+      setEditCompressing(false);
     }
-  }, [suggestions, stateFilter, categoryFilter, sort]);
+  }, [editImages, compressToEntries]);
 
+  const removeEditImage = (index) => {
+    setEditImages((prev) => prev.filter((_, i) => i !== index));
+    setEditError('');
+  };
+
+  const handleEditSuggestion = async (e) => {
+    e.preventDefault();
+    if (!editTarget) return;
+    setEditError('');
+    if (!editForm.title.trim()) { setEditError('Title is required.'); return; }
+    const wordCount = editForm.details.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount > MAX_DETAILS_WORDS) {
+      setEditError(`Details must be ${MAX_DETAILS_WORDS} words or fewer (currently ${wordCount}).`);
+      return;
+    }
+    setEditSubmitting(true);
+    try {
+      // Upload any new images (those with a .file property); keep existing URLs as-is
+      const finalImageUrls = [];
+      for (const entry of editImages) {
+        if (entry.file) {
+          const url = await uploadFile(entry.file);
+          if (url) finalImageUrls.push(url);
+        } else {
+          // existing URL
+          finalImageUrls.push(entry.src);
+        }
+      }
+
+      const res = await authFetch(`${API_BASE_URL}/api/suggestions/${editTarget._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editForm.title.trim(),
+          category: editForm.category,
+          details: editForm.details.trim(),
+          images: finalImageUrls
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to update suggestion');
+      }
+      const updated = await res.json();
+      updateSuggestionInCache(editTarget._id, (s) => ({
+        ...s,
+        title: updated.title,
+        category: updated.category,
+        details: updated.details,
+        images: updated.images
+      }));
+      closeEditModal();
+    } catch (err) {
+      setEditError(err.message || 'Could not update suggestion');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  // ── Comments ─────────────────────────────────────────────────────
   const handleAddComment = async (suggestionId) => {
     const text = commentText.trim();
     if (!text) return;
@@ -463,10 +689,7 @@ export default function Suggestions() {
         throw new Error(err.error || 'Failed to add comment');
       }
       const updated = await res.json();
-      updateSuggestionInCache(suggestionId, (s) => ({
-        ...s,
-        comments: updated.comments || s.comments
-      }));
+      updateSuggestionInCache(suggestionId, (s) => ({ ...s, comments: updated.comments || s.comments }));
       setCommentText('');
     } catch (err) {
       setCommentError(err.message || 'Could not add comment');
@@ -481,19 +704,36 @@ export default function Suggestions() {
     setCommentText('');
   };
 
-  if (authLoading) {
-    return (
-      <div className="suggestions-page">
-        <p>Loading...</p>
-      </div>
+  // ── Derived list ─────────────────────────────────────────────────
+  const displayedSuggestions = useMemo(() => {
+    const filtered = suggestions.filter(
+      (s) => matchesState(s, stateFilter) && matchesCategory(s, categoryFilter)
     );
+    switch (sort) {
+      case 'new': return [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      case 'oldest': return [...filtered].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      case 'top': return [...filtered].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0));
+      // ── "My Suggestions" ─ client-side filter only, no extra API call ──
+      case 'mine': return [...filtered]
+        .filter((s) => s.authorId === user?.id)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      default: return filtered;
+    }
+  }, [suggestions, stateFilter, categoryFilter, sort, user?.id]);
+
+  // ── Guards ────────────────────────────────────────────────────────
+  if (authLoading) {
+    return <div className="suggestions-page"><p>Loading...</p></div>;
   }
   if (!isSignedIn) return null;
 
+  // ─────────────────────────────────────────────────────────────────
   return (
     <div className="suggestions-page">
       <main className="suggestions-main">
         <div className="suggestions-layout">
+
+          {/* ── Sidebar ───────────────────────────────────────────── */}
           <aside className="suggestions-aside">
             <div className="suggestions-form-card">
               {isMobile && !mobileFormOpen ? (
@@ -522,102 +762,25 @@ export default function Suggestions() {
                   </div>
                   <p className="suggestions-form-desc">Help us prioritize what to build next.</p>
                   <form className="suggestions-form" onSubmit={handleSubmitSuggestion}>
-                <div className="suggestions-field">
-                  <label className="suggestions-label">Title</label>
-                  <input
-                    type="text"
-                    className="suggestions-input"
-                    placeholder="Short, descriptive title"
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                </div>
-                <div className="suggestions-field">
-                  <label className="suggestions-label">Category</label>
-                  <select
-                    className="suggestions-input suggestions-select"
-                    value={form.category}
-                    onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="suggestions-field">
-                  <label className="suggestions-label">
-                    Details
-                    <span className={`suggestions-word-count ${(form.details.trim().split(/\s+/).filter(Boolean).length > MAX_DETAILS_WORDS) ? 'over-limit' : ''}`}>
-                      {form.details.trim().split(/\s+/).filter(Boolean).length} / {MAX_DETAILS_WORDS} words
-                    </span>
-                  </label>
-                  <textarea
-                    className="suggestions-input suggestions-textarea"
-                    placeholder="Explain your idea or report the issue..."
-                    rows={5}
-                    value={form.details}
-                    onChange={(e) => setForm((f) => ({ ...f, details: e.target.value }))}
-                  />
-                </div>
-                <div className="suggestions-field">
-                  <label className="suggestions-label">
-                    Images
-                    <span className="suggestions-word-count">{imageFiles.length} / {MAX_IMAGES} max</span>
-                  </label>
-                  <div
-                    className={`suggestions-upload-area ${imageFiles.length >= MAX_IMAGES || compressingImages ? 'disabled' : ''}`}
-                    onClick={() => (imageFiles.length < MAX_IMAGES && !compressingImages) && imageInputRef.current?.click()}
-                    onKeyDown={(e) => {
-                      if ((e.key === 'Enter' || e.key === ' ') && imageFiles.length < MAX_IMAGES && !compressingImages) {
-                        e.preventDefault();
-                        imageInputRef.current?.click();
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Click to upload images"
-                  >
-                    <span className="material-icons-round suggestions-upload-icon">cloud_upload</span>
-                    <span className="suggestions-upload-text">
-                      {compressingImages ? 'Compressing...' : 'Click to add images (max 3)'}
-                    </span>
-                  </div>
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageChange}
-                    className="suggestions-file-input"
-                    aria-label="Choose image files"
-                  />
-                  {imagePreviews.length > 0 && (
-                    <div className="suggestions-image-previews">
-                      {imagePreviews.map((preview, index) => (
-                        <div key={index} className="suggestions-image-preview">
-                          <img src={preview} alt={`Preview ${index + 1}`} />
-                          <button
-                            type="button"
-                            className="suggestions-remove-image"
-                            onClick={() => removeSuggestionImage(index)}
-                            aria-label={`Remove image ${index + 1}`}
-                          >
-                            <span className="material-icons-round">close</span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {error && <div className="suggestions-msg suggestions-msg-error" role="alert">{error}</div>}
-                {success && <div className="suggestions-msg suggestions-msg-success">{success}</div>}
-                <button type="submit" className="suggestions-submit-btn" disabled={submitting || compressingImages}>
-                  <span className="material-icons-round" aria-hidden="true">add_box</span>
-                  Submit Suggestion
-                </button>
-              </form>
+                    <SuggestionFormFields
+                      form={form}
+                      setForm={setForm}
+                      imagePreviews={imagePreviews}
+                      compressing={compressingImages}
+                      onFileChange={handleImageChange}
+                      onRemoveImage={removeSuggestionImage}
+                      imageInputRef={imageInputRef}
+                    />
+                    {error && <div className="suggestions-msg suggestions-msg-error" role="alert">{error}</div>}
+                    {success && <div className="suggestions-msg suggestions-msg-success">{success}</div>}
+                    <button type="submit" className="suggestions-submit-btn" disabled={submitting || compressingImages}>
+                      <span className="material-icons-round" aria-hidden="true">add_box</span>
+                      Submit Suggestion
+                    </button>
+                  </form>
                 </>
               )}
+
               <div className="suggestions-quick-links">
                 <h3 className="suggestions-quick-links-title">Quick Links</h3>
                 <button
@@ -640,6 +803,7 @@ export default function Suggestions() {
             </div>
           </aside>
 
+          {/* ── Board ─────────────────────────────────────────────── */}
           <section className="suggestions-board" id="board">
             <div className="suggestions-board-header">
               <div className="suggestions-board-title-wrap">
@@ -658,50 +822,37 @@ export default function Suggestions() {
                   <span className="material-icons-round" aria-hidden="true">refresh</span>
                 </button>
               </div>
+
               {view === 'board' && (
-                                <div className="suggestions-board-controls">
-                                  <div className="suggestions-board-filters">
-                                    <div className="suggestions-sort-filter">
-                                      <label className="suggestions-sort-filter-label">Sort by:</label>
-                                      <select
-                                        className="suggestions-sort-select"
-                                        value={sort}
-                                        onChange={(e) => setSort(e.target.value)}
-                                        aria-label="Sort by"
-                                      >
-                                        <option value="top">Top</option>
-                                        <option value="new">Newest</option>
-                                        <option value="oldest">Oldest</option>
-                                      </select>
-                                    </div>
-                                    <div className="suggestions-state-filter">
-                                      <label className="suggestions-state-filter-label">State:</label>
-                                      <select
-                                        className="suggestions-state-select"
-                                        value={stateFilter}
-                                        onChange={(e) => setStateFilter(e.target.value)}
-                                        aria-label="Filter by state"
-                                      >
-                                        {SUGGESTION_STATES.map((opt) => (
-                                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                    <div className="suggestions-state-filter suggestions-category-filter">
-                                      <label className="suggestions-state-filter-label">Category:</label>
-                                      <select
-                                        className="suggestions-state-select suggestions-category-select"
-                                        value={categoryFilter}
-                                        onChange={(e) => setCategoryFilter(e.target.value)}
-                                        aria-label="Filter by category"
-                                      >
-                                        {CATEGORY_FILTER_OPTIONS.map((opt) => (
-                                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
-                                        ))}
-                                      </select>
-                                    </div>
-                                  </div>
-                                </div>
+                <div className="suggestions-board-controls">
+                  <div className="suggestions-board-filters">
+                    <div className="suggestions-sort-filter">
+                      <label className="suggestions-sort-filter-label">Sort by:</label>
+                      <select className="suggestions-sort-select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">
+                        <option value="top">Top</option>
+                        <option value="new">Newest</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="mine">My Suggestions</option>
+                      </select>
+                    </div>
+                    <div className="suggestions-state-filter">
+                      <label className="suggestions-state-filter-label">State:</label>
+                      <select className="suggestions-state-select" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)} aria-label="Filter by state">
+                        {SUGGESTION_STATES.map((opt) => (
+                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="suggestions-state-filter suggestions-category-filter">
+                      <label className="suggestions-state-filter-label">Category:</label>
+                      <select className="suggestions-state-select suggestions-category-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} aria-label="Filter by category">
+                        {CATEGORY_FILTER_OPTIONS.map((opt) => (
+                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
@@ -746,6 +897,20 @@ export default function Suggestions() {
                                 {STATUS_LABELS[currentStatus] || 'New'}
                               </span>
                             )}
+
+                            {/* Edit button – author only, only when ticket is 'new' */}
+                            {s.authorId === user?.id && (s.status === 'new' || !s.status) && (
+                              <button
+                                type="button"
+                                className="suggestions-edit-btn"
+                                onClick={() => openEditModal(s)}
+                                aria-label="Edit suggestion"
+                                title="Edit suggestion (only available while status is New)"
+                              >
+                                <span className="material-icons-round">edit</span>
+                              </button>
+                            )}
+
                             {(user?.role === 'admin' || s.authorId === user?.id) && (
                               <button
                                 type="button"
@@ -759,7 +924,9 @@ export default function Suggestions() {
                             )}
                           </div>
                         </div>
+
                         <SuggestionDescription text={s.details} />
+
                         {s.images && s.images.length > 0 && (
                           <div className="suggestions-card-images">
                             {s.images.slice(0, 3).map((url, idx) => (
@@ -775,6 +942,7 @@ export default function Suggestions() {
                             ))}
                           </div>
                         )}
+
                         <div className="suggestions-card-meta">
                           <div className="suggestions-card-meta-left">
                             <span
@@ -801,12 +969,7 @@ export default function Suggestions() {
                           </div>
                           <div className="suggestions-card-meta-right">
                             {s.authorImageUrl ? (
-                              <img
-                                src={s.authorImageUrl}
-                                alt=""
-                                className="suggestions-avatar"
-                                referrerPolicy="no-referrer"
-                              />
+                              <img src={s.authorImageUrl} alt="" className="suggestions-avatar" referrerPolicy="no-referrer" />
                             ) : (
                               <span className="suggestions-avatar-placeholder">
                                 {(s.authorName || '?').charAt(0).toUpperCase()}
@@ -816,7 +979,7 @@ export default function Suggestions() {
                           </div>
                         </div>
 
-                        {/* First comment preview on card – click to expand full comments */}
+                        {/* First comment preview */}
                         {(s.comments || []).length > 0 && expandedCommentsId !== s._id && (() => {
                           const first = s.comments[0];
                           const previewText = (first.text || '').length > FIRST_COMMENT_PREVIEW_LENGTH
@@ -833,12 +996,7 @@ export default function Suggestions() {
                               <div className="suggestions-first-comment-inner">
                                 <div className="suggestions-first-comment-avatar-wrap">
                                   {first.authorImageUrl ? (
-                                    <img
-                                      src={first.authorImageUrl}
-                                      alt=""
-                                      className="suggestions-first-comment-avatar"
-                                      referrerPolicy="no-referrer"
-                                    />
+                                    <img src={first.authorImageUrl} alt="" className="suggestions-first-comment-avatar" referrerPolicy="no-referrer" />
                                   ) : (
                                     <span className="suggestions-first-comment-avatar-placeholder">
                                       {(first.authorName || '?').charAt(0).toUpperCase()}
@@ -861,6 +1019,7 @@ export default function Suggestions() {
                           );
                         })()}
 
+                        {/* Expanded comments */}
                         {expandedCommentsId === s._id && (
                           <div className="suggestions-card-comments">
                             <button
@@ -877,12 +1036,7 @@ export default function Suggestions() {
                                 <div key={idx} className="suggestions-comment">
                                   <div className="suggestions-comment-avatar-wrap">
                                     {c.authorImageUrl ? (
-                                      <img
-                                        src={c.authorImageUrl}
-                                        alt=""
-                                        className="suggestions-comment-avatar"
-                                        referrerPolicy="no-referrer"
-                                      />
+                                      <img src={c.authorImageUrl} alt="" className="suggestions-comment-avatar" referrerPolicy="no-referrer" />
                                     ) : (
                                       <span className="suggestions-comment-avatar-placeholder">
                                         {(c.authorName || '?').charAt(0).toUpperCase()}
@@ -929,6 +1083,7 @@ export default function Suggestions() {
                           </div>
                         )}
                       </div>
+
                       <div className="suggestions-card-vote">
                         <button
                           type="button"
@@ -950,7 +1105,6 @@ export default function Suggestions() {
               </div>
             )}
 
-
             {view === 'board' && !loading && suggestions.length > 0 && suggestions.length < total && (
               <div className="suggestions-load-more-wrap">
                 <button
@@ -966,6 +1120,77 @@ export default function Suggestions() {
           </section>
         </div>
       </main>
+
+      {/* ── Edit Suggestion Modal ────────────────────────────────── */}
+      {editTarget && (
+        <div
+          className="suggestions-edit-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Edit suggestion"
+          onClick={(e) => { if (e.target === e.currentTarget) closeEditModal(); }}
+        >
+          <div className="suggestions-edit-modal">
+            {/* Header */}
+            <div className="suggestions-edit-modal-header">
+              <h2 className="suggestions-edit-modal-title">
+                <span className="material-icons-round" aria-hidden="true">edit</span>
+                Edit Suggestion
+              </h2>
+              <button
+                type="button"
+                className="suggestions-edit-modal-close"
+                onClick={closeEditModal}
+                aria-label="Close edit modal"
+              >
+                <span className="material-icons-round">close</span>
+              </button>
+            </div>
+
+            {/* Info note */}
+            <p className="suggestions-edit-modal-note">
+              <span className="material-icons-round" aria-hidden="true">info</span>
+              Editing is only available while the suggestion is in <strong>New</strong> status.
+            </p>
+
+            {/* ── Reused form fields ── */}
+            <form className="suggestions-form" onSubmit={handleEditSuggestion}>
+              <SuggestionFormFields
+                form={editForm}
+                setForm={setEditForm}
+                imagePreviews={editImages.map((e) => e.src)}
+                compressing={editCompressing}
+                onFileChange={handleEditImageChange}
+                onRemoveImage={removeEditImage}
+                imageInputRef={editImageInputRef}
+              />
+
+              {editError && (
+                <div className="suggestions-msg suggestions-msg-error" role="alert">{editError}</div>
+              )}
+
+              <div className="suggestions-edit-modal-actions">
+                <button
+                  type="button"
+                  className="suggestions-edit-cancel-btn"
+                  onClick={closeEditModal}
+                  disabled={editSubmitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="suggestions-edit-save-btn"
+                  disabled={editSubmitting || editCompressing}
+                >
+                  <span className="material-icons-round" aria-hidden="true">save</span>
+                  {editSubmitting ? 'Saving...' : editCompressing ? 'Compressing...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

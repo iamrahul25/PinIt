@@ -23,6 +23,29 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.75
 };
 
+// Verification score weights by role
+const VERIFICATION_ROLE_SCORES = { user: 10, reviewer: 30, ngo: 50, admin: 60 };
+const VERIFICATION_ROLE_LABELS = { user: 'Users', reviewer: 'Reviewers', ngo: 'NGOs', admin: 'Admins' };
+const VERIFICATION_ROLE_ICONS = { user: 'person', reviewer: 'rate_review', ngo: 'business', admin: 'admin_panel_settings' };
+
+const getVerificationScore = (pinVerification) => {
+  if (!pinVerification || pinVerification.length === 0) return 0;
+  return pinVerification.reduce((sum, v) => sum + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
+};
+
+const getVerificationStatus = (score) => {
+  if (score >= 121) return { label: 'Highly Verified', emoji: '🔵', className: 'highly-verified', color: '#3b82f6' };
+  if (score >= 81) return { label: 'Verified', emoji: '🟢', className: 'verified', color: '#10b981' };
+  if (score >= 41) return { label: 'Partially Verified', emoji: '🟡', className: 'partially-verified', color: '#f59e0b' };
+  return { label: 'Unverified', emoji: '🔴', className: 'unverified', color: '#ef4444' };
+};
+
+const getVerificationRoleCounts = (pinVerification) => {
+  const counts = { user: 0, reviewer: 0, ngo: 0, admin: 0 };
+  (pinVerification || []).forEach((v) => { counts[v.role] = (counts[v.role] || 0) + 1; });
+  return counts;
+};
+
 // Truncate a reply-preview string to keep the badge compact.
 const truncateReplyText = (text, max = 60) =>
   text && text.length > max ? `${text.slice(0, max)}…` : (text || '…');
@@ -635,9 +658,15 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                 <div>
                   <div className="pin-details-title-row">
                     <h2 className="pin-details-title">{pin.problemType}</h2>
-                    <span className={`pin-details-badge pin-details-verified-badge ${pin.verified ? 'verified' : 'unverified'}`}>
-                      {pin.verified ? 'Verified' : 'Unverified'}
-                    </span>
+                    {(() => {
+                      const vScore = getVerificationScore(pin.pinVerification);
+                      const vStatus = getVerificationStatus(vScore);
+                      return (
+                        <span className={`pin-details-badge pin-details-verified-badge ${vStatus.className}`}>
+                          {vStatus.emoji} {vStatus.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -806,28 +835,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                         <span className="reporter-name">{reporterName}</span>
                       </div>
                     </div>
-                    <div className="pin-details-stat-card pin-details-stat-verify">
-                      <p className="pin-details-stat-label">Verification</p>
-                      <div className="pin-details-verify-row">
-                        <span className="pin-details-verify-count">
-                          {pin.verifiedBy?.length ?? 0} verified
-                        </span>
-                        {user && (
-                          <button
-                            type="button"
-                            className={`pin-details-verify-btn ${(pin.verifiedBy || []).some((v) => String(v.userId) === String(userId)) ? 'verified' : ''}`}
-                            onClick={handleVerify}
-                            disabled={verifying}
-                            title={user?.role === 'admin' ? 'Admin verify (marks pin as verified)' : 'Mark as verified'}
-                          >
-                            <span className="material-icons-round">
-                              {pin.verified ? 'verified' : 'verified_user'}
-                            </span>
-                            {verifying ? '...' : (pin.verifiedBy || []).some((v) => String(v.userId) === String(userId)) ? 'Verified' : 'Verify'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
                     <div className="pin-details-stat-card pin-details-stat-votes">
                       <p className="pin-details-stat-label">Community Response</p>
                       <div className="pin-details-votes">
@@ -849,6 +856,71 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                         </button>
                       </div>
                     </div>
+                    {(() => {
+                      const verifications = pin.pinVerification || [];
+                      const vScore = getVerificationScore(verifications);
+                      const vStatus = getVerificationStatus(vScore);
+                      const roleCounts = getVerificationRoleCounts(verifications);
+                      const hasVerified = verifications.some((v) => String(v.userId) === String(userId));
+                      const maxScore = 180; // reasonable max for progress display
+                      const progressPct = Math.min((vScore / maxScore) * 100, 100);
+                      return (
+                        <div className="pin-details-stat-card pin-details-stat-verify pin-details-verification-card">
+                          <p className="pin-details-stat-label pin-details-stat-label-with-info">
+                            Verification Status
+                            <span className="pin-verification-info-wrap">
+                              <span className="material-icons-round pin-verification-info-icon" aria-hidden="true">info</span>
+                              <span className="pin-verification-info-tooltip" role="tooltip">
+                                <span className="pin-verification-info-line">🔵 Highly Verified (Score ≥ 121)</span>
+                                <span className="pin-verification-info-line">🟢 Verified (Score 81 – 120)</span>
+                                <span className="pin-verification-info-line">🟡 Partially Verified (Score 41–80)</span>
+                                <span className="pin-verification-info-line">🔴 Unverified (Score ≤ 40)</span>
+                              </span>
+                            </span>
+                          </p>
+                          <div className="pin-verification-status-row">
+                            <span className="pin-verification-emoji">{vStatus.emoji}</span>
+                            <span className="pin-verification-status-label" style={{ color: vStatus.color }}>{vStatus.label}</span>
+                            <span className="pin-verification-score">Score: {vScore}</span>
+                          </div>
+                          <div className="pin-verification-progress-wrap">
+                            <div className="pin-verification-progress-bar">
+                              <div
+                                className="pin-verification-progress-fill"
+                                style={{ width: `${progressPct}%`, background: vStatus.color }}
+                              />
+                            </div>
+                          </div>
+                          <div className="pin-verification-breakdown">
+                            {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
+                              <div key={role} className="pin-verification-role-item">
+                                <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
+                                <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
+                                <span className="pin-verification-role-count">{roleCounts[role]}</span>
+                                <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="pin-verification-total">
+                            Total verifiers: {verifications.length}
+                          </div>
+                          {user && (
+                            <button
+                              type="button"
+                              className={`pin-details-verify-btn ${hasVerified ? 'verified' : ''}`}
+                              onClick={handleVerify}
+                              disabled={verifying}
+                              title={hasVerified ? 'Remove your verification' : 'Verify this pin'}
+                            >
+                              <span className="material-icons-round">
+                                {hasVerified ? 'verified' : 'verified_user'}
+                              </span>
+                              {verifying ? '...' : hasVerified ? 'Verified ✓' : 'Verify'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {images.length > 0 && (

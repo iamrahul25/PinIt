@@ -26,7 +26,7 @@ const userDataSchema = new mongoose.Schema({
   role: {
     type: String,
     default: 'user',
-    enum: ['user', 'admin']
+    enum: ['user', 'reviewer', 'ngo', 'admin']
   },
   pinIds: {
     type: [String],

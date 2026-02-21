@@ -236,14 +236,183 @@
   color: var(--pin-slate-600);
 }
 
+.pin-details-verified-badge.highly-verified {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
 .pin-details-verified-badge.verified {
-  background: rgba(5, 150, 105, 0.15);
-  color: var(--pin-emerald-600);
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.pin-details-verified-badge.partially-verified {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
 }
 
 .pin-details-verified-badge.unverified {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+/* ---- Verification Card ---- */
+.pin-details-verification-card {
+  grid-column: 1 / -1;
+}
+
+.pin-verification-status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.pin-verification-emoji {
+  font-size: 1.35rem;
+}
+
+.pin-verification-status-label {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.pin-verification-score {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pin-slate-500);
+  margin-left: auto;
+  background: var(--pin-slate-100);
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+}
+
+.pin-verification-progress-wrap {
+  margin-top: 0.75rem;
+}
+
+.pin-verification-progress-bar {
+  width: 100%;
+  height: 6px;
   background: var(--pin-slate-200);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pin-verification-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease, background 0.3s ease;
+}
+
+.pin-verification-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
+.pin-verification-role-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.5rem;
+  background: white;
+  border: 1px solid var(--pin-slate-100);
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.pin-verification-role-icon {
+  font-size: 1rem !important;
+  color: var(--pin-slate-500);
+}
+
+.pin-verification-role-label {
+  font-weight: 600;
+  color: var(--pin-slate-700);
+  flex: 1;
+}
+
+.pin-verification-role-count {
+  font-weight: 800;
+  color: #1e293b;
+  font-size: 0.9rem;
+  min-width: 1ch;
+}
+
+.pin-verification-role-pts {
+  font-size: 0.625rem;
+  color: var(--pin-slate-400);
+  font-weight: 500;
+}
+
+.pin-verification-total {
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pin-slate-500);
+  text-align: right;
+}
+
+.pin-details-stat-card.pin-details-stat-verify .pin-details-verify-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pin-details-stat-card.pin-details-stat-verify .pin-details-verify-count {
+  font-size: 0.875rem;
   color: var(--pin-slate-600);
+}
+
+.pin-details-verify-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--pin-slate-200);
+  background: white;
+  color: var(--pin-slate-700);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.75rem;
+  width: 100%;
+  justify-content: center;
+}
+
+.pin-details-verify-btn .material-icons-round {
+  font-size: 1rem;
+}
+
+.pin-details-verify-btn:hover:not(:disabled) {
+  background: var(--pin-slate-50);
+  border-color: var(--pin-emerald-600);
+  color: var(--pin-emerald-600);
+}
+
+.pin-details-verify-btn.verified {
+  background: rgba(5, 150, 105, 0.1);
+  border-color: var(--pin-emerald-600);
+  color: var(--pin-emerald-600);
+}
+
+.pin-details-verify-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .pin-verification-breakdown {
+    grid-template-columns: 1fr;
+  }
 }
 
 .pin-details-meta {
@@ -607,54 +776,6 @@
   border: 1px solid var(--pin-slate-100);
 }
 
-.pin-details-stat-card.pin-details-stat-verify .pin-details-verify-row {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.pin-details-stat-card.pin-details-stat-verify .pin-details-verify-count {
-  font-size: 0.875rem;
-  color: var(--pin-slate-600);
-}
-
-.pin-details-verify-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid var(--pin-slate-200);
-  background: white;
-  color: var(--pin-slate-700);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.pin-details-verify-btn .material-icons-round {
-  font-size: 1rem;
-}
-
-.pin-details-verify-btn:hover:not(:disabled) {
-  background: var(--pin-slate-50);
-  border-color: var(--pin-emerald-600);
-  color: var(--pin-emerald-600);
-}
-
-.pin-details-verify-btn.verified {
-  background: rgba(5, 150, 105, 0.1);
-  border-color: var(--pin-emerald-600);
-  color: var(--pin-emerald-600);
-}
-
-.pin-details-verify-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
 
 .pin-details-stat-card.pin-details-stat-votes {
   grid-column: 1 / -1;
@@ -673,6 +794,65 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin: 0 0 0.25rem 0;
+}
+
+.pin-details-stat-label-with-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.pin-verification-info-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.pin-verification-info-icon {
+  font-size: 0.875rem !important;
+  color: var(--pin-slate-400);
+  cursor: help;
+  transition: color 0.2s;
+}
+
+.pin-verification-info-wrap:hover .pin-verification-info-icon {
+  color: var(--pin-primary);
+}
+
+.pin-verification-info-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.5rem);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(18rem, 90vw);
+  padding: 0.6rem 0.75rem;
+  background: var(--pin-slate-800);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.5;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  text-transform: none;
+  letter-spacing: 0;
+  z-index: 30;
+  transition: visibility 0.2s, opacity 0.2s;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.pin-verification-info-line {
+  white-space: nowrap;
+}
+
+.pin-verification-info-wrap:hover .pin-verification-info-tooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
 .pin-details-stat-value {

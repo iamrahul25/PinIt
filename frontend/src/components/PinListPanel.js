@@ -5,6 +5,16 @@ import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemT
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import './PinListPanel.css';
 
+// Verification score helpers (same as PinDetails)
+const VERIFICATION_ROLE_SCORES = { user: 10, reviewer: 30, ngo: 50, admin: 60 };
+const getVerificationScore = (pv) => (pv || []).reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
+const getVerificationStatus = (score) => {
+  if (score >= 121) return { label: 'Highly Verified', emoji: '🔵', className: 'highly-verified' };
+  if (score >= 81) return { label: 'Verified', emoji: '🟢', className: 'verified' };
+  if (score >= 41) return { label: 'Partially Verified', emoji: '🟡', className: 'partially-verified' };
+  return { label: 'Unverified', emoji: '🔴', className: 'unverified' };
+};
+
 const PROBLEM_TYPES = [
   { value: 'Trash Pile', label: 'Trash Pile' },
   { value: 'Pothole', label: 'Pothole' },
@@ -297,11 +307,14 @@ const PinListPanel = ({
                               <span className={`pin-card-severity ${getSeverityClass(pin.severity)}`}>
                                 {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                               </span>
-                              {pin.verified && (
-                                <span className="pin-card-verified-badge" title="Verified">
-                                  <FaCheckCircle /> Verified
-                                </span>
-                              )}
+                              {(() => {
+                                const vs = getVerificationStatus(getVerificationScore(pin.pinVerification));
+                                return (
+                                  <span className={`pin-card-verified-badge ${vs.className}`} title={vs.label}>
+                                    {vs.emoji} {vs.label}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                           {pin.description && (
@@ -367,9 +380,14 @@ const PinListPanel = ({
                               <span className={`pin-card-severity small ${getSeverityClass(pin.severity)}`}>
                                 {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                               </span>
-                              {pin.verified && (
-                                <span className="pin-card-verified-badge small" title="Verified">✓</span>
-                              )}
+                              {(() => {
+                                const vs = getVerificationStatus(getVerificationScore(pin.pinVerification));
+                                return (
+                                  <span className={`pin-card-verified-badge small ${vs.className}`} title={vs.label}>
+                                    {vs.emoji}
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
                           {pin.description && (

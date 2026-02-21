@@ -63,17 +63,18 @@ const pinSchema = new mongoose.Schema({
       enum: ['upvote', 'downvote']
     }
   }],
-  verified: {
-    type: Boolean,
-    default: false
-  },
-  verifiedBy: [{
-    userId: String // Google user ID (sub) — users who marked this pin as verified
+  pinVerification: [{
+    userId: {
+      type: String,
+      required: true
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: ['user', 'reviewer', 'ngo', 'admin'],
+      default: 'user'
+    }
   }],
-  verifiedByAdmin: {
-    type: Boolean,
-    default: false
-  },
   comments: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Comment'

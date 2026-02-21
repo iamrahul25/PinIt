@@ -4,6 +4,9 @@ const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
 const UserData = require('../models/UserData');
 
+// Number of user verifications required before pin becomes verified (unless admin verifies)
+const VERIFY_THRESHOLD = parseInt(process.env.PIN_VERIFY_THRESHOLD, 10) || 3;
+
 // Get all pins (optional query: createdBy=contributor_id for user-contributed pins)
 router.get('/', async (req, res) => {
   try {
@@ -85,6 +88,48 @@ router.delete('/:id/save', async (req, res) => {
     doc.updatedAt = new Date();
     await doc.save();
     res.json({ ok: true, pinIds: doc.pinIds });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Toggle verification for a pin (mark as verified / unverified)
+// Admin: toggles verifiedByAdmin — one admin verification makes pin verified
+// User: adds/removes from verifiedBy — pin becomes verified when verifiedBy.length >= VERIFY_THRESHOLD
+router.post('/:id/verify', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) {
+      return res.status(404).json({ error: 'Pin not found' });
+    }
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    const isAdmin = userDoc?.role === 'admin';
+
+    const verifiedBy = pin.verifiedBy || [];
+    const verifiedByAdmin = pin.verifiedByAdmin || false;
+
+    if (isAdmin) {
+      pin.verifiedByAdmin = !verifiedByAdmin;
+    } else {
+      const idx = verifiedBy.findIndex((v) => String(v.userId) === String(userId));
+      if (idx >= 0) {
+        pin.verifiedBy.splice(idx, 1);
+      } else {
+        pin.verifiedBy.push({ userId });
+      }
+    }
+
+    pin.verified =
+      !!pin.verifiedByAdmin || (pin.verifiedBy?.length || 0) >= VERIFY_THRESHOLD;
+    pin.updatedAt = new Date();
+    await pin.save();
+
+    const populated = await Pin.findById(pin._id).populate('comments');
+    res.json(populated);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

@@ -236,6 +236,16 @@
   color: var(--pin-slate-600);
 }
 
+.pin-details-verified-badge.verified {
+  background: rgba(5, 150, 105, 0.15);
+  color: var(--pin-emerald-600);
+}
+
+.pin-details-verified-badge.unverified {
+  background: var(--pin-slate-200);
+  color: var(--pin-slate-600);
+}
+
 .pin-details-meta {
   font-size: 0.75rem;
   color: var(--pin-slate-500);
@@ -595,6 +605,55 @@
   background: var(--pin-slate-50);
   border-radius: 12px;
   border: 1px solid var(--pin-slate-100);
+}
+
+.pin-details-stat-card.pin-details-stat-verify .pin-details-verify-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pin-details-stat-card.pin-details-stat-verify .pin-details-verify-count {
+  font-size: 0.875rem;
+  color: var(--pin-slate-600);
+}
+
+.pin-details-verify-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid var(--pin-slate-200);
+  background: white;
+  color: var(--pin-slate-700);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pin-details-verify-btn .material-icons-round {
+  font-size: 1rem;
+}
+
+.pin-details-verify-btn:hover:not(:disabled) {
+  background: var(--pin-slate-50);
+  border-color: var(--pin-emerald-600);
+  color: var(--pin-emerald-600);
+}
+
+.pin-details-verify-btn.verified {
+  background: rgba(5, 150, 105, 0.1);
+  border-color: var(--pin-emerald-600);
+  color: var(--pin-emerald-600);
+}
+
+.pin-details-verify-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .pin-details-stat-card.pin-details-stat-votes {

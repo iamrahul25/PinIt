@@ -51,6 +51,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const [replyText, setReplyText] = useState('');
   const [commentActionLoading, setCommentActionLoading] = useState(null);
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
+  const [verifying, setVerifying] = useState(false);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
@@ -158,6 +159,28 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
           : `${API_BASE_URL}/api/images/${entry}`
       );
       setImages(urls);
+    }
+  };
+
+  const handleVerify = async () => {
+    if (!userId) {
+      alert('Please log in to verify pins.');
+      return;
+    }
+    if (authLoading) return;
+    setVerifying(true);
+    try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
+      const response = await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/verify`, {}, config);
+      onPinUpdated?.(response.data);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Error verifying pin:', error);
+      if (error.response?.data?.error) {
+        alert(error.response.data.error);
+      }
+    } finally {
+      setVerifying(false);
     }
   };
 
@@ -612,7 +635,9 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                 <div>
                   <div className="pin-details-title-row">
                     <h2 className="pin-details-title">{pin.problemType}</h2>
-                    {/* <span className="pin-details-badge">Report</span> */}
+                    <span className={`pin-details-badge pin-details-verified-badge ${pin.verified ? 'verified' : 'unverified'}`}>
+                      {pin.verified ? 'Verified' : 'Unverified'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -779,6 +804,28 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                       <div className="pin-details-stat-reported">
                         <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
                         <span className="reporter-name">{reporterName}</span>
+                      </div>
+                    </div>
+                    <div className="pin-details-stat-card pin-details-stat-verify">
+                      <p className="pin-details-stat-label">Verification</p>
+                      <div className="pin-details-verify-row">
+                        <span className="pin-details-verify-count">
+                          {pin.verifiedBy?.length ?? 0} verified
+                        </span>
+                        {user && (
+                          <button
+                            type="button"
+                            className={`pin-details-verify-btn ${(pin.verifiedBy || []).some((v) => String(v.userId) === String(userId)) ? 'verified' : ''}`}
+                            onClick={handleVerify}
+                            disabled={verifying}
+                            title={user?.role === 'admin' ? 'Admin verify (marks pin as verified)' : 'Mark as verified'}
+                          >
+                            <span className="material-icons-round">
+                              {pin.verified ? 'verified' : 'verified_user'}
+                            </span>
+                            {verifying ? '...' : (pin.verifiedBy || []).some((v) => String(v.userId) === String(userId)) ? 'Verified' : 'Verify'}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="pin-details-stat-card pin-details-stat-votes">

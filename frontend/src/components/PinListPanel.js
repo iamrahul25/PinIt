@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser, FaThLarge, FaList } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser, FaThLarge, FaList, FaCheckCircle } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
@@ -293,9 +293,16 @@ const PinListPanel = ({
                         <div className="pin-card-body">
                           <div className="pin-card-head">
                             <h2 className="pin-card-title">{pin.problemHeading || pin.problemType}</h2>
-                            <span className={`pin-card-severity ${getSeverityClass(pin.severity)}`}>
-                              {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
-                            </span>
+                            <div className="pin-card-head-badges">
+                              <span className={`pin-card-severity ${getSeverityClass(pin.severity)}`}>
+                                {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
+                              </span>
+                              {pin.verified && (
+                                <span className="pin-card-verified-badge" title="Verified">
+                                  <FaCheckCircle /> Verified
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {pin.description && (
                             <p className="pin-card-desc">{pin.description}</p>
@@ -356,9 +363,14 @@ const PinListPanel = ({
                         <div className="pin-card-compact-content">
                           <div className="pin-card-compact-head">
                             <h3 className="pin-card-compact-title">{pin.problemHeading || pin.problemType}</h3>
-                            <span className={`pin-card-severity small ${getSeverityClass(pin.severity)}`}>
-                              {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
-                            </span>
+                            <div className="pin-card-compact-badges">
+                              <span className={`pin-card-severity small ${getSeverityClass(pin.severity)}`}>
+                                {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
+                              </span>
+                              {pin.verified && (
+                                <span className="pin-card-verified-badge small" title="Verified">✓</span>
+                              )}
+                            </div>
                           </div>
                           {pin.description && (
                             <p className="pin-card-compact-desc">{pin.description}</p>

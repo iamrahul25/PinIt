@@ -250,6 +250,43 @@
   margin: 0;
 }
 
+.pins-status-filters-section {
+  display: flex;
+  flex-direction: column;
+  gap: calc(0.5rem * var(--pins-scale));
+}
+
+.pins-status-filters-section .pins-section-heading {
+  margin-top: calc(0.25rem * var(--pins-scale));
+}
+
+.pins-status-filters-section .pins-section-heading:first-child {
+  margin-top: 0;
+}
+
+.pins-filter-select {
+  width: 100%;
+  max-width: 100%;
+  padding: calc(0.5rem * var(--pins-scale)) calc(0.75rem * var(--pins-scale));
+  font-size: calc(0.875rem * var(--pins-scale));
+  border: 1px solid var(--pins-border);
+  border-radius: 8px;
+  background: var(--pins-card-bg);
+  color: var(--pins-text, #1e293b);
+  cursor: pointer;
+  appearance: auto;
+}
+
+.pins-filter-select:hover {
+  border-color: var(--pins-primary);
+}
+
+.pins-filter-select:focus {
+  outline: none;
+  border-color: var(--pins-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .pins-type-pills {
   display: flex;
   flex-wrap: wrap;
@@ -546,6 +583,7 @@
 
 .pin-card-featured .pin-card-head {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
   justify-content: space-between;
   gap: calc(0.5rem * var(--pins-scale));
@@ -602,6 +640,50 @@
 .pin-card-verified-badge.small {
   padding: 0.1rem 0.35rem;
   font-size: 0.65rem;
+}
+
+.pin-card-fix-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.pin-card-fix-status-badge.small {
+  padding: 0.1rem 0.35rem;
+  font-size: 0.65rem;
+}
+
+.pin-card-fix-status-badge.fix-status-reported {
+  background: rgba(100, 116, 139, 0.15);
+  color: #64748b;
+}
+
+.pin-card-fix-status-badge.fix-status-verified {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+.pin-card-fix-status-badge.fix-status-partially-verified {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.pin-card-fix-status-badge.fix-status-awaiting {
+  background: rgba(245, 158, 11, 0.15);
+  color: #b45309;
+}
+
+.pin-card-fix-status-badge.fix-status-scheduled {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.pin-card-fix-status-badge.fix-status-resolved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
 }
 
 .pin-card-featured .pin-card-severity {
@@ -786,6 +868,7 @@
 
 .pin-card-compact-head {
   display: flex;
+  flex-direction: column;
   justify-content: space-between;
   align-items: flex-start;
   gap: 0.5rem;

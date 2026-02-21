@@ -90,6 +90,9 @@ router.delete('/:id/save', async (req, res) => {
   }
 });
 
+// Verification role scores (must match frontend)
+const ROLE_SCORES = { user: 10, reviewer: 30, ngo: 50, admin: 60 };
+
 // Toggle verification for a pin
 // Adds or removes the user from pinVerification array, storing their role
 router.post('/:id/verify', async (req, res) => {
@@ -118,7 +121,76 @@ router.post('/:id/verify', async (req, res) => {
       pin.pinVerification.push({ userId, role });
     }
 
+    // Compute verification score after toggle
+    const score = (pin.pinVerification || []).reduce(
+      (sum, v) => sum + (ROLE_SCORES[v.role] || 10), 0
+    );
+
+    // Auto-set fixStatus dates when score crosses 80 threshold
+    if (!pin.fixStatus) pin.fixStatus = {};
+    if (score > 80 && !pin.fixStatus.verifiedAt) {
+      pin.fixStatus.verifiedAt = new Date();
+      pin.fixStatus.awaitingActionAt = new Date();
+    }
+    // If score drops back below threshold, clear the dates
+    if (score <= 80 && pin.fixStatus.verifiedAt) {
+      pin.fixStatus.verifiedAt = null;
+      pin.fixStatus.awaitingActionAt = null;
+    }
+
     pin.updatedAt = new Date();
+    pin.markModified('fixStatus');
+    await pin.save();
+
+    const populated = await Pin.findById(pin._id).populate('comments');
+    res.json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Toggle resolve vote for a pin (score-based, same mechanism as verification)
+// Any user can vote; role-weighted score determines resolved status
+router.post('/:id/resolve', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) {
+      return res.status(404).json({ error: 'Pin not found' });
+    }
+
+    // Get the user's role from UserData
+    const userDoc = await UserData.findOne({ userId }).select('role').lean();
+    const role = userDoc?.role || 'user';
+
+    const resolves = pin.resolveVerification || [];
+    const idx = resolves.findIndex((v) => String(v.userId) === String(userId));
+
+    if (idx >= 0) {
+      pin.resolveVerification.splice(idx, 1);
+    } else {
+      pin.resolveVerification.push({ userId, role });
+    }
+
+    // Compute resolve score
+    const score = (pin.resolveVerification || []).reduce(
+      (sum, v) => sum + (ROLE_SCORES[v.role] || 10), 0
+    );
+
+    // Auto-set fixStatus.resolvedAt when score crosses 80
+    if (!pin.fixStatus) pin.fixStatus = {};
+    if (score > 80 && !pin.fixStatus.resolvedAt) {
+      pin.fixStatus.resolvedAt = new Date();
+    }
+    if (score <= 80 && pin.fixStatus.resolvedAt) {
+      pin.fixStatus.resolvedAt = null;
+    }
+
+    pin.updatedAt = new Date();
+    pin.markModified('fixStatus');
     await pin.save();
 
     const populated = await Pin.findById(pin._id).populate('comments');

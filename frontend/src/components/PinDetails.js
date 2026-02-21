@@ -95,6 +95,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const [compressingNewImages, setCompressingNewImages] = useState(false);
   const [copiedLocation, setCopiedLocation] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState(new Set());
+  const [resolving, setResolving] = useState(false);
   const editFileInputRef = useRef(null);
 
   useEffect(() => {
@@ -226,6 +227,27 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
       if (error.response?.data?.error) {
         alert(error.response.data.error);
       }
+    }
+  };
+
+  const handleResolve = async () => {
+    if (!userId) {
+      alert('Please log in.');
+      return;
+    }
+    if (authLoading) return;
+    setResolving(true);
+    try {
+      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
+      const response = await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/resolve`, {}, config);
+      onPinUpdated?.(response.data);
+      onUpdate?.();
+    } catch (error) {
+      console.error('Error resolving pin:', error);
+      const msg = error.response?.data?.error || 'Failed to update resolve status.';
+      alert(msg);
+    } finally {
+      setResolving(false);
     }
   };
 
@@ -957,6 +979,172 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                       </div>
                     </section>
                   )}
+
+                  {/* ── Fix Status Timeline ── */}
+                  <section className="pin-details-section">
+                    <h3 className="pin-details-section-title">
+                      <span className="material-icons-round">timeline</span>
+                      Fix Status
+                    </h3>
+                    {(() => {
+                      const vScore = getVerificationScore(pin.pinVerification);
+                      const isVerified = vScore > 80;
+                      const isScheduled = scheduledEvents.length > 0;
+
+                      // Resolve state for timeline steps only
+                      const resolves = pin.resolveVerification || [];
+                      const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
+                      const isResolved = resolveScore > 80;
+
+                      const fmtDate = (d) => {
+                        if (!d) return '';
+                        const dt = new Date(d);
+                        return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                          + ' - ' + dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                      };
+
+                      // Earliest scheduled event date
+                      const nextEventDate = scheduledEvents.length > 0
+                        ? scheduledEvents.reduce((earliest, ev) => {
+                          const d = new Date(ev.date);
+                          return d < earliest ? d : earliest;
+                        }, new Date(scheduledEvents[0].date))
+                        : null;
+
+                      const steps = [
+                        {
+                          key: 'reported',
+                          label: 'Reported',
+                          icon: 'flag',
+                          active: true,
+                          date: fmtDate(pin.createdAt)
+                        },
+                        {
+                          key: 'verified',
+                          label: 'Verified',
+                          icon: 'verified',
+                          active: isVerified,
+                          date: isVerified && pin.fixStatus?.verifiedAt ? fmtDate(pin.fixStatus.verifiedAt) : (isVerified ? 'Score > 80' : 'Score ≤ 80')
+                        },
+                        {
+                          key: 'awaiting',
+                          label: 'Awaiting Action',
+                          icon: 'hourglass_top',
+                          active: isVerified, // highlighted when verified (current state) or when resolved (completed step)
+                          date: '' // Don't show date for Awaiting Action
+                        },
+                        {
+                          key: 'scheduled',
+                          label: 'Scheduled',
+                          icon: 'event',
+                          active: isScheduled,
+                          date: nextEventDate
+                            ? `Estimated: ${nextEventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
+                            : ''
+                        },
+                        {
+                          key: 'resolved',
+                          label: 'Resolved',
+                          icon: 'check_circle',
+                          active: isResolved,
+                          date: isResolved && pin.fixStatus?.resolvedAt ? fmtDate(pin.fixStatus.resolvedAt) : (resolveScore > 0 ? `Score: ${resolveScore}/81` : '')
+                        }
+                      ];
+
+                      return (
+                        <div className="fix-status-timeline">
+                          {steps.map((step, i) => (
+                            <div
+                              key={step.key}
+                              className={`fix-status-step ${step.active ? 'active' : 'inactive'}`}
+                            >
+                              {/* Connector line above (skip first) */}
+                              {i > 0 && (
+                                <div className={`fix-status-connector ${steps[i - 1].active && step.active ? 'active' : ''}`} />
+                              )}
+                              <div className="fix-status-dot">
+                                <span className="material-icons-round">{step.icon}</span>
+                              </div>
+                              <div className="fix-status-content">
+                                <span className="fix-status-label">{step.label}</span>
+                                {step.date && <span className="fix-status-date">{step.date}</span>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </section>
+
+                  {/* ── Mark as Resolved (same UI as Verification Status) ── */}
+                  <section className="pin-details-section pin-details-resolve-section">
+                    <h3 className="pin-details-section-title">
+                      <span className="material-icons-round">check_circle</span>
+                      Mark as Resolved
+                    </h3>
+                    {(() => {
+                      const resolves = pin.resolveVerification || [];
+                      const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
+                      const isResolved = resolveScore > 80;
+                      const hasVotedResolve = resolves.some((v) => String(v.userId) === String(userId));
+                      const resolveRoleCounts = { user: 0, reviewer: 0, ngo: 0, admin: 0 };
+                      resolves.forEach((v) => { resolveRoleCounts[v.role] = (resolveRoleCounts[v.role] || 0) + 1; });
+                      const maxScore = 180;
+                      const progressPct = Math.min((resolveScore / maxScore) * 100, 100);
+                      const resolveStatus = isResolved
+                        ? { label: 'Resolved', emoji: '✅', color: '#10b981' }
+                        : { label: 'Not resolved', emoji: '⏳', color: '#94a3b8' };
+                      return (
+                        <div className="pin-details-stat-card pin-details-stat-verify pin-details-verification-card">
+                          <p className="pin-details-stat-label">
+                            Resolve Status
+                          </p>
+                          <div className="pin-verification-status-row">
+                            <span className="pin-verification-emoji">{resolveStatus.emoji}</span>
+                            <span className="pin-verification-status-label" style={{ color: resolveStatus.color }}>
+                              {resolveStatus.label}
+                            </span>
+                            <span className="pin-verification-score">Score: {resolveScore}</span>
+                          </div>
+                          <div className="pin-verification-progress-wrap">
+                            <div className="pin-verification-progress-bar">
+                              <div
+                                className="pin-verification-progress-fill"
+                                style={{ width: `${progressPct}%`, background: resolveStatus.color }}
+                              />
+                            </div>
+                          </div>
+                          <div className="pin-verification-breakdown">
+                            {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
+                              <div key={role} className="pin-verification-role-item">
+                                <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
+                                <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
+                                <span className="pin-verification-role-count">{resolveRoleCounts[role]}</span>
+                                <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="pin-verification-total">
+                            Total resolvers: {resolves.length}
+                          </div>
+                          {user && (
+                            <button
+                              type="button"
+                              className={`pin-details-verify-btn ${hasVotedResolve ? 'verified' : ''}`}
+                              onClick={handleResolve}
+                              disabled={resolving}
+                              title={hasVotedResolve ? 'Remove your resolve vote' : 'Vote this pin as resolved'}
+                            >
+                              <span className="material-icons-round">
+                                {hasVotedResolve ? 'undo' : 'check_circle'}
+                              </span>
+                              {resolving ? '...' : hasVotedResolve ? 'Voted ✓' : 'Vote Resolved'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </section>
 
                   {pin.description && (
                     <section className="pin-details-section">

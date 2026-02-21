@@ -861,6 +861,23 @@
   gap: 0.5rem;
 }
 
+.pin-details-action-status-card .pin-details-action-status-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.pin-details-action-status-icon {
+  font-size: 1.25rem !important;
+}
+
+.pin-details-action-status-label {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
 .severity-score {
   font-size: 1.875rem;
   font-weight: 900;
@@ -1044,6 +1061,229 @@
   line-height: 1.6;
   white-space: pre-wrap;
   /* preserve newlines and spaces from description */
+}
+
+/* ─── Fix Status Timeline ─── */
+.fix-status-timeline {
+  background: #0f172a;
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.fix-status-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  position: relative;
+  min-height: 3.5rem;
+}
+
+.fix-status-step:last-of-type {
+  min-height: unset;
+}
+
+/* — Connector line between dots — */
+.fix-status-connector {
+  position: absolute;
+  left: 17px;
+  /* center of dot (36px / 2 - 1px) */
+  top: -1rem;
+  width: 3px;
+  height: 1rem;
+  background: #334155;
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+
+.fix-status-connector.active {
+  background: #3b82f6;
+}
+
+/* — Step dot — */
+.fix-status-dot {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1e293b;
+  border: 2.5px solid #334155;
+  transition: all 0.3s;
+  z-index: 1;
+}
+
+.fix-status-step.active .fix-status-dot {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.35);
+}
+
+.fix-status-dot .material-icons-round {
+  font-size: 1.1rem;
+  color: #475569;
+  transition: color 0.3s;
+}
+
+.fix-status-step.active .fix-status-dot .material-icons-round {
+  color: #3b82f6;
+}
+
+/* — Content (label + date) — */
+.fix-status-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding-top: 0.35rem;
+}
+
+.fix-status-label {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #475569;
+  transition: color 0.3s;
+}
+
+.fix-status-step.active .fix-status-label {
+  color: #f1f5f9;
+}
+
+.fix-status-date {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.fix-status-step.active .fix-status-date {
+  color: #94a3b8;
+}
+
+/* — Resolve button — */
+.fix-status-resolve-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1.5px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fix-status-resolve-btn .material-icons-round {
+  font-size: 1.1rem;
+}
+
+.fix-status-resolve-btn:hover:not(:disabled) {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.fix-status-resolve-btn.resolved {
+  border-color: #10b981;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.fix-status-resolve-btn.resolved:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.fix-status-resolve-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Resolve Voting Section (inside dark timeline) ── */
+.fix-status-resolve-section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #1e293b;
+}
+
+.fix-status-resolve-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.fix-status-resolve-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.fix-status-resolve-score {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.1rem 0.5rem;
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.fix-status-resolve-progress {
+  width: 100%;
+  height: 5px;
+  background: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.fix-status-resolve-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease, background 0.3s ease;
+}
+
+.fix-status-resolve-breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.fix-status-resolve-role {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.fix-status-resolve-role .material-icons-round {
+  font-size: 0.875rem !important;
+  color: #64748b;
+}
+
+.fix-status-resolve-role-label {
+  font-weight: 600;
+  color: #94a3b8;
+  flex: 1;
+}
+
+.fix-status-resolve-role-count {
+  font-weight: 800;
+  color: #e2e8f0;
+  font-size: 0.8rem;
 }
 
 /* Visual Evidence */

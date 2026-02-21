@@ -75,6 +75,32 @@ const pinSchema = new mongoose.Schema({
       default: 'user'
     }
   }],
+  resolveVerification: [{
+    userId: {
+      type: String,
+      required: true
+    },
+    role: {
+      type: String,
+      required: true,
+      enum: ['user', 'reviewer', 'ngo', 'admin'],
+      default: 'user'
+    }
+  }],
+  fixStatus: {
+    verifiedAt: {
+      type: Date,
+      default: null
+    },
+    awaitingActionAt: {
+      type: Date,
+      default: null
+    },
+    resolvedAt: {
+      type: Date,
+      default: null
+    }
+  },
   comments: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Comment'

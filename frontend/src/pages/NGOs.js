@@ -1095,7 +1095,15 @@ export default function NGOs() {
                       </div>
                       <div className="ngos-card-body">
                         <div className="ngos-card-head">
-                          <h3 className="ngos-card-title">{n.name}</h3>
+                          <h3 className="ngos-card-title">
+                            <button
+                              type="button"
+                              className="ngos-card-title-link"
+                              onClick={() => navigate(`/ngo/${n._id}`)}
+                            >
+                              {n.name}
+                            </button>
+                          </h3>
                           <div className="ngos-card-head-right">
                             <span className="ngos-level-pill">{n.level}</span>
                             {(user?.role === 'admin' || n.authorId === user?.id) && (

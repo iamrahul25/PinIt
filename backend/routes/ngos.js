@@ -191,14 +191,15 @@ router.post('/:id/vote', async (req, res) => {
   }
 });
 
-// Get single NGO
+// Get single NGO (with hasVoted when authenticated)
 router.get('/:id', async (req, res) => {
   try {
     const ngo = await Ngo.findById(req.params.id).lean();
     if (!ngo) {
       return res.status(404).json({ error: 'NGO not found' });
     }
-    res.json(ngo);
+    const [withVote] = withHasVoted([ngo], req.auth?.userId);
+    res.json(withVote);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

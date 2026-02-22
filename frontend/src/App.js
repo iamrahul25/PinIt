@@ -12,6 +12,7 @@ import Suggestions from './pages/Suggestions';
 import NGOs from './pages/NGOs';
 import Events from './pages/Events';
 import EventDetail from './pages/EventDetail';
+import NgoDetail from './pages/NgoDetail';
 import NgoEdit from './pages/NgoEdit';
 import Leaderboard from './pages/Leaderboard';
 import { reverseGeocode } from './utils/geocode';
@@ -29,6 +30,7 @@ function App() {
   const isNgosPage = location.pathname === '/ngos';
   const isEventsPage = location.pathname === '/events';
   const isEventDetailPage = location.pathname.startsWith('/events/') && location.pathname !== '/events';
+  const isNgoDetailPage = location.pathname.match(/^\/ngo\/[^/]+$/);
   const isNgoEditPage = location.pathname.startsWith('/ngos/') && location.pathname.endsWith('/edit');
   const isLeaderboardPage = location.pathname === '/leaderboard';
   const [pins, setPins] = useState([]);
@@ -586,6 +588,10 @@ function App() {
       ) : isEventsPage ? (
         <div className="app-profile-container">
           <Events />
+        </div>
+      ) : isNgoDetailPage ? (
+        <div className="app-profile-container">
+          <NgoDetail />
         </div>
       ) : isNgoEditPage ? (
         <div className="app-profile-container">

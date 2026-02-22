@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
+import Toast from '../components/Toast';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
@@ -287,6 +288,16 @@ export default function Suggestions() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // ── Toast notification state ─────────────────────────────────────
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ visible: true, message, type });
+  }, []);
+  const hideToast = useCallback(() => {
+    setToast((prev) => ({ ...prev, visible: false }));
+  }, []);
+  
   const imageInputRef = useRef(null);
 
   // ── Comment state ────────────────────────────────────────────────
@@ -413,7 +424,7 @@ export default function Suggestions() {
     const remaining = MAX_IMAGES - imageFiles.length;
     const toAdd = files.slice(0, remaining);
     if (!toAdd.length) return;
-    setError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES} images allowed.` : '');
+    if (toAdd.length < files.length) showToast(`Maximum ${MAX_IMAGES} images allowed.`, 'warning');
     if (e.target) e.target.value = '';
     setCompressingImages(true);
     try {
@@ -421,11 +432,11 @@ export default function Suggestions() {
       setImageFiles((prev) => [...prev, ...entries.map((e) => e.file)]);
       setImagePreviews((prev) => [...prev, ...entries.map((e) => e.src)]);
     } catch {
-      setError('Failed to process images. Please try again.');
+      showToast('Failed to process images. Please try again.', 'error');
     } finally {
       setCompressingImages(false);
     }
-  }, [imageFiles, compressToEntries]);
+  }, [imageFiles, compressToEntries, showToast]);
 
   const removeSuggestionImage = (index) => {
     setImageFiles((prev) => prev.filter((_, i) => i !== index));
@@ -450,10 +461,10 @@ export default function Suggestions() {
     e.preventDefault();
     setError('');
     setSuccess('');
-    if (!form.title.trim()) { setError('Title is required.'); return; }
+    if (!form.title.trim()) { showToast('Title is required.', 'error'); return; }
     const wordCount = form.details.trim().split(/\s+/).filter(Boolean).length;
     if (wordCount > MAX_DETAILS_WORDS) {
-      setError(`Details must be ${MAX_DETAILS_WORDS} words or fewer (currently ${wordCount}).`);
+      showToast(`Details must be ${MAX_DETAILS_WORDS} words or fewer (currently ${wordCount}).`, 'error');
       return;
     }
     setSubmitting(true);
@@ -479,14 +490,14 @@ export default function Suggestions() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || 'Failed to submit suggestion');
       }
-      setSuccess('Suggestion submitted!');
+      showToast('Suggestion submitted successfully!', 'success');
       setForm({ title: '', category: 'Feature Request', details: '' });
       setImageFiles([]);
       setImagePreviews([]);
       setMobileFormOpen(false);
       queryClient.invalidateQueries({ queryKey: SUGGESTIONS_QUERY_KEY });
     } catch (err) {
-      setError(err.message || 'Failed to submit');
+      showToast(err.message || 'Failed to submit suggestion', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -535,8 +546,9 @@ export default function Suggestions() {
       }
       const updated = await res.json();
       updateSuggestionInCache(suggestionId, (s) => ({ ...s, status: updated.status }));
+      showToast('State updated successfully!', 'success');
     } catch (err) {
-      setError(err.message || 'Could not update state');
+      showToast(err.message || 'Could not update state', 'error');
     }
   };
 
@@ -563,8 +575,9 @@ export default function Suggestions() {
           })),
         };
       });
+      showToast('Suggestion deleted successfully!', 'success');
     } catch (err) {
-      setError(err.message || 'Could not delete suggestion');
+      showToast(err.message || 'Could not delete suggestion', 'error');
     }
   };
 
@@ -660,9 +673,10 @@ export default function Suggestions() {
         details: updated.details,
         images: updated.images
       }));
+      showToast('Suggestion updated successfully!', 'success');
       closeEditModal();
     } catch (err) {
-      setEditError(err.message || 'Could not update suggestion');
+      showToast(err.message || 'Could not update suggestion', 'error');
     } finally {
       setEditSubmitting(false);
     }
@@ -1191,6 +1205,14 @@ export default function Suggestions() {
           </div>
         </div>
       )}
+      
+      {/* ── Toast Notification ──────────────────────────────────────── */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-quer
 import { FaInstagram, FaLinkedin, FaFacebookF, FaGlobe } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import Toast from '../components/Toast';
 import './NGOs.css';
 
 const NGOS_QUERY_KEY = ['ngos'];
@@ -91,6 +92,15 @@ export default function NGOs() {
   const [verificationResult, setVerificationResult] = useState('');
   const [editingNgo, setEditingNgo] = useState(null);
   const fileInputRef = useRef(null);
+
+  // ── Toast notification state ─────────────────────────────────────
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ visible: true, message, type });
+  }, []);
+  const hideToast = useCallback(() => {
+    setToast((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)');
@@ -489,7 +499,7 @@ export default function NGOs() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Failed to ${editingNgo ? 'update' : 'submit'} NGO`);
       }
-      setSuccess(`NGO ${editingNgo ? 'updated' : 'submitted'} successfully!`);
+      showToast(`NGO ${editingNgo ? 'updated' : 'submitted'} successfully!`, 'success');
       setMobileFormOpen(false);
       setEditingNgo(null); // Exit editing mode
       setForm({
@@ -515,7 +525,7 @@ export default function NGOs() {
       removeLogo();
       queryClient.invalidateQueries({ queryKey: NGOS_QUERY_KEY });
     } catch (err) {
-      setError(err.message || `Failed to ${editingNgo ? 'update' : 'submit'}`);
+      showToast(err.message || `Failed to ${editingNgo ? 'update' : 'submit'}`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -531,8 +541,9 @@ export default function NGOs() {
       if (!res.ok) throw new Error('Failed to vote');
       const data = await res.json();
       updateNgoInCache(ngoId, (n) => ({ ...n, upvotes: data.upvotes, hasVoted: data.hasVoted }));
+      showToast(data.hasVoted ? 'Liked!' : 'Like removed', 'success');
     } catch (err) {
-      setError(err.message || 'Could not update vote');
+      showToast(err.message || 'Could not update vote', 'error');
     }
   };
 
@@ -559,8 +570,9 @@ export default function NGOs() {
           })),
         };
       });
+      showToast('NGO deleted successfully!', 'success');
     } catch (err) {
-      setError(err.message || 'Could not delete NGO');
+      showToast(err.message || 'Could not delete NGO', 'error');
     }
   };
 
@@ -1233,6 +1245,14 @@ export default function NGOs() {
           </section>
         </div>
       </main>
+      
+      {/* ── Toast Notification ──────────────────────────────────────── */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+      />
     </div>
   );
 }

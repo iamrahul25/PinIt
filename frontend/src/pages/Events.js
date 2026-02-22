@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import Toast from '../components/Toast';
 import './Events.css';
 
 const EVENTS_QUERY_KEY = ['events'];
@@ -113,6 +114,15 @@ export default function Events() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [editingEvent, setEditingEvent] = useState(null);
   const [showEventsList, setShowEventsList] = useState(false);
+
+  // ── Toast notification state ─────────────────────────────────────
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ visible: true, message, type });
+  }, []);
+  const hideToast = useCallback(() => {
+    setToast((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 1023px)');
@@ -458,8 +468,9 @@ export default function Events() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `Failed to ${editingEvent ? 'update' : 'create'} event`);
       }
-      setSuccess('Event created successfully!');
+      showToast(editingEvent ? 'Event updated successfully!' : 'Event created successfully!', 'success');
       setMobileFormOpen(false);
+      setEditingEvent(null);
       setForm({
         title: '',
         description: '',
@@ -480,7 +491,7 @@ export default function Events() {
       removeBanner();
       queryClient.invalidateQueries({ queryKey: EVENTS_QUERY_KEY });
     } catch (err) {
-      setError(err.message || 'Failed to create event');
+      showToast(err.message || `Failed to ${editingEvent ? 'update' : 'create'} event`, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -501,7 +512,7 @@ export default function Events() {
         hasAttending: data.hasAttending
       }));
     } catch (err) {
-      setError(err.message || 'Could not update attendance');
+      showToast(err.message || 'Could not update attendance', 'error');
     }
   };
 
@@ -528,8 +539,9 @@ export default function Events() {
           })),
         };
       });
+      showToast('Event deleted successfully!', 'success');
     } catch (err) {
-      setError(err.message || 'Could not delete event');
+      showToast(err.message || 'Could not delete event', 'error');
     }
   };
 
@@ -1153,6 +1165,14 @@ export default function Events() {
           </section>
         </div>
       </main>
+
+      {/* ── Toast Notification ──────────────────────────────────────── */}
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+      />
     </div>
   );
 }

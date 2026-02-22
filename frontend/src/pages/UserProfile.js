@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
+import Badges from '../components/Badges';
 import './UserProfile.css';
 
 const USER_PROFILE_QUERY_KEY = ['userProfile'];
@@ -87,7 +88,8 @@ export default function UserProfile() {
     const eventsData = await eventsResponse.json();
     const suggestionsData = await suggestionsResponse.json();
 
-    const stats = { ...statsData, ngosCreated: ngosData.length, eventsCreated: eventsData.length, suggestionsMade: suggestionsData.length };
+    // Use extended stats from backend (includes badge-related stats)
+    const stats = statsData;
     const activityData = {
       pins: pinsData,
       saved: savedPinsData,
@@ -418,6 +420,9 @@ export default function UserProfile() {
             </div>
           </div>
         </div>
+
+        {/* Badges Section */}
+        <Badges stats={{ ...stats, ...user, totalPoints: userLevel.points }} loading={loading} />
 
         <div className="user-activity-section">
           <div className="activity-tabs-container">

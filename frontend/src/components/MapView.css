@@ -1,0 +1,34 @@
+/* Map floating control tooltips (same pattern as PinDetails verification info) */
+.map-control-tooltip-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.map-control-tooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.5rem);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(18rem, 90vw);
+  padding: 0.5rem 0.75rem;
+  background: #1e293b;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
+  z-index: 1002;
+  transition: visibility 0.2s, opacity 0.2s;
+  pointer-events: none;
+}
+
+.map-control-tooltip-wrap:hover .map-control-tooltip {
+  visibility: visible;
+  opacity: 1;
+}

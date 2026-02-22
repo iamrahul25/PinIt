@@ -7,6 +7,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
+import './MapView.css';
 
 // Expose L globally so leaflet.markercluster can extend it (UMD expects window.L)
 if (typeof window !== 'undefined') window.L = L;
@@ -622,11 +623,12 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         gap: '8px',
       }}>
         {/* Search Box */}
-        <div style={{ position: 'relative', maxWidth: '400px', width: '100%' }}>
+        <div className="map-control-tooltip-wrap" style={{ position: 'relative', maxWidth: '400px', width: '100%' }}>
           <input
             ref={searchInputRef}
             type="text"
             placeholder="Search location..."
+            aria-label="Search Location"
             style={{
               width: '100%',
               padding: '8px',
@@ -687,62 +689,69 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               zIndex: 1001
             }}
           />
+          <span className="map-control-tooltip" role="tooltip">Search Location</span>
         </div>
 
         {/* Buttons Row */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* My Location Button */}
-          <button
-            type="button"
-            className="map-location-btn"
-            title={isMyLocationLoading ? 'Finding location...' : 'My Location'}
-            onClick={handleMyLocationClick}
-            disabled={isMyLocationLoading}
-            style={{
-              width: '36px',
-              height: '36px',
-              padding: 0,
-              border: 'none',
-              borderRadius: '6px',
-              background: 'white',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-              cursor: isMyLocationLoading ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#374151',
-              transition: 'transform 0.1s',
-              opacity: isMyLocationLoading ? 1 : undefined,
-            }}
-            onMouseDown={(e) => !isMyLocationLoading && (e.currentTarget.style.transform = 'scale(0.95)')}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            {isMyLocationLoading ? (
-              <span
-                className="map-location-spinner"
-                style={{
-                  width: 20,
-                  height: 20,
-                  border: '2px solid #e5e7eb',
-                  borderTopColor: '#3b82f6',
-                  borderRadius: '50%',
-                  animation: 'mapLocationSpin 0.6s linear infinite',
-                  boxSizing: 'border-box',
-                }}
-                aria-hidden
-              />
-            ) : (
-              <img src="/icons/location.svg" alt="" width="20" height="20" style={{ display: 'block', pointerEvents: 'none' }} />
-            )}
-          </button>
+          <div className="map-control-tooltip-wrap">
+            <button
+              type="button"
+              className="map-location-btn"
+              title={isMyLocationLoading ? 'Finding location...' : 'GPS (My Location)'}
+              aria-label={isMyLocationLoading ? 'Finding location...' : 'GPS (My Location)'}
+              onClick={handleMyLocationClick}
+              disabled={isMyLocationLoading}
+              style={{
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                border: 'none',
+                borderRadius: '6px',
+                background: 'white',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                cursor: isMyLocationLoading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#374151',
+                transition: 'transform 0.1s',
+                opacity: isMyLocationLoading ? 1 : undefined,
+              }}
+              onMouseDown={(e) => !isMyLocationLoading && (e.currentTarget.style.transform = 'scale(0.95)')}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              {isMyLocationLoading ? (
+                <span
+                  className="map-location-spinner"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    border: '2px solid #e5e7eb',
+                    borderTopColor: '#3b82f6',
+                    borderRadius: '50%',
+                    animation: 'mapLocationSpin 0.6s linear infinite',
+                    boxSizing: 'border-box',
+                  }}
+                  aria-hidden
+                />
+              ) : (
+                <img src="/icons/location.svg" alt="" width="20" height="20" style={{ display: 'block', pointerEvents: 'none' }} />
+              )}
+            </button>
+            <span className="map-control-tooltip" role="tooltip">
+              {isMyLocationLoading ? 'Finding location...' : 'GPS (My Location)'}
+            </span>
+          </div>
 
           {/* Map Layers Button */}
-          <div ref={layersDropdownRef} style={{ position: 'relative' }}>
+          <div ref={layersDropdownRef} style={{ position: 'relative' }} className="map-control-tooltip-wrap">
             <button
               type="button"
               onClick={() => setLayersDropdownOpen((prev) => !prev)}
-              title="Map layers"
+              aria-label="Map Types"
               style={{
                 width: '36px',
                 height: '36px',
@@ -764,6 +773,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
             >
               <span className="material-icons-round" style={{ fontSize: '20px' }}>layers</span>
             </button>
+            <span className="map-control-tooltip" role="tooltip">Map Types</span>
             {layersDropdownOpen && (
               <div
                 style={{
@@ -813,39 +823,43 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           </div>
 
           {/* Clustering Button */}
-          <button
-            type="button"
-            onClick={() => setClusteringEnabled((prev) => !prev)}
-            title={clusteringEnabled ? 'Disable pin clustering' : 'Enable pin clustering'}
-            style={{
-              width: '36px',
-              height: '36px',
-              padding: 0,
-              border: 'none',
-              borderRadius: '6px',
-              background: clusteringEnabled ? '#6366f1' : 'white',
-              color: clusteringEnabled ? 'white' : '#374151',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'transform 0.1s'
-            }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            <span className="material-icons-round" style={{ fontSize: '20px' }}>bubble_chart</span>
-          </button>
+          <div className="map-control-tooltip-wrap">
+            <button
+              type="button"
+              onClick={() => setClusteringEnabled((prev) => !prev)}
+              aria-label="Enable/Disable Clustering"
+              style={{
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                border: 'none',
+                borderRadius: '6px',
+                background: clusteringEnabled ? '#6366f1' : 'white',
+                color: clusteringEnabled ? 'white' : '#374151',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.1s'
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span className="material-icons-round" style={{ fontSize: '20px' }}>bubble_chart</span>
+            </button>
+            <span className="map-control-tooltip" role="tooltip">Enable/Disable Clustering</span>
+          </div>
 
           {/* Zoom Out Button */}
-          <button
-            type="button"
-            className="map-zoom-out-btn"
-            title="Zoom out to state level"
-            onClick={handleZoomOutClick}
-            style={{
+          <div className="map-control-tooltip-wrap">
+            <button
+              type="button"
+              className="map-zoom-out-btn"
+              aria-label="Zoom Out"
+              onClick={handleZoomOutClick}
+              style={{
               width: '36px',
               height: '36px',
               padding: 0,
@@ -860,12 +874,14 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               color: '#374151',
               transition: 'transform 0.1s'
             }}
-            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
-            <span className="material-icons-round" style={{ fontSize: '20px' }}>fullscreen_exit</span>
-          </button>
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span className="material-icons-round" style={{ fontSize: '20px' }}>fullscreen_exit</span>
+            </button>
+            <span className="map-control-tooltip" role="tooltip">Zoom Out</span>
+          </div>
         </div>
       </div>
 

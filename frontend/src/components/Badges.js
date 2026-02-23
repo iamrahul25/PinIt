@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { 
   BADGE_CATEGORIES, 
   BADGE_TIERS, 
@@ -8,30 +8,52 @@ import {
 } from '../utils/badges';
 import './Badges.css';
 
+const BADGES_INITIAL_COUNT = 6; // Show 6 badges initially, then "Show more" for the rest
+
 /**
  * Badges Component
  * Displays a grid of badges with earned/locked states and progress indicators.
  * Supports filtering by category and shows detailed progress for each badge.
  */
 export default function Badges({ stats = {}, loading = false }) {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState('earned');
   const [hoveredBadge, setHoveredBadge] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+  const categoryScrollRef = useRef(null);
+
+  const scrollCategory = useCallback((direction) => {
+    const el = categoryScrollRef.current;
+    if (!el) return;
+    const step = 200;
+    el.scrollBy({ left: direction === 'left' ? -step : step, behavior: 'smooth' });
+  }, []);
 
   // Compute badges from stats
   const badges = useMemo(() => computeBadges(stats), [stats]);
   const badgeCounts = useMemo(() => getBadgeCounts(stats), [stats]);
   const nextBadge = useMemo(() => getNextBadgeToEarn(stats), [stats]);
 
-  // Get unique categories from badges
+  // Filter options: Earned (only earned), All, then category filters
   const categories = useMemo(() => {
-    return ['all', ...Object.values(BADGE_CATEGORIES)];
+    return ['earned', 'all', ...Object.values(BADGE_CATEGORIES)];
   }, []);
 
-  // Filter badges by selected category
+  // Filter badges by selected category or earned-only
   const filteredBadges = useMemo(() => {
+    if (selectedCategory === 'earned') return badges.filter((badge) => badge.earned);
     if (selectedCategory === 'all') return badges;
     return badges.filter((badge) => badge.category === selectedCategory);
   }, [badges, selectedCategory]);
+
+  // Reset expanded when category changes
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    setExpanded(false);
+  };
+
+  const visibleBadges = expanded ? filteredBadges : filteredBadges.slice(0, BADGES_INITIAL_COUNT);
+  const hasMore = filteredBadges.length > BADGES_INITIAL_COUNT;
+  const remainingCount = filteredBadges.length - BADGES_INITIAL_COUNT;
 
   // Get tier CSS class
   const getTierClass = (tier) => {
@@ -106,30 +128,51 @@ export default function Badges({ stats = {}, loading = false }) {
         )}
       </div>
 
-      {/* Category filter */}
-      <div className="badges-category-filter">
-        <div className="badges-category-scroll">
-          {categories.map((category) => {
-            const count = category === 'all' 
-              ? badgeCounts.earned 
-              : badgeCounts.byCategory[category] || 0;
+      {/* Category filter with left/right scroll arrows */}
+      <div className="badges-category-filter-wrap">
+        <button
+          type="button"
+          className="badges-category-scroll-btn left"
+          onClick={() => scrollCategory('left')}
+          aria-label="Scroll tags left"
+        >
+          ‹
+        </button>
+        <div className="badges-category-filter" ref={categoryScrollRef}>
+          <div className="badges-category-scroll">
+            {categories.map((category) => {
+            const count = category === 'earned'
+              ? badgeCounts.earned
+              : category === 'all'
+                ? badgeCounts.total
+                : badgeCounts.byCategory[category] || 0;
+            const label = category === 'earned' ? 'Earned' : category === 'all' ? 'All' : category;
             return (
               <button
                 key={category}
                 className={`category-filter-btn ${selectedCategory === category ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(category)}
+                onClick={() => handleCategoryChange(category)}
               >
-                {category === 'all' ? 'All' : category}
+                {label}
                 <span className="category-count">{count}</span>
               </button>
             );
           })}
+          </div>
         </div>
+        <button
+          type="button"
+          className="badges-category-scroll-btn right"
+          onClick={() => scrollCategory('right')}
+          aria-label="Scroll tags right"
+        >
+          ›
+        </button>
       </div>
 
       {/* Badges grid */}
-      <div className="badges-grid">
-        {filteredBadges.map((badge) => (
+      <div className={`badges-grid ${expanded ? 'badges-grid-expanded' : ''}`}>
+        {visibleBadges.map((badge) => (
           <div
             key={badge.id}
             className={`badge-card ${badge.earned ? 'earned' : 'locked'} ${getTierClass(badge.tier)}`}
@@ -193,6 +236,22 @@ export default function Badges({ stats = {}, loading = false }) {
           </div>
         ))}
       </div>
+
+      {/* Show more / Show less */}
+      {filteredBadges.length > 0 && hasMore && (
+        <div className="badges-show-more-wrap">
+          <button
+            type="button"
+            className="badges-show-more-btn"
+            onClick={() => setExpanded((e) => !e)}
+            aria-expanded={expanded}
+          >
+            {expanded
+              ? 'Show less'
+              : `Show more (+${remainingCount} ${remainingCount === 1 ? 'badge' : 'badges'})`}
+          </button>
+        </div>
+      )}
 
       {/* Empty state */}
       {filteredBadges.length === 0 && (

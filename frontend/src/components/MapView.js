@@ -699,7 +699,6 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
             <button
               type="button"
               className="map-location-btn"
-              title={isMyLocationLoading ? 'Finding location...' : 'GPS (My Location)'}
               aria-label={isMyLocationLoading ? 'Finding location...' : 'GPS (My Location)'}
               onClick={handleMyLocationClick}
               disabled={isMyLocationLoading}

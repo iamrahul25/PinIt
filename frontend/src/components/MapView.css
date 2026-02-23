@@ -28,7 +28,10 @@
   pointer-events: none;
 }
 
-.map-control-tooltip-wrap:hover .map-control-tooltip {
-  visibility: visible;
-  opacity: 1;
+/* Only show tooltip on devices that support hover (e.g. mouse); avoid showing on touch tap */
+@media (hover: hover) {
+  .map-control-tooltip-wrap:hover .map-control-tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
 }

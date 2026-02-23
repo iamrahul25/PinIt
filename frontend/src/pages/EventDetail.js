@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import { isEventPast } from '../utils/eventUtils';
 import './EventDetail.css';
 
 function formatEventDate(dateStr) {
@@ -133,6 +134,7 @@ export default function EventDetail() {
   if (!event) return null;
 
   const pinUrl = event.pinId ? `${window.location.origin}/pin/${event.pinId}` : null;
+  const isPast = isEventPast(event);
 
   return (
     <div className="event-detail-page">
@@ -166,6 +168,11 @@ export default function EventDetail() {
           </div>
         )}
         <div className="event-detail-body">
+          {isPast && (
+            <div className="event-detail-ended-banner" role="status">
+              This event has ended
+            </div>
+          )}
           <h1 className="event-detail-title">{event.title}</h1>
           <div className="event-detail-meta-row">
             <span className="event-detail-date-pill">{formatEventDate(event.date)}</span>
@@ -230,14 +237,18 @@ export default function EventDetail() {
             </section>
           )}
           <div className="event-detail-actions">
-            <button
-              type="button"
-              className={`event-detail-attend-btn ${attending ? 'attending' : ''}`}
-              onClick={handleAttend}
-            >
-              <span className="material-icons-round">{attending ? 'check_circle' : 'person_add'}</span>
-              {attending ? "I'm in" : "I'll join"}
-            </button>
+            {isPast ? (
+              <span className="event-detail-attend-ended" aria-label="Event has ended">Event ended</span>
+            ) : (
+              <button
+                type="button"
+                className={`event-detail-attend-btn ${attending ? 'attending' : ''}`}
+                onClick={handleAttend}
+              >
+                <span className="material-icons-round">{attending ? 'check_circle' : 'person_add'}</span>
+                {attending ? "I'm in" : "I'll join"}
+              </button>
+            )}
             <span className="event-detail-volunteer-count">{volunteerCount} volunteers</span>
           </div>
           <p className="event-detail-author">By {event.authorName || 'Anonymous'}</p>

@@ -12,7 +12,7 @@ function withAttendance(events, userId) {
   }));
 }
 
-// List upcoming events (paginated, filter by date and city)
+// List events (paginated, filter by date, city, and past/upcoming)
 router.get('/', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
@@ -20,6 +20,7 @@ router.get('/', async (req, res) => {
     const city = (req.query.city || '').trim();
     const dateFilter = req.query.date; // YYYY-MM-DD optional
     const pinId = (req.query.pinId || '').trim();
+    const past = req.query.past === '1';
     const userId = req.auth?.userId;
 
     const query = {};
@@ -30,7 +31,9 @@ router.get('/', async (req, res) => {
       query.pinId = pinId;
     }
 
-    if (dateFilter) {
+    if (past) {
+      query.date = { $lt: today };
+    } else if (dateFilter) {
       const [y, m, d] = dateFilter.split('-').map(Number);
       if (y && m && d) {
         const start = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0));
@@ -48,8 +51,9 @@ router.get('/', async (req, res) => {
       query['location.city'] = new RegExp(city, 'i');
     }
 
+    const sort = past ? { date: -1, startTime: -1 } : { date: 1, startTime: 1 };
     const raw = await Event.find(query)
-      .sort({ date: 1, startTime: 1 })
+      .sort(sort)
       .skip(skip)
       .limit(limit)
       .lean();

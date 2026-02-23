@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import { isEventPast } from '../utils/eventUtils';
 import Toast from '../components/Toast';
 import './Events.css';
 
@@ -114,6 +115,7 @@ export default function Events() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 1024);
   const [editingEvent, setEditingEvent] = useState(null);
   const [showEventsList, setShowEventsList] = useState(false);
+  const [eventPeriodFilter, setEventPeriodFilter] = useState('upcoming'); // 'upcoming' | 'past'
 
   // ── Toast notification state ─────────────────────────────────────
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
@@ -163,12 +165,13 @@ export default function Events() {
   const fetchBoardPage = useCallback(async ({ pageParam = 0 }) => {
     const params = new URLSearchParams({ limit: PAGE_SIZE, skip: pageParam });
     if (appliedCity.trim()) params.set('city', appliedCity.trim());
-    if (appliedDate) params.set('date', appliedDate);
+    if (appliedDate && eventPeriodFilter === 'upcoming') params.set('date', appliedDate);
+    if (eventPeriodFilter === 'past') params.set('past', '1');
     const res = await authFetch(`${API_BASE_URL}/api/events?${params}`);
     if (!res.ok) throw new Error('Failed to fetch events');
     const data = await res.json();
     return { events: data.events || [], total: data.total ?? 0 };
-  }, [authFetch, appliedCity, appliedDate]);
+  }, [authFetch, appliedCity, appliedDate, eventPeriodFilter]);
 
   const enabled = Boolean(isSignedIn && !authLoading);
   const myQuery = useQuery({
@@ -179,7 +182,7 @@ export default function Events() {
   });
 
   const boardQuery = useInfiniteQuery({
-    queryKey: [...EVENTS_QUERY_KEY, 'board', appliedCity, appliedDate],
+    queryKey: [...EVENTS_QUERY_KEY, 'board', appliedCity, appliedDate, eventPeriodFilter],
     queryFn: fetchBoardPage,
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
@@ -190,12 +193,19 @@ export default function Events() {
     staleTime: STALE_TIME_MS,
   });
 
+  const rawBoardEvents = boardQuery.data?.pages?.flatMap((p) => p.events ?? []) ?? [];
+  const rawMyEvents = myQuery.data ?? [];
   const events = view === 'my'
-    ? (myQuery.data ?? [])
-    : (boardQuery.data?.pages?.flatMap((p) => p.events ?? []) ?? []);
+    ? (eventPeriodFilter === 'past'
+        ? rawMyEvents.filter((ev) => isEventPast(ev))
+        : rawMyEvents.filter((ev) => !isEventPast(ev)))
+    : (eventPeriodFilter === 'upcoming'
+        ? rawBoardEvents.filter((ev) => !isEventPast(ev))
+        : rawBoardEvents);
   const total = view === 'my'
-    ? (myQuery.data?.length ?? 0)
+    ? events.length
     : (boardQuery.data?.pages?.[0]?.total ?? 0);
+  const displayCount = events.length;
   const loading = view === 'my' ? myQuery.isLoading : boardQuery.isLoading;
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
@@ -838,9 +848,9 @@ export default function Events() {
             <div className="events-board-header">
               <div className="events-board-title-wrap">
                 <h2 className="events-board-title">
-                  {view === 'my' ? 'My Events' : 'Upcoming Events'}
+                  {view === 'my' ? 'My Events' : (eventPeriodFilter === 'past' ? 'Past Events' : 'Upcoming Events')}
                 </h2>
-                <span className="events-board-count">{total}</span>
+                <span className="events-board-count">{displayCount}</span>
                 <button
                   type="button"
                   className="events-refresh-btn"
@@ -852,8 +862,25 @@ export default function Events() {
                   <span className="material-icons-round" aria-hidden="true">refresh</span>
                 </button>
               </div>
-              {view === 'board' && (
-                <div className="events-filters">
+              <div className="events-filters">
+                <div className="events-period-filter" role="group" aria-label="Event period">
+                  <button
+                    type="button"
+                    className={`events-period-btn ${eventPeriodFilter === 'upcoming' ? 'active' : ''}`}
+                    onClick={() => setEventPeriodFilter('upcoming')}
+                  >
+                    Upcoming
+                  </button>
+                  <button
+                    type="button"
+                    className={`events-period-btn ${eventPeriodFilter === 'past' ? 'active' : ''}`}
+                    onClick={() => setEventPeriodFilter('past')}
+                  >
+                    Past
+                  </button>
+                </div>
+                {view === 'board' && (
+                  <>
                   <label className="events-filter-label">
                     Date:
                     <input
@@ -939,14 +966,6 @@ export default function Events() {
                   </button>
                   <button
                     type="button"
-                    className="events-filter-btn events-filter-reset-btn"
-                    onClick={handleFilterReset}
-                  >
-                    <span className="material-icons-round" aria-hidden="true">refresh</span>
-                    Reset
-                  </button>
-                  <button
-                    type="button"
                     className={`events-filter-btn ${showEventsList ? 'events-filter-reset-btn' : ''}`}
                     onClick={() => setShowEventsList((v) => !v)}
                     title={showEventsList ? 'Switch to card view' : 'View events in a table'}
@@ -954,21 +973,29 @@ export default function Events() {
                     <span className="material-icons-round" aria-hidden="true">table_chart</span>
                     {showEventsList ? 'Card view' : 'Events list'}
                   </button>
-                </div>
-              )}
+                  <button
+                    type="button"
+                    className="events-filter-btn events-filter-reset-btn"
+                    onClick={handleFilterReset}
+                  >
+                    <span className="material-icons-round" aria-hidden="true">refresh</span>
+                    Reset
+                  </button>
+                  </>
+                )}
+              </div>
             </div>
 
             {loading ? (
               <div className="events-loading">Loading events...</div>
             ) : events.length === 0 ? (
               <div className="events-empty">
-                {view === 'my' ? 'You haven’t created any events yet.' : 'No upcoming events match your filters.'}
+                {view === 'my'
+                  ? (eventPeriodFilter === 'past' ? 'No past events.' : 'You haven’t created any events yet.')
+                  : (eventPeriodFilter === 'past' ? 'No past events match your filters.' : 'No upcoming events match your filters.')}
               </div>
             ) : view === 'board' && showEventsList ? (
               (() => {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const upcoming = events.filter((ev) => new Date(ev.date) >= today);
                 const venueStr = (ev) => [ev.location?.address, ev.location?.city, ev.location?.state].filter(Boolean).join(', ') || '—';
                 return (
                   <div className="events-table-wrap">
@@ -984,12 +1011,14 @@ export default function Events() {
                         </tr>
                       </thead>
                       <tbody>
-                        {upcoming.length === 0 ? (
+                        {events.length === 0 ? (
                           <tr>
-                            <td colSpan={6} className="events-table-empty">No upcoming events.</td>
+                            <td colSpan={6} className="events-table-empty">
+                              {eventPeriodFilter === 'past' ? 'No past events.' : 'No upcoming events.'}
+                            </td>
                           </tr>
                         ) : (
-                          upcoming.map((ev) => (
+                          events.map((ev) => (
                             <tr key={ev._id}>
                               <td>
                                 <Link to={`/events/${ev._id}`} className="events-table-event-link">
@@ -1011,8 +1040,10 @@ export default function Events() {
               })()
             ) : (
               <div className="events-list">
-                {events.map((ev) => (
-                  <article key={ev._id} className="events-card">
+                {events.map((ev) => {
+                  const past = isEventPast(ev);
+                  return (
+                  <article key={ev._id} className={`events-card ${past ? 'events-card--past' : ''}`}>
                     {ev.bannerUrl && (
                       <div className="events-card-banner-wrap">
                         <img src={ev.bannerUrl} alt="" className="events-card-banner" />
@@ -1105,7 +1136,11 @@ export default function Events() {
                               : ev.startTime && ev.endTime
                                 ? `${formatTimeToAMPM(ev.startTime)} – ${formatTimeToAMPM(ev.endTime)}`
                                 : formatEventTime(ev.startTime, ev.durationHours)}
+                            {past && <span className="events-card-past-badge">Past event</span>}
                           </p>
+                        )}
+                        {past && !(ev.date || ev.startTime || ev.durationHours != null || ev.endTime) && (
+                          <span className="events-card-past-badge">Past event</span>
                         )}
                         {(ev.driveType || ev.otherDriveName) && (
                           <div className="events-card-tags">
@@ -1124,15 +1159,19 @@ export default function Events() {
                         )}
                       </div>
                       <div className="events-card-attend-wrap">
-                        <button
-                          type="button"
-                          className={`events-attend-btn ${ev.hasAttending ? 'attending' : ''}`}
-                          onClick={() => handleAttend(ev._id)}
-                          aria-label={ev.hasAttending ? "You're attending" : "I'll join"}
-                        >
-                          <span className="material-icons-round">{ev.hasAttending ? 'check_circle' : 'person_add'}</span>
-                          {ev.hasAttending ? "I'm in" : "I'll join"}
-                        </button>
+                        {past ? (
+                          <span className="events-attend-ended" aria-label="Event has ended">Event ended</span>
+                        ) : (
+                          <button
+                            type="button"
+                            className={`events-attend-btn ${ev.hasAttending ? 'attending' : ''}`}
+                            onClick={() => handleAttend(ev._id)}
+                            aria-label={ev.hasAttending ? "You're attending" : "I'll join"}
+                          >
+                            <span className="material-icons-round">{ev.hasAttending ? 'check_circle' : 'person_add'}</span>
+                            {ev.hasAttending ? "I'm in" : "I'll join"}
+                          </button>
+                        )}
                         <span className="events-volunteer-count">{ev.volunteerCount ?? 0} volunteers</span>
                         <span className="events-card-author">By {ev.authorName || 'Anonymous'}</span>
                         <div className="events-card-meta">
@@ -1146,7 +1185,8 @@ export default function Events() {
                       </div>
                     </div>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             )}
 

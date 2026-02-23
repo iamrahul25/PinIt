@@ -499,6 +499,40 @@
   font-size: 1.25rem;
 }
 
+.events-period-filter {
+  display: inline-flex;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: #fff;
+}
+
+.events-period-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: transparent;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.events-period-btn:hover {
+  background: #f1f5f9;
+  color: #334155;
+}
+
+.events-period-btn.active {
+  background: #4F46E5;
+  color: #fff;
+}
+
+.events-period-btn.active:hover {
+  background: #4338ca;
+  color: #fff;
+}
+
 .events-filters {
   display: flex;
   flex-wrap: wrap;
@@ -757,6 +791,41 @@
 
 .events-attend-btn.attending:hover {
   background: #047857;
+}
+
+/* Past event badge and card state */
+.events-card-past-badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #64748b;
+  vertical-align: middle;
+}
+
+.events-card.events-card--past {
+  opacity: 0.92;
+  border-color: #e2e8f0;
+}
+
+.events-card.events-card--past:hover {
+  border-color: #e2e8f0;
+}
+
+.events-attend-ended {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
 }
 
 .events-volunteer-count {

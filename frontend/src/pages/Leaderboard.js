@@ -1,7 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
 import './Leaderboard.css';
+
+const LEADERBOARD_QUERY_KEY = ['leaderboard'];
+const LEADERBOARD_STALE_MS = 5 * 60 * 1000; // 5 minutes
 
 // ─── Scoring weights (must match backend) ───────────────────────────────────
 const SCORE_LABELS = [
@@ -55,38 +59,33 @@ function periodLabel(start, end, period) {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Leaderboard() {
     const { getToken } = useAuth();
-
     const [period, setPeriod] = useState('weekly');
-    const [leaders, setLeaders] = useState([]);
-    const [meta, setMeta] = useState({ periodStart: null, periodEnd: null });
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
     const [expanded, setExpanded] = useState(null); // userId of expanded row
 
-    const fetchLeaderboard = useCallback(async (p) => {
-        setLoading(true);
-        setError('');
-        setExpanded(null); // collapse all rows on period change
-        try {
+    const {
+        data,
+        isLoading: loading,
+        error: queryError,
+        refetch,
+    } = useQuery({
+        queryKey: [...LEADERBOARD_QUERY_KEY, period],
+        queryFn: async () => {
             const token = await getToken();
-            // User's timezone offset in minutes (e.g. 330 for IST) so "today" matches local date
             const tzOffset = -new Date().getTimezoneOffset();
-            const res = await fetch(`${API_BASE_URL}/api/leaderboard?period=${p}&timezone=${tzOffset}`, {
+            const res = await fetch(`${API_BASE_URL}/api/leaderboard?period=${period}&timezone=${tzOffset}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (!res.ok) throw new Error('Failed to load leaderboard');
-            const data = await res.json();
-            setLeaders(data.leaders || []);
-            setMeta({ periodStart: data.periodStart, periodEnd: data.periodEnd });
-        } catch (e) {
-            setError(e.message || 'Something went wrong');
-        } finally {
-            setLoading(false);
-        }
-    }, [getToken]);
+            return res.json();
+        },
+        staleTime: LEADERBOARD_STALE_MS,
+    });
 
-    // Fetch whenever period changes
-    useEffect(() => { fetchLeaderboard(period); }, [period, fetchLeaderboard]);
+    const leaders = data?.leaders ?? [];
+    const meta = { periodStart: data?.periodStart ?? null, periodEnd: data?.periodEnd ?? null };
+    const error = queryError?.message ?? '';
+
+    useEffect(() => setExpanded(null), [period]);
 
     const activePeriodLabel = PERIODS.find((p) => p.key === period)?.label ?? 'Weekly';
 
@@ -151,7 +150,7 @@ export default function Leaderboard() {
                         <button
                             id="lb-refresh-btn"
                             className="lb-refresh-btn"
-                            onClick={() => fetchLeaderboard(period)}
+                            onClick={() => refetch()}
                             disabled={loading}
                             title="Refresh leaderboard"
                             aria-label="Refresh"
@@ -173,7 +172,7 @@ export default function Leaderboard() {
                         <div className="lb-state lb-state-error">
                             <span className="material-icons-round">error_outline</span>
                             <p>{error}</p>
-                            <button className="lb-retry-btn" onClick={() => fetchLeaderboard(period)}>
+                            <button className="lb-retry-btn" onClick={() => refetch()}>
                                 Try again
                             </button>
                         </div>

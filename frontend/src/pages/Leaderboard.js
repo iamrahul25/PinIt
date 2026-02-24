@@ -6,6 +6,20 @@ import './Leaderboard.css';
 
 const LEADERBOARD_QUERY_KEY = ['leaderboard'];
 const LEADERBOARD_STALE_MS = 5 * 60 * 1000; // 5 minutes
+const STATS_STALE_MS = 10 * 60 * 1000; // 10 minutes
+
+// ─── Platform stats (must match backend /api/leaderboard/stats keys) ───────────
+const STATS_LABELS = [
+    { key: 'totalUsers', label: 'Users joined', icon: 'people', color: '#6366f1' },
+    { key: 'totalNgos', label: 'NGOs created', icon: 'business', color: '#10b981' },
+    { key: 'totalEvents', label: 'Events created', icon: 'event', color: '#f59e0b' },
+    { key: 'totalSuggestions', label: 'Suggestions made', icon: 'lightbulb', color: '#8b5cf6' },
+    { key: 'totalPins', label: 'Pins reported', icon: 'push_pin', color: '#6366f1' },
+    { key: 'pinsResolved', label: 'Pins resolved', icon: 'check_circle', color: '#22c55e' },
+    { key: 'totalComments', label: 'Comments', icon: 'comment', color: '#3b82f6' },
+    { key: 'suggestionsImplemented', label: 'Suggestions implemented', icon: 'done_all', color: '#8b5cf6' },
+    { key: 'activeUsersLast7Days', label: 'Active this week', icon: 'trending_up', color: '#ec4899' },
+];
 
 // ─── Scoring weights (must match backend) ───────────────────────────────────
 const SCORE_LABELS = [
@@ -79,6 +93,23 @@ export default function Leaderboard() {
             return res.json();
         },
         staleTime: LEADERBOARD_STALE_MS,
+    });
+
+    const {
+        data: statsData,
+        isLoading: statsLoading,
+        error: statsError,
+    } = useQuery({
+        queryKey: [...LEADERBOARD_QUERY_KEY, 'stats'],
+        queryFn: async () => {
+            const token = await getToken();
+            const res = await fetch(`${API_BASE_URL}/api/leaderboard/stats`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!res.ok) throw new Error('Failed to load stats');
+            return res.json();
+        },
+        staleTime: STATS_STALE_MS,
     });
 
     const leaders = data?.leaders ?? [];
@@ -292,6 +323,35 @@ export default function Leaderboard() {
                                 );
                             })}
                         </ol>
+                    )}
+                </section>
+
+                {/* ── Platform at a glance ────────────────────────────────── */}
+                <section className="lb-stats" aria-label="Platform statistics">
+                    <h2 className="lb-stats-title">Platform at a glance</h2>
+                    {statsLoading && (
+                        <div className="lb-stats-loading">
+                            <div className="lb-loader" aria-hidden="true" />
+                            <span>Loading stats…</span>
+                        </div>
+                    )}
+                    {!statsLoading && statsError && (
+                        <p className="lb-stats-error">Stats unavailable</p>
+                    )}
+                    {!statsLoading && !statsError && statsData && (
+                        <div className="lb-stats-grid">
+                            {STATS_LABELS.map(({ key, label, icon, color }) => (
+                                <div key={key} className="lb-stat-card">
+                                    <span className="lb-stat-icon material-icons-round" style={{ color }} aria-hidden="true">
+                                        {icon}
+                                    </span>
+                                    <span className="lb-stat-value">
+                                        {(statsData[key] ?? 0).toLocaleString()}
+                                    </span>
+                                    <span className="lb-stat-label">{label}</span>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </section>
             </div>

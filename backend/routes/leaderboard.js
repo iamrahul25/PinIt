@@ -56,6 +56,71 @@ function getPeriodWindow(period, tzOffsetMinutes = 0) {
 }
 
 /**
+ * GET /api/leaderboard/stats
+ * Returns site-wide counts: users, NGOs, events, suggestions, pins, comments,
+ * pins resolved, suggestions implemented, and active users (last 7 days).
+ */
+router.get('/stats', async (req, res) => {
+    try {
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        const timeFilter = { createdAt: { $gte: weekAgo } };
+
+        const [
+            totalUsers,
+            totalNgos,
+            totalEvents,
+            totalSuggestions,
+            totalPins,
+            totalComments,
+            pinsResolved,
+            suggestionsImplemented,
+            pinUserIds,
+            ngoUserIds,
+            eventUserIds,
+            commentUserIds,
+            suggestionUserIds,
+        ] = await Promise.all([
+            UserData.countDocuments(),
+            Ngo.countDocuments(),
+            Event.countDocuments(),
+            Suggestion.countDocuments(),
+            Pin.countDocuments(),
+            Comment.countDocuments(),
+            Pin.countDocuments({ resolvedAt: { $ne: null } }),
+            Suggestion.countDocuments({ status: 'done' }),
+            Pin.distinct('contributor_id', { ...timeFilter, contributor_id: { $ne: '', $exists: true } }),
+            Ngo.distinct('authorId', { ...timeFilter, authorId: { $ne: '', $exists: true } }),
+            Event.distinct('authorId', { ...timeFilter, authorId: { $ne: '', $exists: true } }),
+            Comment.distinct('authorId', { ...timeFilter, authorId: { $ne: '', $exists: true } }),
+            Suggestion.distinct('authorId', { ...timeFilter, authorId: { $ne: '', $exists: true } }),
+        ]);
+
+        const activeUsersLast7Days = new Set([
+            ...pinUserIds,
+            ...ngoUserIds,
+            ...eventUserIds,
+            ...commentUserIds,
+            ...suggestionUserIds,
+        ]).size;
+
+        return res.json({
+            totalUsers,
+            totalNgos,
+            totalEvents,
+            totalSuggestions,
+            totalPins,
+            totalComments,
+            pinsResolved,
+            suggestionsImplemented,
+            activeUsersLast7Days,
+        });
+    } catch (err) {
+        console.error('Leaderboard stats error:', err);
+        return res.status(500).json({ error: 'Failed to load platform stats' });
+    }
+});
+
+/**
  * GET /api/leaderboard?period=weekly|monthly|yearly
  * Returns ALL users ranked by their score for the selected period.
  * Users with 0 contributions still appear (seeded from UserData).

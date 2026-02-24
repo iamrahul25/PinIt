@@ -256,77 +256,115 @@
   color: #ef4444;
 }
 
-/* ---- Verification Card ---- */
+/* ---- Verification Card (compact) ---- */
 .pin-details-verification-card {
   grid-column: 1 / -1;
+  padding: 0.65rem 0.85rem;
+}
+
+.pin-details-verification-card .pin-details-stat-label {
+  margin-bottom: 0.2rem;
+  font-size: 0.6rem;
 }
 
 .pin-verification-status-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.4rem;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
   flex-wrap: wrap;
 }
 
 .pin-verification-emoji {
-  font-size: 1.35rem;
+  font-size: 1.1rem;
 }
 
 .pin-verification-status-label {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 0.875rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
 }
 
 .pin-verification-score {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--pin-slate-500);
   margin-left: auto;
   background: var(--pin-slate-100);
-  padding: 0.15rem 0.5rem;
+  padding: 0.12rem 0.4rem;
   border-radius: 4px;
 }
 
 .pin-verification-progress-wrap {
-  margin-top: 0.75rem;
+  margin-top: 0.4rem;
 }
 
 .pin-verification-progress-bar {
   width: 100%;
-  height: 6px;
+  height: 4px;
   background: var(--pin-slate-200);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .pin-verification-progress-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 2px;
   transition: width 0.5s ease, background 0.3s ease;
+}
+
+/* Actions row: breakdown toggle + Verify/Vote button side by side */
+.pin-verification-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  padding-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pin-verification-breakdown-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--pin-slate-500);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.pin-verification-breakdown-toggle:hover {
+  color: var(--pin-emerald-600);
+}
+
+.pin-verification-breakdown-toggle .material-icons-round {
+  font-size: 1rem;
 }
 
 .pin-verification-breakdown {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 0.85rem;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
 }
 
 .pin-verification-role-item {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.35rem 0.5rem;
+  gap: 0.3rem;
+  padding: 0.25rem 0.4rem;
   background: white;
   border: 1px solid var(--pin-slate-100);
-  border-radius: 8px;
-  font-size: 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
 }
 
 .pin-verification-role-icon {
-  font-size: 1rem !important;
+  font-size: 0.875rem !important;
   color: var(--pin-slate-500);
 }
 
@@ -337,21 +375,21 @@
 }
 
 .pin-verification-role-count {
-  font-weight: 800;
+  font-weight: 700;
   color: #1e293b;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   min-width: 1ch;
 }
 
 .pin-verification-role-pts {
-  font-size: 0.625rem;
+  font-size: 0.5625rem;
   color: var(--pin-slate-400);
   font-weight: 500;
 }
 
 .pin-verification-total {
-  margin-top: 0.6rem;
-  font-size: 0.75rem;
+  margin-top: 0.35rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--pin-slate-500);
   text-align: right;
@@ -360,36 +398,36 @@
 .pin-details-stat-card.pin-details-stat-verify .pin-details-verify-row {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
   flex-wrap: wrap;
 }
 
 .pin-details-stat-card.pin-details-stat-verify .pin-details-verify-count {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--pin-slate-600);
 }
 
-.pin-details-verify-btn {
-  display: flex;
+.pin-details-verification-card .pin-details-verify-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.5rem 1rem;
-  font-size: 0.8125rem;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--pin-slate-200);
   background: white;
   color: var(--pin-slate-700);
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 0.75rem;
-  width: 100%;
-  justify-content: center;
+  margin-top: 0;
+  width: auto;
 }
 
-.pin-details-verify-btn .material-icons-round {
-  font-size: 1rem;
+.pin-details-verification-card .pin-details-verify-btn .material-icons-round {
+  font-size: 0.9rem;
 }
 
 .pin-details-verify-btn:hover:not(:disabled) {
@@ -725,20 +763,53 @@
   }
 }
 
-/* Bottom actions (Edit my Pin / Delete my Pin) - shown for admin or pin creator */
+/* Bottom actions (Edit this Pin / Delete this Pin) - shown for admin or pin creator */
 .pin-details-bottom-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   gap: 0.75rem;
   padding: 1rem 0;
   margin-top: 0.5rem;
-  border-top: 1px solid var(--pin-slate-100);
+  border-top: 1px solid var(--pin-slate-200);
 }
 
 .pin-details-bottom-actions .pin-details-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1 1 0;
   min-width: 8rem;
+  max-width: 14rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pin-details-bottom-actions .pin-details-btn .material-icons-round {
+  flex-shrink: 0;
+  font-size: 1.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.pin-details-bottom-actions .pin-details-btn .pin-details-btn-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 380px) {
+  .pin-details-bottom-actions {
+    flex-direction: column;
+  }
+
+  .pin-details-bottom-actions .pin-details-btn {
+    width: 100%;
+    min-width: 100%;
+  }
 }
 
 /* Main content */
@@ -761,12 +832,32 @@
   border-radius: 10px;
 }
 
-/* Stats grid */
+/* Stats: outer container (grid wrapper + verification card) */
 .pin-details-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
+}
+
+/* Responsive grid for the 4 stat cards only */
+.pin-details-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: 1rem;
+}
+
+@media (min-width: 480px) {
+  .pin-details-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 4 columns only on wider panels so ~850px viewport keeps 2 columns */
+@media (min-width: 960px) {
+  .pin-details-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .pin-details-stat-card {
@@ -776,17 +867,6 @@
   border: 1px solid var(--pin-slate-100);
 }
 
-
-.pin-details-stat-card.pin-details-stat-votes {
-  grid-column: 1 / -1;
-}
-
-@media (min-width: 768px) {
-  .pin-details-stat-card.pin-details-stat-votes {
-    grid-column: auto;
-  }
-}
-
 .pin-details-stat-label {
   font-size: 0.625rem;
   font-weight: 700;
@@ -794,6 +874,7 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin: 0 0 0.25rem 0;
+  white-space: nowrap;
 }
 
 .pin-details-stat-label-with-info {
@@ -859,6 +940,20 @@
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.pin-details-stat-value.pin-details-stat-date {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--pin-slate-800);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pin-details-stat-value .pin-details-date-icon {
+  flex-shrink: 0;
+  color: var(--pin-slate-500);
 }
 
 .pin-details-action-status-card .pin-details-action-status-value {
@@ -881,6 +976,7 @@
 .severity-score {
   font-size: 1.875rem;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .severity-score.severity-critical {
@@ -907,6 +1003,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   margin-bottom: 0.25rem;
+  white-space: nowrap;
 }
 
 .severity-label.severity-critical {
@@ -933,6 +1030,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  white-space: nowrap;
 }
 
 .reporter-avatar {
@@ -948,12 +1046,17 @@
   font-size: 0.875rem;
   font-weight: 700;
   color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .pin-details-votes {
   display: flex;
   gap: 0.75rem;
   margin-top: 0.75rem;
+  flex-wrap: nowrap;
 }
 
 .vote-inline {
@@ -967,6 +1070,7 @@
   font-weight: 700;
   cursor: pointer;
   transition: color 0.2s;
+  white-space: nowrap;
 }
 
 .vote-inline .material-icons-round {
@@ -996,6 +1100,15 @@
 /* Sections */
 .pin-details-section {
   margin-bottom: 2rem;
+}
+
+/* Resolve section + card: compact */
+.pin-details-resolve-section {
+  margin-bottom: 1rem;
+}
+
+.pin-details-resolve-section .pin-details-section-title {
+  margin-bottom: 0.35rem;
 }
 
 .pin-details-section-header {
@@ -1815,7 +1928,7 @@
 
 /* Footer */
 .pin-details-footer {
-  padding: 1rem;
+  padding: 1rem 0 0 0;
   border-top: 1px solid var(--pin-slate-100);
   background: white;
 }

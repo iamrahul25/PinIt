@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
+import Toast from './Toast';
 import './PinForm.css';
 
 // Compress image in frontend before upload (reduces size sent to Cloudinary)
@@ -46,6 +47,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitPhase, setSubmitPhase] = useState(null); // null | 'uploading' | 'submitting'
   const [compressingImages, setCompressingImages] = useState(false);
   const [error, setError] = useState('');
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
@@ -142,6 +144,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
     }
 
     setLoading(true);
+    setSubmitPhase('uploading');
     setError('');
 
     try {
@@ -170,6 +173,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
         imageUrls.push(uploadResponse.data.url);
       }
 
+      setSubmitPhase('submitting');
+
       const pinData = {
         problemType: formData.problemType,
         severity: parseInt(formData.severity, 10),
@@ -193,6 +198,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       else setError(message);
     } finally {
       setLoading(false);
+      setSubmitPhase(null);
     }
   };
 
@@ -216,7 +222,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="pin-form">
-          {error && <div className="error-message" role="alert">{error}</div>}
+          <Toast
+            visible={!!error}
+            message={error}
+            type="error"
+            onClose={() => setError('')}
+            position="top-center"
+          />
 
           <div className="form-group">
             <label>Address <span className="optional">(from pin location)</span></label>
@@ -389,7 +401,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               Cancel
             </button>
             <button type="submit" className="btn-submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Report'}
+              {submitPhase === 'uploading'
+                ? 'Uploading...'
+                : submitPhase === 'submitting'
+                  ? 'Submitting...'
+                  : 'Submit Report'}
             </button>
           </div>
         </form>

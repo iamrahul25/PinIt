@@ -252,16 +252,26 @@
 
 .pins-status-filters-section {
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: calc(0.75rem * var(--pins-scale));
+  align-items: flex-end;
+}
+
+.pins-status-filter-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
   flex-direction: column;
-  gap: calc(0.5rem * var(--pins-scale));
+  gap: calc(0.25rem * var(--pins-scale));
 }
 
-.pins-status-filters-section .pins-section-heading {
-  margin-top: calc(0.25rem * var(--pins-scale));
+.pins-status-filter-group .pins-section-heading {
+  margin: 0;
 }
 
-.pins-status-filters-section .pins-section-heading:first-child {
-  margin-top: 0;
+.pins-status-filter-group .pins-filter-select {
+  width: 100%;
 }
 
 .pins-filter-select {

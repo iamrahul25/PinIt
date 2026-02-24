@@ -6,6 +6,7 @@ import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
+import { Calendar } from 'lucide-react';
 import './PinDetails.css';
 
 const PROBLEM_TYPES = [
@@ -96,6 +97,8 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const [copiedLocation, setCopiedLocation] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState(new Set());
   const [resolving, setResolving] = useState(false);
+  const [verificationBreakdownExpanded, setVerificationBreakdownExpanded] = useState(false);
+  const [resolveBreakdownExpanded, setResolveBreakdownExpanded] = useState(false);
   const editFileInputRef = useRef(null);
 
   useEffect(() => {
@@ -680,15 +683,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                 <div>
                   <div className="pin-details-title-row">
                     <h2 className="pin-details-title">{pin.problemType}</h2>
-                    {(() => {
-                      const vScore = getVerificationScore(pin.pinVerification);
-                      const vStatus = getVerificationStatus(vScore);
-                      return (
-                        <span className={`pin-details-badge pin-details-verified-badge ${vStatus.className}`}>
-                          {vStatus.emoji} {vStatus.label}
-                        </span>
-                      );
-                    })()}
                   </div>
                 </div>
               </div>
@@ -837,45 +831,51 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                 </form>
               ) : (
                 <>
-                  <p className="pin-details-meta pin-details-published-below">
-                    - Published {formatDate(pin.createdAt)}
-                  </p>
                   <div className="pin-details-stats">
-                    <div className="pin-details-stat-card">
-                      <p className="pin-details-stat-label">Severity Score</p>
-                      <div className="pin-details-stat-value">
-                        <span className={`severity-score severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>{pin.severity}/10</span>
-                        <span className={`severity-label severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>
-                          {getSeverityLabel(pin.severity)}
-                        </span>
+                    <div className="pin-details-stats-grid">
+                      <div className="pin-details-stat-card">
+                        <p className="pin-details-stat-label">Severity Score</p>
+                        <div className="pin-details-stat-value">
+                          <span className={`severity-score severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>{pin.severity}/10</span>
+                          <span className={`severity-label severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>
+                            {getSeverityLabel(pin.severity)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="pin-details-stat-card">
-                      <p className="pin-details-stat-label">Reported By</p>
-                      <div className="pin-details-stat-reported">
-                        <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
-                        <span className="reporter-name">{reporterName}</span>
+                      <div className="pin-details-stat-card pin-details-stat-votes">
+                        <p className="pin-details-stat-label">Community Response</p>
+                        <div className="pin-details-votes">
+                          <button
+                            type="button"
+                            className={`vote-inline upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
+                            onClick={() => handleVote('upvote')}
+                          >
+                            <span className="material-icons-round">thumb_up</span>
+                            {voteStatus.upvotes}
+                          </button>
+                          <button
+                            type="button"
+                            className={`vote-inline downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
+                            onClick={() => handleVote('downvote')}
+                          >
+                            <span className="material-icons-round">thumb_down</span>
+                            {voteStatus.downvotes}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="pin-details-stat-card pin-details-stat-votes">
-                      <p className="pin-details-stat-label">Community Response</p>
-                      <div className="pin-details-votes">
-                        <button
-                          type="button"
-                          className={`vote-inline upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
-                          onClick={() => handleVote('upvote')}
-                        >
-                          <span className="material-icons-round">thumb_up</span>
-                          {voteStatus.upvotes}
-                        </button>
-                        <button
-                          type="button"
-                          className={`vote-inline downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
-                          onClick={() => handleVote('downvote')}
-                        >
-                          <span className="material-icons-round">thumb_down</span>
-                          {voteStatus.downvotes}
-                        </button>
+                      <div className="pin-details-stat-card">
+                        <p className="pin-details-stat-label">Reported By</p>
+                        <div className="pin-details-stat-reported">
+                          <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
+                          <span className="reporter-name">{reporterName}</span>
+                        </div>
+                      </div>
+                      <div className="pin-details-stat-card">
+                        <p className="pin-details-stat-label">Published</p>
+                        <div className="pin-details-stat-value pin-details-stat-date">
+                          <Calendar className="pin-details-date-icon" size={18} strokeWidth={2} aria-hidden />
+                          {formatDate(pin.createdAt)}
+                        </div>
                       </div>
                     </div>
                     {(() => {
@@ -913,32 +913,49 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                               />
                             </div>
                           </div>
-                          <div className="pin-verification-breakdown">
-                            {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
-                              <div key={role} className="pin-verification-role-item">
-                                <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
-                                <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
-                                <span className="pin-verification-role-count">{roleCounts[role]}</span>
-                                <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="pin-verification-total">
-                            Total verifiers: {verifications.length}
-                          </div>
-                          {user && (
+                          <div className="pin-verification-card-actions">
+                            {user && (
+                              <button
+                                type="button"
+                                className={`pin-details-verify-btn ${hasVerified ? 'verified' : ''}`}
+                                onClick={handleVerify}
+                                disabled={verifying}
+                                title={hasVerified ? 'Remove your verification' : 'Verify this pin'}
+                              >
+                                <span className="material-icons-round">
+                                  {hasVerified ? 'verified' : 'verified_user'}
+                                </span>
+                                {verifying ? '...' : hasVerified ? 'Verified ✓' : 'Verify'}
+                              </button>
+                            )}
                             <button
                               type="button"
-                              className={`pin-details-verify-btn ${hasVerified ? 'verified' : ''}`}
-                              onClick={handleVerify}
-                              disabled={verifying}
-                              title={hasVerified ? 'Remove your verification' : 'Verify this pin'}
+                              className="pin-verification-breakdown-toggle"
+                              onClick={() => setVerificationBreakdownExpanded((v) => !v)}
+                              aria-expanded={verificationBreakdownExpanded}
                             >
                               <span className="material-icons-round">
-                                {hasVerified ? 'verified' : 'verified_user'}
+                                {verificationBreakdownExpanded ? 'expand_less' : 'expand_more'}
                               </span>
-                              {verifying ? '...' : hasVerified ? 'Verified ✓' : 'Verify'}
+                              {verificationBreakdownExpanded ? 'Hide' : 'Breakdown'}
                             </button>
+                          </div>
+                          {verificationBreakdownExpanded && (
+                            <>
+                              <div className="pin-verification-breakdown">
+                                {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
+                                  <div key={role} className="pin-verification-role-item">
+                                    <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
+                                    <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
+                                    <span className="pin-verification-role-count">{roleCounts[role]}</span>
+                                    <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="pin-verification-total">
+                                Total verifiers: {verifications.length}
+                              </div>
+                            </>
                           )}
                         </div>
                       );
@@ -976,6 +993,18 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                       </h3>
                       <div className="pin-details-problem-heading">
                         <p>{pin.problemHeading}</p>
+                      </div>
+                    </section>
+                  )}
+
+                  {pin.description && (
+                    <section className="pin-details-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">subject</span>
+                        Description
+                      </h3>
+                      <div className="pin-details-description">
+                        <p>{pin.description}</p>
                       </div>
                     </section>
                   )}
@@ -1096,8 +1125,15 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                         : { label: 'Not resolved', emoji: '⏳', color: '#94a3b8' };
                       return (
                         <div className="pin-details-stat-card pin-details-stat-verify pin-details-verification-card">
-                          <p className="pin-details-stat-label">
+                          <p className="pin-details-stat-label pin-details-stat-label-with-info">
                             Resolve Status
+                            <span className="pin-verification-info-wrap">
+                              <span className="material-icons-round pin-verification-info-icon" aria-hidden="true">info</span>
+                              <span className="pin-verification-info-tooltip" role="tooltip">
+                                <span className="pin-verification-info-line">✅ Resolved (Score &gt; 80)</span>
+                                <span className="pin-verification-info-line">⏳ Not resolved (Score ≤ 80)</span>
+                              </span>
+                            </span>
                           </p>
                           <div className="pin-verification-status-row">
                             <span className="pin-verification-emoji">{resolveStatus.emoji}</span>
@@ -1114,49 +1150,54 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                               />
                             </div>
                           </div>
-                          <div className="pin-verification-breakdown">
-                            {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
-                              <div key={role} className="pin-verification-role-item">
-                                <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
-                                <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
-                                <span className="pin-verification-role-count">{resolveRoleCounts[role]}</span>
-                                <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="pin-verification-total">
-                            Total resolvers: {resolves.length}
-                          </div>
-                          {user && (
+                          <div className="pin-verification-card-actions">
+                            {user && (
+                              <button
+                                type="button"
+                                className={`pin-details-verify-btn ${hasVotedResolve ? 'verified' : ''}`}
+                                onClick={handleResolve}
+                                disabled={resolving}
+                                title={hasVotedResolve ? 'Remove your resolve vote' : 'Vote this pin as resolved'}
+                              >
+                                <span className="material-icons-round">
+                                  {hasVotedResolve ? 'undo' : 'check_circle'}
+                                </span>
+                                {resolving ? '...' : hasVotedResolve ? 'Voted ✓' : 'Vote Resolved'}
+                              </button>
+                            )}
                             <button
                               type="button"
-                              className={`pin-details-verify-btn ${hasVotedResolve ? 'verified' : ''}`}
-                              onClick={handleResolve}
-                              disabled={resolving}
-                              title={hasVotedResolve ? 'Remove your resolve vote' : 'Vote this pin as resolved'}
+                              className="pin-verification-breakdown-toggle"
+                              onClick={() => setResolveBreakdownExpanded((v) => !v)}
+                              aria-expanded={resolveBreakdownExpanded}
                             >
                               <span className="material-icons-round">
-                                {hasVotedResolve ? 'undo' : 'check_circle'}
+                                {resolveBreakdownExpanded ? 'expand_less' : 'expand_more'}
                               </span>
-                              {resolving ? '...' : hasVotedResolve ? 'Voted ✓' : 'Vote Resolved'}
+                              {resolveBreakdownExpanded ? 'Hide' : 'Breakdown'}
                             </button>
+                          </div>
+                          {resolveBreakdownExpanded && (
+                            <>
+                              <div className="pin-verification-breakdown">
+                                {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
+                                  <div key={role} className="pin-verification-role-item">
+                                    <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
+                                    <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
+                                    <span className="pin-verification-role-count">{resolveRoleCounts[role]}</span>
+                                    <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="pin-verification-total">
+                                Total resolvers: {resolves.length}
+                              </div>
+                            </>
                           )}
                         </div>
                       );
                     })()}
                   </section>
-
-                  {pin.description && (
-                    <section className="pin-details-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">subject</span>
-                        Description
-                      </h3>
-                      <div className="pin-details-description">
-                        <p>{pin.description}</p>
-                      </div>
-                    </section>
-                  )}
 
                   {(pin.location?.address || (pin.location?.latitude != null && pin.location?.longitude != null)) && (
                     <section className="pin-details-section">
@@ -1210,6 +1251,31 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                         </div>
                       </div>
                     </section>
+                  )}
+
+                  {(user?.role === 'admin' || pin.contributor_id === user?.id) && (
+                    <div className="pin-details-bottom-actions">
+                      <button
+                        type="button"
+                        className="pin-details-btn pin-details-btn-edit"
+                        onClick={startEditing}
+                        disabled={savingEdit}
+                        title="Edit this Pin"
+                      >
+                        <span className="material-icons-round" aria-hidden>edit</span>
+                        <span className="pin-details-btn-label">{savingEdit ? 'Saving…' : 'Edit this Pin'}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="pin-details-btn pin-details-btn-danger"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        title="Delete this Pin"
+                      >
+                        <span className="material-icons-round" aria-hidden>delete</span>
+                        <span className="pin-details-btn-label">{deleting ? 'Deleting…' : 'Delete this Pin'}</span>
+                      </button>
+                    </div>
                   )}
 
                   {(eventsLoading || scheduledEvents.length > 0) && (
@@ -1622,57 +1688,30 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                     </div>
                   </section>
 
-                  {(user?.role === 'admin' || pin.contributor_id === user?.id) && (
-                    <div className="pin-details-bottom-actions">
+                  <footer className="pin-details-footer">
+                    <p className="pin-details-footer-label">
+                      Posting as <span className="primary-text">{displayName}</span>
+                    </p>
+                    <form onSubmit={handleCommentSubmit} className="pin-details-comment-form">
+                      <textarea
+                        placeholder="Add a comment..."
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        rows={2}
+                        className="pin-details-textarea"
+                      />
                       <button
-                        type="button"
-                        className="pin-details-btn pin-details-btn-edit"
-                        onClick={startEditing}
-                        disabled={savingEdit}
-                        title="Edit"
+                        type="submit"
+                        disabled={loading || !newComment.trim()}
+                        className="pin-details-post-btn"
                       >
-                        <span className="material-icons-round">edit</span>
-                        Edit
+                        Post Note
                       </button>
-                      <button
-                        type="button"
-                        className="pin-details-btn pin-details-btn-danger"
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        title="Delete"
-                      >
-                        <span className="material-icons-round">delete</span>
-                        {deleting ? 'Deleting…' : 'Delete'}
-                      </button>
-                    </div>
-                  )}
+                    </form>
+                  </footer>
                 </>
               )}
             </main>
-
-            {!isEditing && (
-              <footer className="pin-details-footer">
-                <p className="pin-details-footer-label">
-                  Posting as <span className="primary-text">{displayName}</span>
-                </p>
-                <form onSubmit={handleCommentSubmit} className="pin-details-comment-form">
-                  <textarea
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    rows={2}
-                    className="pin-details-textarea"
-                  />
-                  <button
-                    type="submit"
-                    disabled={loading || !newComment.trim()}
-                    className="pin-details-post-btn"
-                  >
-                    Post Note
-                  </button>
-                </form>
-              </footer>
-            )}
           </div>
           {nextPin && (
             <button

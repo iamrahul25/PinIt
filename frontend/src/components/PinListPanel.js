@@ -222,28 +222,32 @@ const PinListPanel = ({
           </section>
 
           <section className="pins-status-filters-section">
-            <h3 className="pins-section-heading">Verification status</h3>
-            <select
-              className="pins-filter-select"
-              value={filterVerification}
-              onChange={(e) => setFilterVerification(e.target.value)}
-              aria-label="Filter by verification status"
-            >
-              {VERIFICATION_FILTER_OPTIONS.map(({ value, label }) => (
-                <option key={value || 'all'} value={value}>{label}</option>
-              ))}
-            </select>
-            <h3 className="pins-section-heading">Fix status</h3>
-            <select
-              className="pins-filter-select"
-              value={filterFixStatus}
-              onChange={(e) => setFilterFixStatus(e.target.value)}
-              aria-label="Filter by fix status"
-            >
-              {FIX_STATUS_FILTER_OPTIONS.map(({ value, label }) => (
-                <option key={value || 'all'} value={value}>{label}</option>
-              ))}
-            </select>
+            <div className="pins-status-filter-group">
+              <h3 className="pins-section-heading">Verification status</h3>
+              <select
+                className="pins-filter-select"
+                value={filterVerification}
+                onChange={(e) => setFilterVerification(e.target.value)}
+                aria-label="Filter by verification status"
+              >
+                {VERIFICATION_FILTER_OPTIONS.map(({ value, label }) => (
+                  <option key={value || 'all'} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="pins-status-filter-group">
+              <h3 className="pins-section-heading">Fix status</h3>
+              <select
+                className="pins-filter-select"
+                value={filterFixStatus}
+                onChange={(e) => setFilterFixStatus(e.target.value)}
+                aria-label="Filter by fix status"
+              >
+                {FIX_STATUS_FILTER_OPTIONS.map(({ value, label }) => (
+                  <option key={value || 'all'} value={value}>{label}</option>
+                ))}
+              </select>
+            </div>
           </section>
 
           <section className="pins-type-section">
@@ -377,14 +381,6 @@ const PinListPanel = ({
                                 {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                               </span>
                               {(() => {
-                                const vs = getVerificationStatus(getVerificationScore(pin.pinVerification));
-                                return (
-                                  <span className={`pin-card-verified-badge ${vs.className}`} title={vs.label}>
-                                    {vs.emoji} {vs.label}
-                                  </span>
-                                );
-                              })()}
-                              {(() => {
                                 const fs = getCurrentFixStatus(pin);
                                 return (
                                   <span className={`pin-card-fix-status-badge ${fs.className}`} title="Fix Status">
@@ -457,14 +453,6 @@ const PinListPanel = ({
                               <span className={`pin-card-severity small ${getSeverityClass(pin.severity)}`}>
                                 {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                               </span>
-                              {(() => {
-                                const vs = getVerificationStatus(getVerificationScore(pin.pinVerification));
-                                return (
-                                  <span className={`pin-card-verified-badge small ${vs.className}`} title={vs.label}>
-                                    {vs.emoji}
-                                  </span>
-                                );
-                              })()}
                               {(() => {
                                 const fs = getCurrentFixStatus(pin);
                                 return (

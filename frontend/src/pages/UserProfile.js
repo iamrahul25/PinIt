@@ -113,7 +113,6 @@ export default function UserProfile() {
   const userLevel = useMemo(() => calculateLevel(stats), [stats]);
   const loading = profileQuery.isLoading;
   const error = profileQuery.error?.message ?? '';
-  const loadingState = authLoading || loading;
 
   useEffect(() => {
     if (authLoading) return;
@@ -164,7 +163,7 @@ export default function UserProfile() {
     return date.toLocaleDateString('en-US', options);
   };
 
-  if (loadingState) {
+  if (authLoading) {
     return (
       <div className="user-profile-page">
         <p>Loading profile...</p>
@@ -329,7 +328,7 @@ export default function UserProfile() {
             )}
           </div>
           <div className="user-profile-info">
-            <h1>{user?.fullName || user?.email || 'User'} <span className="user-level-badge"><FaTrophy /> Level {userLevel.level}</span></h1>
+            <h1>{user?.fullName || user?.email || 'User'} <span className="user-level-badge"><FaTrophy /> {loading ? 'Loading...' : `Level ${userLevel.level}`}</span></h1>
             <div className="user-profile-meta">
               {user?.createdAt && <span>Joined {formatJoinDate(user.createdAt)}</span>}
               {user?.role === 'admin' && <span className="user-role-badge">Admin</span>}
@@ -351,7 +350,7 @@ export default function UserProfile() {
             <div className="user-level-progress-fill" style={{ width: `${userLevel.progress}%` }}></div>
           </div>
           <div className="user-level-progress-text">
-            <span>{userLevel.points} / {userLevel.nextLevelPoints} Points to Next Level</span>
+            <span>{loading ? 'Loading...' : `${userLevel.points} / ${userLevel.nextLevelPoints} Points to Next Level`}</span>
           </div>
         </div>
 
@@ -380,42 +379,42 @@ export default function UserProfile() {
           <div className="stat-card contributions">
             <div className="stat-icon"><FaMapPin aria-hidden="true" /></div>
             <div className="stat-content">
-              <span className="stat-value">{stats.pinsCreated}</span>
+              <span className="stat-value">{loading ? 'Loading...' : stats.pinsCreated}</span>
               <span className="stat-label">Pins Created</span>
             </div>
           </div>
           <div className="stat-card comments">
             <div className="stat-icon"><FaComment aria-hidden="true" /></div>
             <div className="stat-content">
-              <span className="stat-value">{stats.commentsMade}</span>
+              <span className="stat-value">{loading ? 'Loading...' : stats.commentsMade}</span>
               <span className="stat-label">Comments Made</span>
             </div>
           </div>
           <div className="stat-card upvotes">
             <div className="stat-icon"><FaThumbsUp aria-hidden="true" /></div>
             <div className="stat-content">
-              <span className="stat-value">{stats.votesCast}</span>
+              <span className="stat-value">{loading ? 'Loading...' : stats.votesCast}</span>
               <span className="stat-label">Votes Cast</span>
             </div>
           </div>
           <div className="stat-card contributions-ngo-events">
             <div className="stat-icon"><FaHandHoldingHeart aria-hidden="true" /></div>
             <div className="stat-content">
-              <span className="stat-value">{stats.ngosCreated}</span>
+              <span className="stat-value">{loading ? 'Loading...' : stats.ngosCreated}</span>
               <span className="stat-label">NGOs Created</span>
             </div>
           </div>
           <div className="stat-card events">
             <div className="stat-icon"><FaCalendarAlt aria-hidden="true" /></div>
             <div className="stat-content">
-              <span className="stat-value">{stats.eventsCreated}</span>
+              <span className="stat-value">{loading ? 'Loading...' : stats.eventsCreated}</span>
               <span className="stat-label">Events Created</span>
             </div>
           </div>
           <div className="stat-card suggestions">
             <div className="stat-icon"><FaLightbulb aria-hidden="true" /></div>
             <div className="stat-content">
-              <span className="stat-value">{stats.suggestionsMade}</span>
+              <span className="stat-value">{loading ? 'Loading...' : stats.suggestionsMade}</span>
               <span className="stat-label">Suggestions Made</span>
             </div>
           </div>

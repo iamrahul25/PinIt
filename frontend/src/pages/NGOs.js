@@ -226,6 +226,17 @@ export default function NGOs() {
   };
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
+  const isRefreshing = view === 'my' ? myQuery.isFetching : boardQuery.isFetching;
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      const result = await (view === 'my' ? myQuery.refetch() : boardQuery.refetch());
+      if (result?.isError) throw result?.error ?? new Error('Refresh failed');
+      showToast('List refreshed successfully!', 'success');
+    } catch (err) {
+      showToast(err?.message || 'Unable to refresh list. Please try again.', 'error');
+    }
+  }, [view, myQuery, boardQuery, showToast]);
 
   // Fetch distinct cities from NGOs
   const fetchCities = useCallback(async () => {
@@ -927,9 +938,9 @@ export default function NGOs() {
                 <span className="ngos-board-count">{total}</span>
                 <button
                   type="button"
-                  className="ngos-refresh-btn"
-                  onClick={() => (view === 'my' ? myQuery.refetch() : boardQuery.refetch())}
-                  disabled={view === 'my' ? myQuery.isFetching : boardQuery.isFetching}
+                  className={`ngos-refresh-btn${isRefreshing ? ' ngos-refresh-btn--spinning' : ''}`}
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
                   aria-label="Refresh list"
                   title="Refresh list"
                 >

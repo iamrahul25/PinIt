@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
+import Toast from '../components/Toast';
 import './Leaderboard.css';
 
 const LEADERBOARD_QUERY_KEY = ['leaderboard'];
@@ -75,10 +76,18 @@ export default function Leaderboard() {
     const { getToken } = useAuth();
     const [period, setPeriod] = useState('weekly');
     const [expanded, setExpanded] = useState(null); // userId of expanded row
+    const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+    const showToast = useCallback((message, type = 'info') => {
+        setToast({ visible: true, message, type });
+    }, []);
+    const hideToast = useCallback(() => {
+        setToast((prev) => ({ ...prev, visible: false }));
+    }, []);
 
     const {
         data,
         isLoading: loading,
+        isFetching,
         error: queryError,
         refetch,
     } = useQuery({
@@ -115,6 +124,16 @@ export default function Leaderboard() {
     const leaders = data?.leaders ?? [];
     const meta = { periodStart: data?.periodStart ?? null, periodEnd: data?.periodEnd ?? null };
     const error = queryError?.message ?? '';
+
+    const handleRefresh = useCallback(async () => {
+        try {
+            const result = await refetch();
+            if (result?.isError) throw result?.error ?? new Error('Refresh failed');
+            showToast('Leaderboard refreshed successfully!', 'success');
+        } catch (err) {
+            showToast(err?.message || 'Unable to refresh leaderboard. Please try again.', 'error');
+        }
+    }, [refetch, showToast]);
 
     useEffect(() => setExpanded(null), [period]);
 
@@ -181,12 +200,12 @@ export default function Leaderboard() {
                         <button
                             id="lb-refresh-btn"
                             className="lb-refresh-btn"
-                            onClick={() => refetch()}
-                            disabled={loading}
+                            onClick={handleRefresh}
+                            disabled={loading || isFetching}
                             title="Refresh leaderboard"
                             aria-label="Refresh"
                         >
-                            <span className={`material-icons-round${loading ? ' lb-spin' : ''}`}>
+                            <span className={`material-icons-round${loading || isFetching ? ' lb-spin' : ''}`}>
                                 refresh
                             </span>
                         </button>
@@ -355,6 +374,12 @@ export default function Leaderboard() {
                     )}
                 </section>
             </div>
+            <Toast
+                visible={toast.visible}
+                message={toast.message}
+                type={toast.type}
+                onClose={hideToast}
+            />
         </div>
     );
 }

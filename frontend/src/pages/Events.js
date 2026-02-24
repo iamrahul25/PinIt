@@ -209,6 +209,17 @@ export default function Events() {
   const loading = view === 'my' ? myQuery.isLoading : boardQuery.isLoading;
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
+  const isRefreshing = view === 'my' ? myQuery.isFetching : boardQuery.isFetching;
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      const result = await (view === 'my' ? myQuery.refetch() : boardQuery.refetch());
+      if (result?.isError) throw result?.error ?? new Error('Refresh failed');
+      showToast('List refreshed successfully!', 'success');
+    } catch (err) {
+      showToast(err?.message || 'Unable to refresh list. Please try again.', 'error');
+    }
+  }, [view, myQuery, boardQuery, showToast]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -853,9 +864,9 @@ export default function Events() {
                 <span className="events-board-count">{displayCount}</span>
                 <button
                   type="button"
-                  className="events-refresh-btn"
-                  onClick={() => (view === 'my' ? myQuery.refetch() : boardQuery.refetch())}
-                  disabled={view === 'my' ? myQuery.isFetching : boardQuery.isFetching}
+                  className={`events-refresh-btn${isRefreshing ? ' events-refresh-btn--spinning' : ''}`}
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
                   aria-label="Refresh list"
                   title="Refresh list"
                 >

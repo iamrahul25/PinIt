@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
-import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy } from 'react-icons/fa';
+import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy, FaInfoCircle } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
 import Badges from '../components/Badges';
+import Toast from '../components/Toast';
 import './UserProfile.css';
 
 const USER_PROFILE_QUERY_KEY = ['userProfile'];
@@ -33,6 +34,14 @@ function calculateLevel(stats) {
   return { level, points, progress, nextLevelPoints };
 }
 
+const LEVEL_DETAILS = [
+  { level: 1, range: '0 – 100 points', emoji: '🌱' },
+  { level: 2, range: '100 – 300 points', emoji: '⬆️' },
+  { level: 3, range: '300 – 500 points', emoji: '🔥' },
+  { level: 4, range: '500 – 1000 points', emoji: '⭐' },
+  { level: 5, range: '1000+ points (max)', emoji: '🏆' },
+];
+
 const ACTIVITY_TABS = [
   { key: 'pins', label: 'Created Pins' },
   { key: 'saved', label: 'Saved Pins' },
@@ -48,6 +57,13 @@ export default function UserProfile() {
   const [activityTab, setActivityTab] = useState('pins');
   const tabsContainerRef = useRef(null);
   const tabButtonRefs = useRef({});
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ visible: true, message, type });
+  }, []);
+  const hideToast = useCallback(() => {
+    setToast((prev) => ({ ...prev, visible: false }));
+  }, []);
 
   const getAuthHeaders = useCallback(async (headers = {}) => {
     const token = await getToken();
@@ -113,6 +129,16 @@ export default function UserProfile() {
   const userLevel = useMemo(() => calculateLevel(stats), [stats]);
   const loading = profileQuery.isLoading;
   const error = profileQuery.error?.message ?? '';
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      const result = await profileQuery.refetch();
+      if (result.isError) throw result.error;
+      showToast('Profile refreshed successfully!', 'success');
+    } catch (err) {
+      showToast(err?.message || 'Unable to refresh profile. Please try again.', 'error');
+    }
+  }, [profileQuery, showToast]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -350,20 +376,37 @@ export default function UserProfile() {
             <div className="user-level-progress-fill" style={{ width: `${userLevel.progress}%` }}></div>
           </div>
           <div className="user-level-progress-text">
-            <span>{loading ? 'Loading...' : `${userLevel.points} / ${userLevel.nextLevelPoints} Points to Next Level`}</span>
+            <span>{loading ? 'Loading...' : `${userLevel.points} / ${userLevel.nextLevelPoints === Infinity ? '1000' : userLevel.nextLevelPoints} Points to Next Level`}</span>
+            <span className="level-info-tooltip-wrap">
+              <button
+                type="button"
+                className="level-info-trigger"
+                aria-label="Level and score details"
+                aria-describedby="level-details-tooltip"
+                title="Level and score details"
+              >
+                <FaInfoCircle aria-hidden="true" />
+              </button>
+              <span id="level-details-tooltip" className="level-info-tooltip" role="tooltip">
+                <strong>Levels &amp; points</strong>
+                {LEVEL_DETAILS.map(({ level, range, emoji }) => (
+                  <span key={level} className="level-info-tooltip-row">{emoji} Level {level}: {range}</span>
+                ))}
+              </span>
+            </span>
           </div>
         </div>
 
         <div className="user-profile-header-actions">
           <button
             type="button"
-            className="profile-refresh-btn"
-            onClick={() => profileQuery.refetch()}
+            className={`profile-refresh-btn ${profileQuery.isFetching ? 'profile-refresh-btn--spinning' : ''}`}
+            onClick={handleRefresh}
             disabled={profileQuery.isFetching}
             aria-label="Refresh profile"
             title="Refresh profile"
           >
-            ↻ Refresh
+            <span className="profile-refresh-icon" aria-hidden="true">↻</span> Refresh
           </button>
           <button
             type="button"
@@ -465,6 +508,12 @@ export default function UserProfile() {
           </div>
         </div>
       </div>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+      />
     </div>
   );
 }

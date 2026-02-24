@@ -516,6 +516,15 @@
   font-size: 1.25rem;
 }
 
+.ngos-refresh-btn--spinning .material-icons-round {
+  animation: ngos-refresh-spin 0.8s linear infinite;
+}
+
+@keyframes ngos-refresh-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .ngos-level-filter-wrap {
   display: flex;
   align-items: center;

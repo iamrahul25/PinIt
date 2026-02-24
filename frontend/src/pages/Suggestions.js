@@ -385,6 +385,17 @@ export default function Suggestions() {
   const loading = view === 'my' ? myQuery.isLoading : boardQuery.isLoading;
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
+  const isRefreshing = view === 'my' ? myQuery.isFetching : boardQuery.isFetching;
+
+  const handleRefresh = useCallback(async () => {
+    try {
+      const result = await (view === 'my' ? myQuery.refetch() : boardQuery.refetch());
+      if (result?.isError) throw result?.error ?? new Error('Refresh failed');
+      showToast('List refreshed successfully!', 'success');
+    } catch (err) {
+      showToast(err?.message || 'Unable to refresh list. Please try again.', 'error');
+    }
+  }, [view, myQuery, boardQuery, showToast]);
 
   // ── Effects ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -827,9 +838,9 @@ export default function Suggestions() {
                 <span className="suggestions-board-count">{displayedSuggestions.length}</span>
                 <button
                   type="button"
-                  className="suggestions-refresh-btn"
-                  onClick={() => (view === 'my' ? myQuery.refetch() : boardQuery.refetch())}
-                  disabled={view === 'my' ? myQuery.isFetching : boardQuery.isFetching}
+                  className={`suggestions-refresh-btn${isRefreshing ? ' suggestions-refresh-btn--spinning' : ''}`}
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
                   aria-label="Refresh list"
                   title="Refresh list"
                 >

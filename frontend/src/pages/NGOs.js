@@ -907,25 +907,6 @@ export default function NGOs() {
                   </form>
                 </>
               )}
-              <div className="ngos-quick-links">
-                <h3 className="ngos-quick-links-title">Quick Links</h3>
-                <button
-                  type="button"
-                  className={`ngos-quick-link ${view === 'my' ? 'active' : ''}`}
-                  onClick={() => setView('my')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">history</span>
-                  My Submissions
-                </button>
-                <button
-                  type="button"
-                  className={`ngos-quick-link ${view === 'board' ? 'active' : ''}`}
-                  onClick={() => setView('board')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">volunteer_activism</span>
-                  All NGOs
-                </button>
-              </div>
             </div>
           </aside>
 

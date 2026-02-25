@@ -806,25 +806,6 @@ export default function Suggestions() {
                 </>
               )}
 
-              <div className="suggestions-quick-links">
-                <h3 className="suggestions-quick-links-title">Quick Links</h3>
-                <button
-                  type="button"
-                  className={`suggestions-quick-link ${view === 'my' ? 'active' : ''}`}
-                  onClick={() => setView('my')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">history</span>
-                  My Submissions
-                </button>
-                <button
-                  type="button"
-                  className={`suggestions-quick-link ${view === 'board' ? 'active' : ''}`}
-                  onClick={() => setView('board')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">article</span>
-                  Community Board
-                </button>
-              </div>
             </div>
           </aside>
 
@@ -849,33 +830,31 @@ export default function Suggestions() {
               </div>
 
               {view === 'board' && (
-                <div className="suggestions-board-controls">
-                  <div className="suggestions-board-filters">
-                    <div className="suggestions-sort-filter">
-                      <label className="suggestions-sort-filter-label">Sort by:</label>
-                      <select className="suggestions-sort-select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">
-                        <option value="top">Top</option>
-                        <option value="new">Newest</option>
-                        <option value="oldest">Oldest</option>
-                        <option value="mine">My Suggestions</option>
-                      </select>
-                    </div>
-                    <div className="suggestions-state-filter">
-                      <label className="suggestions-state-filter-label">State:</label>
-                      <select className="suggestions-state-select" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)} aria-label="Filter by state">
-                        {SUGGESTION_STATES.map((opt) => (
-                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="suggestions-state-filter suggestions-category-filter">
-                      <label className="suggestions-state-filter-label">Category:</label>
-                      <select className="suggestions-state-select suggestions-category-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} aria-label="Filter by category">
-                        {CATEGORY_FILTER_OPTIONS.map((opt) => (
-                          <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
-                        ))}
-                      </select>
-                    </div>
+                <div className="suggestions-filters-bar">
+                  <div className="suggestions-filter-item">
+                    <label className="suggestions-filter-label" htmlFor="suggestions-sort">Sort</label>
+                    <select id="suggestions-sort" className="suggestions-filter-select" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">
+                      <option value="top">Top</option>
+                      <option value="new">Newest</option>
+                      <option value="oldest">Oldest</option>
+                      <option value="mine">My Suggestions</option>
+                    </select>
+                  </div>
+                  <div className="suggestions-filter-item">
+                    <label className="suggestions-filter-label" htmlFor="suggestions-state">State</label>
+                    <select id="suggestions-state" className="suggestions-filter-select" value={stateFilter} onChange={(e) => setStateFilter(e.target.value)} aria-label="Filter by state">
+                      {SUGGESTION_STATES.map((opt) => (
+                        <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="suggestions-filter-item">
+                    <label className="suggestions-filter-label" htmlFor="suggestions-category">Category</label>
+                    <select id="suggestions-category" className="suggestions-filter-select suggestions-filter-select-wide" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} aria-label="Filter by category">
+                      {CATEGORY_FILTER_OPTIONS.map((opt) => (
+                        <option key={opt.key || 'all'} value={opt.key}>{opt.label}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}
@@ -1004,12 +983,13 @@ export default function Suggestions() {
                           </div>
                         </div>
 
-                        {/* First comment preview */}
+                        {/* Last comment preview (when collapsed) */}
                         {(s.comments || []).length > 0 && expandedCommentsId !== s._id && (() => {
-                          const first = s.comments[0];
-                          const previewText = (first.text || '').length > FIRST_COMMENT_PREVIEW_LENGTH
-                            ? (first.text || '').slice(0, FIRST_COMMENT_PREVIEW_LENGTH).trim() + '…'
-                            : (first.text || '');
+                          const comments = s.comments || [];
+                          const last = comments[comments.length - 1];
+                          const previewText = (last.text || '').length > FIRST_COMMENT_PREVIEW_LENGTH
+                            ? (last.text || '').slice(0, FIRST_COMMENT_PREVIEW_LENGTH).trim() + '…'
+                            : (last.text || '');
                           return (
                             <button
                               type="button"
@@ -1020,18 +1000,18 @@ export default function Suggestions() {
                             >
                               <div className="suggestions-first-comment-inner">
                                 <div className="suggestions-first-comment-avatar-wrap">
-                                  {first.authorImageUrl ? (
-                                    <img src={first.authorImageUrl} alt="" className="suggestions-first-comment-avatar" referrerPolicy="no-referrer" />
+                                  {last.authorImageUrl ? (
+                                    <img src={last.authorImageUrl} alt="" className="suggestions-first-comment-avatar" referrerPolicy="no-referrer" />
                                   ) : (
                                     <span className="suggestions-first-comment-avatar-placeholder">
-                                      {(first.authorName || '?').charAt(0).toUpperCase()}
+                                      {(last.authorName || '?').charAt(0).toUpperCase()}
                                     </span>
                                   )}
                                 </div>
                                 <div className="suggestions-first-comment-body">
                                   <div className="suggestions-first-comment-meta">
-                                    <span className="suggestions-first-comment-author">{first.authorName || 'Anonymous'}</span>
-                                    <span className="suggestions-first-comment-time">{formatTimeAgo(first.createdAt)}</span>
+                                    <span className="suggestions-first-comment-author">{last.authorName || 'Anonymous'}</span>
+                                    <span className="suggestions-first-comment-time">{formatTimeAgo(last.createdAt)}</span>
                                   </div>
                                   <p className="suggestions-first-comment-text">{previewText}</p>
                                 </div>

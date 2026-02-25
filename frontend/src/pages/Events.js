@@ -832,26 +832,6 @@ export default function Events() {
                   </form>
                 </>
               )}
-              <div className="events-quick-links">
-                <h3 className="events-quick-links-title">Quick Links</h3>
-                <button
-                  type="button"
-                  className={`events-quick-link ${view === 'my' ? 'active' : ''}`}
-                  onClick={() => setView('my')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">history</span>
-                  My Events
-                </button>
-                <button
-                  type="button"
-                  className={`events-quick-link ${view === 'board' ? 'active' : ''}`}
-                  onClick={() => setView('board')}
-                >
-                  <span className="material-icons-round" aria-hidden="true">event_available</span>
-                  Upcoming Events
-                </button>
-
-              </div>
             </div>
           </aside>
 

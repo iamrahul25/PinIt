@@ -440,13 +440,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.35rem;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
   border: none;
   border-radius: 0.5rem;
   background: #e2e8f0;
   color: #475569;
   cursor: pointer;
   margin-left: auto;
+  white-space: nowrap;
 }
 
 .suggestions-refresh-btn:hover:not(:disabled) {
@@ -461,6 +463,11 @@
 
 .suggestions-refresh-btn .material-icons-round {
   font-size: 1.25rem;
+}
+
+.suggestions-refresh-label {
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .suggestions-refresh-btn--spinning .material-icons-round {

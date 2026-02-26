@@ -336,11 +336,9 @@ export default function Events() {
     setCityDropdownOpen(false);
   };
 
-  const handleFilterReset = () => {
+  const handleCityFilterReset = () => {
     setCityInput('');
-    setDateInput('');
     setAppliedCity('');
-    setAppliedDate('');
     setCityDropdownOpen(false);
   };
 
@@ -851,6 +849,7 @@ export default function Events() {
                   title="Refresh list"
                 >
                   <span className="material-icons-round" aria-hidden="true">refresh</span>
+                  <span className="events-refresh-label">Reload</span>
                 </button>
               </div>
               <div className="events-filters">
@@ -872,16 +871,6 @@ export default function Events() {
                 </div>
                 {view === 'board' && (
                   <>
-                  <label className="events-filter-label">
-                    Date:
-                    <input
-                      type="date"
-                      className="events-filter-input"
-                      value={dateInput}
-                      onChange={(e) => setDateInput(e.target.value)}
-                      style={{ marginLeft: '0.4rem' }}
-                    />
-                  </label>
                   <div className="events-city-combobox" ref={cityComboRef}>
                     <div className="events-city-combobox-input-wrap">
                       <span className="material-icons-round events-city-combobox-icon">location_on</span>
@@ -911,7 +900,7 @@ export default function Events() {
                         <button
                           type="button"
                           className="events-city-combobox-clear"
-                          onClick={() => { setCityInput(''); setCityDropdownOpen(true); }}
+                          onClick={handleCityFilterReset}
                           aria-label="Clear city"
                         >
                           <span className="material-icons-round">close</span>
@@ -936,6 +925,7 @@ export default function Events() {
                               className={`events-city-option${cityInput === city ? ' selected' : ''}`}
                               onClick={() => {
                                 setCityInput(city);
+                                setAppliedCity(city);
                                 setCityDropdownOpen(false);
                               }}
                             >
@@ -949,28 +939,12 @@ export default function Events() {
                   </div>
                   <button
                     type="button"
-                    className="events-filter-btn"
-                    onClick={handleFilterSearch}
-                  >
-                    <span className="material-icons-round" aria-hidden="true">search</span>
-                    Search
-                  </button>
-                  <button
-                    type="button"
                     className={`events-filter-btn ${showEventsList ? 'events-filter-reset-btn' : ''}`}
                     onClick={() => setShowEventsList((v) => !v)}
                     title={showEventsList ? 'Switch to card view' : 'View events in a table'}
                   >
                     <span className="material-icons-round" aria-hidden="true">table_chart</span>
                     {showEventsList ? 'Card view' : 'Events list'}
-                  </button>
-                  <button
-                    type="button"
-                    className="events-filter-btn events-filter-reset-btn"
-                    onClick={handleFilterReset}
-                  >
-                    <span className="material-icons-round" aria-hidden="true">refresh</span>
-                    Reset
                   </button>
                   </>
                 )}

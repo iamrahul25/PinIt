@@ -826,6 +826,7 @@ export default function Suggestions() {
                   title="Refresh list"
                 >
                   <span className="material-icons-round" aria-hidden="true">refresh</span>
+                  <span className="suggestions-refresh-label">Reload</span>
                 </button>
               </div>
 

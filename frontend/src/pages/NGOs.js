@@ -222,7 +222,11 @@ export default function NGOs() {
 
   const sortIndicator = (field) => {
     if (sortBy !== field) return null;
-    return sortOrder === 'asc' ? ' ↑' : ' ↓';
+    return (
+      <span className="material-icons-round ngos-sort-arrow" aria-hidden="true">
+        {sortOrder === 'asc' ? 'arrow_upward' : 'arrow_downward'}
+      </span>
+    );
   };
   const loadingMore = view === 'board' && boardQuery.isFetchingNextPage;
   const fetchError = view === 'my' ? myQuery.error : boardQuery.error;
@@ -926,6 +930,7 @@ export default function NGOs() {
                   title="Refresh list"
                 >
                   <span className="material-icons-round" aria-hidden="true">refresh</span>
+                  <span className="ngos-refresh-label">Reload</span>
                 </button>
               </div>
               {view === 'board' && (

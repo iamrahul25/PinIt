@@ -248,8 +248,8 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* Mobile breakpoint */
-@media (max-width: 768px) {
+/* Mobile breakpoint: show hamburger when width < 1000px */
+@media (max-width: 1000px) {
   .header-hamburger-btn {
     display: flex;
   }

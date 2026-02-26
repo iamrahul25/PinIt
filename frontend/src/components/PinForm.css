@@ -541,6 +541,18 @@
   margin: 0.25rem 0 0;
 }
 
+.pin-form .form-group-after-images {
+  margin-top: 0.25rem;
+}
+
+.pin-form .upload-area-after:hover:not(.disabled) {
+  border-color: rgba(5, 150, 105, 0.4);
+}
+
+.pin-form .upload-area-after:hover:not(.disabled) .upload-area-icon-wrap {
+  background: rgba(5, 150, 105, 0.08);
+}
+
 /* Image previews */
 .pin-form .image-previews {
   display: grid;

@@ -29,7 +29,11 @@ const pinSchema = new mongoose.Schema({
     }
   },
   images: [{
-    type: String, // Cloudinary URLs (or legacy GridFS file IDs for backward compat)
+    type: String, // Cloudinary URLs — "before fix" (or legacy GridFS file IDs for backward compat)
+    default: []
+  }],
+  imagesAfter: [{
+    type: String, // Cloudinary URLs — "after fixing"
     default: []
   }],
   problemHeading: {

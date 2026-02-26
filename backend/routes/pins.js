@@ -4,6 +4,8 @@ const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
 const UserData = require('../models/UserData');
 
+const MAX_IMAGES_PER_SECTION = 10;
+
 // Get all pins (optional query: createdBy=contributor_id for user-contributed pins)
 router.get('/', async (req, res) => {
   try {
@@ -200,6 +202,46 @@ router.post('/:id/resolve', async (req, res) => {
   }
 });
 
+// Add one image to pin (before or after) — any authenticated user
+router.post('/:id/images', async (req, res) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    const pin = await Pin.findById(req.params.id);
+    if (!pin) {
+      return res.status(404).json({ error: 'Pin not found' });
+    }
+    const { type, url } = req.body || {};
+    if (!url || typeof url !== 'string' || !url.trim()) {
+      return res.status(400).json({ error: 'Image url is required.' });
+    }
+    if (type !== 'before' && type !== 'after') {
+      return res.status(400).json({ error: 'type must be "before" or "after".' });
+    }
+    if (type === 'before') {
+      const before = pin.images || [];
+      if (before.length >= MAX_IMAGES_PER_SECTION) {
+        return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.` });
+      }
+      pin.images = [...before, url.trim()];
+    } else {
+      const after = pin.imagesAfter || [];
+      if (after.length >= MAX_IMAGES_PER_SECTION) {
+        return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.` });
+      }
+      pin.imagesAfter = [...after, url.trim()];
+    }
+    pin.updatedAt = new Date();
+    await pin.save();
+    const populated = await Pin.findById(pin._id).populate('comments');
+    res.json(populated);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 // Get pin by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -216,7 +258,7 @@ router.get('/:id', async (req, res) => {
 // Create a new pin
 router.post('/', async (req, res) => {
   try {
-    const { problemType, severity, location, images, problemHeading, contributor_name, description } = req.body;
+    const { problemType, severity, location, images, imagesAfter, problemHeading, contributor_name, description } = req.body;
     const contributorId = req.auth?.userId;
     if (!contributorId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -227,7 +269,14 @@ router.post('/', async (req, res) => {
     }
     const imageList = Array.isArray(images) ? images : [];
     if (imageList.length === 0) {
-      return res.status(400).json({ error: 'At least one image is required.' });
+      return res.status(400).json({ error: 'At least one before image is required.' });
+    }
+    if (imageList.length > MAX_IMAGES_PER_SECTION) {
+      return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.` });
+    }
+    const imageListAfter = Array.isArray(imagesAfter) ? imagesAfter : [];
+    if (imageListAfter.length > MAX_IMAGES_PER_SECTION) {
+      return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.` });
     }
 
     const pin = new Pin({
@@ -235,6 +284,7 @@ router.post('/', async (req, res) => {
       severity,
       location,
       images: imageList,
+      imagesAfter: imageListAfter,
       problemHeading: heading,
       contributor_id: contributorId,
       contributor_name: contributor_name || '',
@@ -249,7 +299,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update pin (admin or pin creator only)
-const ALLOWED_UPDATE_FIELDS = ['problemType', 'severity', 'location', 'images', 'problemHeading', 'contributor_name', 'description'];
+const ALLOWED_UPDATE_FIELDS = ['problemType', 'severity', 'location', 'images', 'imagesAfter', 'problemHeading', 'contributor_name', 'description'];
 router.put('/:id', async (req, res) => {
   try {
     const userId = req.auth?.userId;
@@ -264,6 +314,17 @@ router.put('/:id', async (req, res) => {
     const isCreator = existingPin.contributor_id === userId;
     if (!isAdmin && !isCreator) {
       return res.status(403).json({ error: 'Forbidden: only admin or the pin creator can update this pin' });
+    }
+    if (Array.isArray(req.body.images)) {
+      if (req.body.images.length === 0) {
+        return res.status(400).json({ error: 'At least one before image is required.' });
+      }
+      if (req.body.images.length > MAX_IMAGES_PER_SECTION) {
+        return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.` });
+      }
+    }
+    if (Array.isArray(req.body.imagesAfter) && req.body.imagesAfter.length > MAX_IMAGES_PER_SECTION) {
+      return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.` });
     }
     const updates = {};
     for (const key of ALLOWED_UPDATE_FIELDS) {

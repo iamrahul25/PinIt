@@ -25,6 +25,8 @@ const PROBLEM_TYPES = [
   { value: 'Other', label: 'Other' }
 ];
 
+const MAX_IMAGES_PER_SECTION = 10;
+
 const getSeverityClass = (value) => {
   const v = parseInt(value, 10);
   if (v <= 3) return 'severity-low';
@@ -46,12 +48,15 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   });
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [imageFilesAfter, setImageFilesAfter] = useState([]);
+  const [imagePreviewsAfter, setImagePreviewsAfter] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitPhase, setSubmitPhase] = useState(null); // null | 'uploading' | 'submitting'
   const [compressingImages, setCompressingImages] = useState(false);
   const [error, setError] = useState('');
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const fileInputAfterRef = useRef(null);
   const typeDropdownRef = useRef(null);
 
   // Close type dropdown on outside click or Escape
@@ -85,10 +90,10 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
   const handleImageChange = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
-    const remaining = 5 - imageFiles.length;
+    const remaining = MAX_IMAGES_PER_SECTION - imageFiles.length;
     const toAdd = files.slice(0, remaining);
     if (toAdd.length === 0) return;
-    setError(toAdd.length < files.length ? 'Maximum 5 images allowed. Only the first allowed slots were added.' : '');
+    setError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES_PER_SECTION} before images. Only the first allowed slots were added.` : '');
     if (e.target) e.target.value = '';
 
     setCompressingImages(true);
@@ -119,11 +124,55 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
     }
   }, [imageFiles]);
 
+  const handleImageAfterChange = useCallback(async (e) => {
+    const files = Array.from(e.target.files || []);
+    const remaining = MAX_IMAGES_PER_SECTION - imageFilesAfter.length;
+    const toAdd = files.slice(0, remaining);
+    if (toAdd.length === 0) return;
+    setError(toAdd.length < files.length ? `Maximum ${MAX_IMAGES_PER_SECTION} after images. Only the first allowed slots were added.` : '');
+    if (e.target) e.target.value = '';
+
+    setCompressingImages(true);
+    try {
+      const compressed = await Promise.all(
+        toAdd.map((file) => imageCompression(file, COMPRESSION_OPTIONS))
+      );
+      const newFiles = [...imageFilesAfter, ...compressed];
+      setImageFilesAfter(newFiles);
+
+      const newPreviews = new Array(newFiles.length);
+      let loaded = 0;
+      newFiles.forEach((file, i) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          newPreviews[i] = reader.result;
+          loaded += 1;
+          if (loaded === newFiles.length) {
+            setImagePreviewsAfter([...newPreviews]);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    } catch (err) {
+      setError('Failed to process after images. Please try again.');
+    } finally {
+      setCompressingImages(false);
+    }
+  }, [imageFilesAfter]);
+
   const removeImage = (index) => {
     const newFiles = imageFiles.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
     setImageFiles(newFiles);
     setImagePreviews(newPreviews);
+    setError('');
+  };
+
+  const removeImageAfter = (index) => {
+    const newFiles = imageFilesAfter.filter((_, i) => i !== index);
+    const newPreviews = imagePreviewsAfter.filter((_, i) => i !== index);
+    setImageFilesAfter(newFiles);
+    setImagePreviewsAfter(newPreviews);
     setError('');
   };
 
@@ -139,7 +188,15 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       return;
     }
     if (imageFiles.length === 0) {
-      setError('Please add at least one image.');
+      setError('Please add at least one before image.');
+      return;
+    }
+    if (imageFiles.length > MAX_IMAGES_PER_SECTION) {
+      setError(`Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.`);
+      return;
+    }
+    if (imageFilesAfter.length > MAX_IMAGES_PER_SECTION) {
+      setError(`Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.`);
       return;
     }
 
@@ -173,6 +230,18 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
         imageUrls.push(uploadResponse.data.url);
       }
 
+      const imageUrlsAfter = [];
+      for (const file of imageFilesAfter) {
+        const multipart = new FormData();
+        multipart.append('image', file);
+        const uploadResponse = await axios.post(
+          `${API_BASE_URL}/api/images/upload`,
+          multipart,
+          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
+        );
+        imageUrlsAfter.push(uploadResponse.data.url);
+      }
+
       setSubmitPhase('submitting');
 
       const pinData = {
@@ -185,6 +254,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           address: location.address || ''
         },
         images: imageUrls,
+        imagesAfter: imageUrlsAfter,
         contributor_id: user?.id || '',
         contributor_name: formData.contributor_name || '',
         description: formData.description || ''
@@ -203,7 +273,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   };
 
   const severityClass = getSeverityClass(formData.severity);
-  const uploadDisabled = imageFiles.length >= 5 || compressingImages;
+  const uploadDisabled = imageFiles.length >= MAX_IMAGES_PER_SECTION || compressingImages;
+  const uploadAfterDisabled = imageFilesAfter.length >= MAX_IMAGES_PER_SECTION || compressingImages;
 
   return (
     <div className="pin-form-overlay" onClick={onClose}>
@@ -348,7 +419,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           </div>
 
           <div className="form-group">
-            <label>Attach Images <span className="required">*</span> (at least 1 required, max 5)</label>
+            <label>Before images (before fix) <span className="required">*</span> (at least 1 required, max {MAX_IMAGES_PER_SECTION})</label>
             <div
               role="button"
               tabIndex={0}
@@ -360,13 +431,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                   fileInputRef.current?.click();
                 }
               }}
-              aria-label="Click to upload images"
+              aria-label="Click to upload before images"
             >
               <div className="upload-area-icon-wrap">
                 <span className="material-icons-round upload-area-icon">cloud_upload</span>
               </div>
-              <p className="upload-area-text">{compressingImages ? 'Compressing images...' : 'Click to upload images'}</p>
-              <p className="upload-count">{imageFiles.length}/5 images uploaded</p>
+              <p className="upload-area-text">{compressingImages ? 'Compressing images...' : 'Click to upload before images'}</p>
+              <p className="upload-count">{imageFiles.length}/{MAX_IMAGES_PER_SECTION} images</p>
             </div>
             <input
               ref={fileInputRef}
@@ -381,12 +452,61 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               <div className="image-previews">
                 {imagePreviews.map((preview, index) => (
                   <div key={index} className="image-preview">
-                    <img src={preview} alt={`Preview ${index + 1}`} />
+                    <img src={preview} alt={`Before ${index + 1}`} />
                     <button
                       type="button"
                       className="remove-image"
                       onClick={() => removeImage(index)}
                       aria-label={`Remove image ${index + 1}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="form-group form-group-after-images">
+            <label>After images (after fixing) <span className="optional">(optional, max {MAX_IMAGES_PER_SECTION})</span></label>
+            <div
+              role="button"
+              tabIndex={0}
+              className={`upload-area upload-area-after ${uploadAfterDisabled ? 'disabled' : ''}`}
+              onClick={() => !uploadAfterDisabled && fileInputAfterRef.current?.click()}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !uploadAfterDisabled) {
+                  e.preventDefault();
+                  fileInputAfterRef.current?.click();
+                }
+              }}
+              aria-label="Click to upload after images"
+            >
+              <div className="upload-area-icon-wrap">
+                <span className="material-icons-round upload-area-icon">cloud_upload</span>
+              </div>
+              <p className="upload-area-text">{compressingImages ? 'Compressing...' : 'Click to upload after-fix images'}</p>
+              <p className="upload-count">{imageFilesAfter.length}/{MAX_IMAGES_PER_SECTION} images</p>
+            </div>
+            <input
+              ref={fileInputAfterRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageAfterChange}
+              className="file-input-hidden"
+              aria-hidden="true"
+            />
+            {imagePreviewsAfter.length > 0 && (
+              <div className="image-previews">
+                {imagePreviewsAfter.map((preview, index) => (
+                  <div key={`after-${index}`} className="image-preview">
+                    <img src={preview} alt={`After ${index + 1}`} />
+                    <button
+                      type="button"
+                      className="remove-image"
+                      onClick={() => removeImageAfter(index)}
+                      aria-label={`Remove after image ${index + 1}`}
                     >
                       ×
                     </button>

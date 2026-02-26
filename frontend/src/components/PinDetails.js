@@ -24,6 +24,8 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.75
 };
 
+const MAX_IMAGES_PER_SECTION = 10;
+
 // Verification score weights by role
 const VERIFICATION_ROLE_SCORES = { user: 10, reviewer: 30, ngo: 50, admin: 60 };
 const VERIFICATION_ROLE_LABELS = { user: 'Users', reviewer: 'Reviewers', ngo: 'NGOs', admin: 'Admins' };
@@ -76,8 +78,12 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const [commentActionLoading, setCommentActionLoading] = useState(null);
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
   const [verifying, setVerifying] = useState(false);
-  const [images, setImages] = useState([]);
+  const [imagesBefore, setImagesBefore] = useState([]);
+  const [imagesAfter, setImagesAfter] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [addingImageType, setAddingImageType] = useState(null); // 'before' | 'after' | null
+  const addBeforeInputRef = useRef(null);
+  const addAfterInputRef = useRef(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -88,9 +94,12 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   // Edit mode (admin or pin creator)
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState(null);
-  const [editImages, setEditImages] = useState([]); // URLs to keep
+  const [editImages, setEditImages] = useState([]); // before URLs to keep
   const [newImageFiles, setNewImageFiles] = useState([]);
   const [newImagePreviews, setNewImagePreviews] = useState([]);
+  const [editImagesAfter, setEditImagesAfter] = useState([]);
+  const [newImageFilesAfter, setNewImageFilesAfter] = useState([]);
+  const [newImagePreviewsAfter, setNewImagePreviewsAfter] = useState([]);
   const [editError, setEditError] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [compressingNewImages, setCompressingNewImages] = useState(false);
@@ -100,13 +109,14 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   const [verificationBreakdownExpanded, setVerificationBreakdownExpanded] = useState(false);
   const [resolveBreakdownExpanded, setResolveBreakdownExpanded] = useState(false);
   const editFileInputRef = useRef(null);
+  const editFileAfterInputRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
     fetchComments();
     fetchVoteStatus();
     fetchImages();
-  }, [authLoading, getToken, pin._id, userId]);
+  }, [authLoading, getToken, pin._id, userId, pin.images, pin.imagesAfter]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -178,16 +188,19 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
     }
   };
 
+  const normalizeImageUrl = (entry) =>
+    entry.startsWith('http') ? getFullImageUrl(entry) : `${API_BASE_URL}/api/images/${entry}`;
+
   const fetchImages = () => {
-    if (pin.images && pin.images.length > 0) {
-      const urls = pin.images.map(entry =>
-        entry.startsWith('http')
-          ? getFullImageUrl(entry)
-          : `${API_BASE_URL}/api/images/${entry}`
-      );
-      setImages(urls);
-    }
+    const before = (pin.images && Array.isArray(pin.images) ? pin.images : []).map(normalizeImageUrl);
+    const after = (pin.imagesAfter && Array.isArray(pin.imagesAfter) ? pin.imagesAfter : []).map(normalizeImageUrl);
+    setImagesBefore(before);
+    setImagesAfter(after);
   };
+
+  const images = [...imagesBefore, ...imagesAfter];
+  const beforeCount = imagesBefore.length;
+  const afterCount = imagesAfter.length;
 
   const handleVerify = async () => {
     if (!userId) {
@@ -463,6 +476,9 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
     setEditImages(pin.images && Array.isArray(pin.images) ? [...pin.images] : []);
     setNewImageFiles([]);
     setNewImagePreviews([]);
+    setEditImagesAfter(pin.imagesAfter && Array.isArray(pin.imagesAfter) ? [...pin.imagesAfter] : []);
+    setNewImageFilesAfter([]);
+    setNewImagePreviewsAfter([]);
     setEditError('');
     setIsEditing(true);
   }, [pin]);
@@ -473,6 +489,9 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
     setEditImages([]);
     setNewImageFiles([]);
     setNewImagePreviews([]);
+    setEditImagesAfter([]);
+    setNewImageFilesAfter([]);
+    setNewImagePreviewsAfter([]);
     setEditError('');
   }, []);
 
@@ -493,9 +512,18 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
     setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const removeEditImageAfter = (index) => {
+    setEditImagesAfter((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewEditImageAfter = (index) => {
+    setNewImageFilesAfter((prev) => prev.filter((_, i) => i !== index));
+    setNewImagePreviewsAfter((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleNewEditImages = useCallback(async (e) => {
     const files = Array.from(e.target.files || []);
-    const totalSlots = 5 - editImages.length - newImageFiles.length;
+    const totalSlots = MAX_IMAGES_PER_SECTION - editImages.length - newImageFiles.length;
     const toAdd = files.slice(0, Math.max(0, totalSlots));
     if (toAdd.length === 0) return;
     if (e.target) e.target.value = '';
@@ -521,6 +549,34 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
     }
   }, [editImages.length, newImageFiles.length]);
 
+  const handleNewEditImagesAfter = useCallback(async (e) => {
+    const files = Array.from(e.target.files || []);
+    const totalSlots = MAX_IMAGES_PER_SECTION - editImagesAfter.length - newImageFilesAfter.length;
+    const toAdd = files.slice(0, Math.max(0, totalSlots));
+    if (toAdd.length === 0) return;
+    if (e.target) e.target.value = '';
+    setCompressingNewImages(true);
+    try {
+      const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
+      setNewImageFilesAfter((prev) => [...prev, ...compressed]);
+      const start = newImageFilesAfter.length;
+      const newPreviews = await Promise.all(
+        compressed.map((file) => {
+          return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(file);
+          });
+        })
+      );
+      setNewImagePreviewsAfter((prev) => [...prev.slice(0, start), ...newPreviews]);
+    } catch (err) {
+      setEditError('Failed to process new after images.');
+    } finally {
+      setCompressingNewImages(false);
+    }
+  }, [editImagesAfter.length, newImageFilesAfter.length]);
+
   const getEditImageUrl = (url) => {
     if (!url) return '';
     return url.startsWith('http') ? getFullImageUrl(url) : `${API_BASE_URL}/api/images/${url}`;
@@ -534,9 +590,18 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
       setEditError('Problem heading is required.');
       return;
     }
-    const totalImages = editImages.length + newImageFiles.length;
-    if (totalImages === 0) {
-      setEditError('At least one image is required.');
+    const totalBefore = editImages.length + newImageFiles.length;
+    if (totalBefore === 0) {
+      setEditError('At least one before image is required.');
+      return;
+    }
+    if (totalBefore > MAX_IMAGES_PER_SECTION) {
+      setEditError(`Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.`);
+      return;
+    }
+    const totalAfter = editImagesAfter.length + newImageFilesAfter.length;
+    if (totalAfter > MAX_IMAGES_PER_SECTION) {
+      setEditError(`Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.`);
       return;
     }
     setSavingEdit(true);
@@ -554,7 +619,19 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
         );
         newUrls.push(uploadRes.data.url);
       }
+      const newUrlsAfter = [];
+      for (const file of newImageFilesAfter) {
+        const formData = new FormData();
+        formData.append('image', file);
+        const uploadRes = await axios.post(
+          `${API_BASE_URL}/api/images/upload`,
+          formData,
+          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
+        );
+        newUrlsAfter.push(uploadRes.data.url);
+      }
       const allImages = [...editImages, ...newUrls];
+      const allImagesAfter = [...editImagesAfter, ...newUrlsAfter];
       const payload = {
         problemType: editForm.problemType,
         severity: parseInt(editForm.severity, 10),
@@ -562,7 +639,8 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
         description: editForm.description || '',
         contributor_name: pin.contributor_name || '',
         location: pin.location || { latitude: 0, longitude: 0, address: '' },
-        images: allImages
+        images: allImages,
+        imagesAfter: allImagesAfter
       };
       const response = await axios.put(`${API_BASE_URL}/api/pins/${pin._id}`, payload, config);
       const updatedPin = response.data;
@@ -575,6 +653,45 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
       setSavingEdit(false);
     }
   };
+
+  const handleAddPinImageClick = (type) => {
+    if (type === 'before' && addBeforeInputRef.current) addBeforeInputRef.current.click();
+    if (type === 'after' && addAfterInputRef.current) addAfterInputRef.current.click();
+  };
+
+  const handleAddPinImageFile = useCallback(async (e, type) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    if (e.target) e.target.value = '';
+    const current = type === 'before' ? beforeCount : afterCount;
+    if (current >= MAX_IMAGES_PER_SECTION) return;
+    setAddingImageType(type);
+    try {
+      const file = files[0];
+      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      const formData = new FormData();
+      formData.append('image', compressed);
+      const config = await getAuthConfig({ 'Content-Type': 'multipart/form-data' });
+      const uploadRes = await axios.post(`${API_BASE_URL}/api/images/upload`, formData, config);
+      const url = uploadRes.data?.url;
+      if (!url) throw new Error('No URL returned');
+      const payloadConfig = await getAuthConfig({ 'Content-Type': 'application/json' });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/pins/${pin._id}/images`,
+        { type, url },
+        payloadConfig
+      );
+      onPinUpdated?.(response.data);
+      onUpdate?.();
+      setImagesBefore((response.data.images || []).map(normalizeImageUrl));
+      setImagesAfter((response.data.imagesAfter || []).map(normalizeImageUrl));
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Failed to add image.';
+      alert(msg);
+    } finally {
+      setAddingImageType(null);
+    }
+  }, [pin._id, beforeCount, afterCount, getToken, onPinUpdated, onUpdate]);
 
   const copyToClipboard = (url) => {
     navigator.clipboard.writeText(url).then(() => {
@@ -782,7 +899,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                     />
                   </div>
                   <div className="pin-details-edit-group">
-                    <label>Images <span className="required">*</span> (at least 1, max 5)</label>
+                    <label>Before images (before fix) <span className="required">*</span> (at least 1, max {MAX_IMAGES_PER_SECTION})</label>
                     <div className="pin-details-edit-images">
                       {editImages.map((url, index) => (
                         <div key={`existing-${index}`} className="pin-details-edit-thumb-wrap">
@@ -796,14 +913,14 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                           <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImage(index)} aria-label="Remove image">×</button>
                         </div>
                       ))}
-                      {editImages.length + newImageFiles.length < 5 && (
+                      {editImages.length + newImageFiles.length < MAX_IMAGES_PER_SECTION && (
                         <div
                           role="button"
                           tabIndex={0}
                           className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
                           onClick={() => !compressingNewImages && editFileInputRef.current?.click()}
                           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileInputRef.current?.click()}
-                          aria-label="Add image"
+                          aria-label="Add before image"
                         >
                           <span className="material-icons-round">add_photo_alternate</span>
                           {compressingNewImages ? 'Compressing...' : 'Add'}
@@ -816,6 +933,45 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                       accept="image/*"
                       multiple
                       onChange={handleNewEditImages}
+                      className="pin-details-edit-file-hidden"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="pin-details-edit-group">
+                    <label>After images (after fixing) <span className="pin-details-edit-optional">(optional, max {MAX_IMAGES_PER_SECTION})</span></label>
+                    <div className="pin-details-edit-images">
+                      {editImagesAfter.map((url, index) => (
+                        <div key={`after-existing-${index}`} className="pin-details-edit-thumb-wrap">
+                          <img src={getEditImageUrl(url)} alt="" />
+                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeEditImageAfter(index)} aria-label="Remove image">×</button>
+                        </div>
+                      ))}
+                      {newImagePreviewsAfter.map((src, index) => (
+                        <div key={`after-new-${index}`} className="pin-details-edit-thumb-wrap">
+                          <img src={src} alt="" />
+                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImageAfter(index)} aria-label="Remove image">×</button>
+                        </div>
+                      ))}
+                      {editImagesAfter.length + newImageFilesAfter.length < MAX_IMAGES_PER_SECTION && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
+                          onClick={() => !compressingNewImages && editFileAfterInputRef.current?.click()}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileAfterInputRef.current?.click()}
+                          aria-label="Add after image"
+                        >
+                          <span className="material-icons-round">add_photo_alternate</span>
+                          {compressingNewImages ? 'Compressing...' : 'Add'}
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      ref={editFileAfterInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleNewEditImagesAfter}
                       className="pin-details-edit-file-hidden"
                       aria-hidden="true"
                     />
@@ -857,29 +1013,97 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                     </section>
                   )}
 
-                  {/* 3. Visual Evidence */}
-                  {images.length > 0 && (
-                    <section className="pin-details-section">
-                      <div className="pin-details-section-header">
-                        <h3 className="pin-details-section-title">
-                          <span className="material-icons-round">photo_library</span>
-                          Visual Evidence
-                        </h3>
-                        <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
-                      </div>
-                      <div className="pin-details-images-grid">
-                        {images.map((url, index) => (
-                          <div
-                            key={index}
-                            className="pin-details-image-wrap"
-                            onClick={() => openImageModal(index)}
-                          >
-                            <img src={url} alt={`Evidence ${index + 1}`} />
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
+                  {/* 3. Before images (before fix) */}
+                  <section className="pin-details-section pin-details-section-before">
+                    <div className="pin-details-section-header">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">report</span>
+                        Before (before fix)
+                      </h3>
+                      <span className="pin-details-attachment-badge">{beforeCount} ATTACHMENTS</span>
+                    </div>
+                    <div className="pin-details-images-grid">
+                      {imagesBefore.map((url, index) => (
+                        <div
+                          key={`before-${index}`}
+                          className="pin-details-image-wrap"
+                          onClick={() => openImageModal(index)}
+                        >
+                          <img src={url} alt={`Before ${index + 1}`} />
+                        </div>
+                      ))}
+                      {user && beforeCount < MAX_IMAGES_PER_SECTION && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={`pin-details-add-image-thumb ${addingImageType === 'before' ? 'disabled' : ''}`}
+                          onClick={() => !addingImageType && handleAddPinImageClick('before')}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !addingImageType && handleAddPinImageClick('before')}
+                          aria-label="Add before image"
+                        >
+                          <span className="material-icons-round">add_photo_alternate</span>
+                          {addingImageType === 'before' ? 'Uploading…' : 'Add image'}
+                        </div>
+                      )}
+                    </div>
+                    {beforeCount >= MAX_IMAGES_PER_SECTION && user && (
+                      <p className="pin-details-max-hint">Max {MAX_IMAGES_PER_SECTION} images.</p>
+                    )}
+                    <input
+                      ref={addBeforeInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="pin-details-edit-file-hidden"
+                      aria-hidden="true"
+                      onChange={(e) => handleAddPinImageFile(e, 'before')}
+                    />
+                  </section>
+
+                  {/* 4. After images (after fixing) */}
+                  <section className="pin-details-section pin-details-section-after">
+                    <div className="pin-details-section-header">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">check_circle</span>
+                        After (after fixing)
+                      </h3>
+                      <span className="pin-details-attachment-badge">{afterCount} ATTACHMENTS</span>
+                    </div>
+                    <div className="pin-details-images-grid">
+                      {imagesAfter.map((url, index) => (
+                        <div
+                          key={`after-${index}`}
+                          className="pin-details-image-wrap"
+                          onClick={() => openImageModal(beforeCount + index)}
+                        >
+                          <img src={url} alt={`After ${index + 1}`} />
+                        </div>
+                      ))}
+                      {user && afterCount < MAX_IMAGES_PER_SECTION && (
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          className={`pin-details-add-image-thumb ${addingImageType === 'after' ? 'disabled' : ''}`}
+                          onClick={() => !addingImageType && handleAddPinImageClick('after')}
+                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !addingImageType && handleAddPinImageClick('after')}
+                          aria-label="Add after image"
+                        >
+                          <span className="material-icons-round">add_photo_alternate</span>
+                          {addingImageType === 'after' ? 'Uploading…' : 'Add image'}
+                        </div>
+                      )}
+                    </div>
+                    {afterCount >= MAX_IMAGES_PER_SECTION && user && (
+                      <p className="pin-details-max-hint">Max {MAX_IMAGES_PER_SECTION} images.</p>
+                    )}
+                    <input
+                      ref={addAfterInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="pin-details-edit-file-hidden"
+                      aria-hidden="true"
+                      onChange={(e) => handleAddPinImageFile(e, 'after')}
+                    />
+                  </section>
 
                   {/* 4. Stats grid + 5. Verification card */}
                   <div className="pin-details-stats">
@@ -1773,11 +1997,13 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
           <>
             <img
               src={images[selectedImageIndex]}
-              alt={`Image ${selectedImageIndex + 1} of ${images.length}`}
+              alt={selectedImageIndex < beforeCount ? `Before ${selectedImageIndex + 1} of ${beforeCount}` : `After ${selectedImageIndex - beforeCount + 1} of ${afterCount}`}
               onClick={(e) => e.stopPropagation()}
             />
             <span className="image-modal-counter">
-              {selectedImageIndex + 1} / {images.length}
+              {selectedImageIndex < beforeCount
+                ? `Before ${selectedImageIndex + 1} / ${beforeCount}`
+                : `After ${selectedImageIndex - beforeCount + 1} / ${afterCount}`}
             </span>
           </>
         )}

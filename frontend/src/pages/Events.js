@@ -853,6 +853,17 @@ export default function Events() {
                 </button>
               </div>
               <div className="events-filters">
+                {view === 'board' && (
+                  <button
+                    type="button"
+                    className={`events-filter-btn ${showEventsList ? 'events-filter-reset-btn' : ''}`}
+                    onClick={() => setShowEventsList((v) => !v)}
+                    title={showEventsList ? 'Switch to card view' : 'View events in a table'}
+                  >
+                    <span className="material-icons-round" aria-hidden="true">table_chart</span>
+                    {showEventsList ? 'Card view' : 'Events list'}
+                  </button>
+                )}
                 <div className="events-period-filter" role="group" aria-label="Event period">
                   <button
                     type="button"
@@ -937,15 +948,6 @@ export default function Events() {
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className={`events-filter-btn ${showEventsList ? 'events-filter-reset-btn' : ''}`}
-                    onClick={() => setShowEventsList((v) => !v)}
-                    title={showEventsList ? 'Switch to card view' : 'View events in a table'}
-                  >
-                    <span className="material-icons-round" aria-hidden="true">table_chart</span>
-                    {showEventsList ? 'Card view' : 'Events list'}
-                  </button>
                   </>
                 )}
               </div>

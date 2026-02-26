@@ -652,50 +652,6 @@
   font-size: 0.65rem;
 }
 
-.pin-card-fix-status-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  border-radius: 9999px;
-}
-
-.pin-card-fix-status-badge.small {
-  padding: 0.1rem 0.35rem;
-  font-size: 0.65rem;
-}
-
-.pin-card-fix-status-badge.fix-status-reported {
-  background: rgba(100, 116, 139, 0.15);
-  color: #64748b;
-}
-
-.pin-card-fix-status-badge.fix-status-verified {
-  background: rgba(16, 185, 129, 0.15);
-  color: #059669;
-}
-
-.pin-card-fix-status-badge.fix-status-partially-verified {
-  background: rgba(245, 158, 11, 0.15);
-  color: #b45309;
-}
-
-.pin-card-fix-status-badge.fix-status-awaiting {
-  background: rgba(245, 158, 11, 0.15);
-  color: #b45309;
-}
-
-.pin-card-fix-status-badge.fix-status-scheduled {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-}
-
-.pin-card-fix-status-badge.fix-status-resolved {
-  background: rgba(16, 185, 129, 0.15);
-  color: #059669;
-}
-
 .pin-card-featured .pin-card-severity {
   flex-shrink: 0;
   padding: calc(0.25rem * var(--pins-scale)) calc(0.6rem * var(--pins-scale));

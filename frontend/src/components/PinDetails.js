@@ -831,6 +831,57 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                 </form>
               ) : (
                 <>
+                  {/* 1. Problem Heading */}
+                  {pin.problemHeading && (
+                    <section className="pin-details-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">title</span>
+                        Problem Heading
+                      </h3>
+                      <div className="pin-details-problem-heading">
+                        <p>{pin.problemHeading}</p>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 2. Description */}
+                  {pin.description && (
+                    <section className="pin-details-section">
+                      <h3 className="pin-details-section-title">
+                        <span className="material-icons-round">subject</span>
+                        Description
+                      </h3>
+                      <div className="pin-details-description">
+                        <p>{pin.description}</p>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 3. Visual Evidence */}
+                  {images.length > 0 && (
+                    <section className="pin-details-section">
+                      <div className="pin-details-section-header">
+                        <h3 className="pin-details-section-title">
+                          <span className="material-icons-round">photo_library</span>
+                          Visual Evidence
+                        </h3>
+                        <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
+                      </div>
+                      <div className="pin-details-images-grid">
+                        {images.map((url, index) => (
+                          <div
+                            key={index}
+                            className="pin-details-image-wrap"
+                            onClick={() => openImageModal(index)}
+                          >
+                            <img src={url} alt={`Evidence ${index + 1}`} />
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
+                  {/* 4. Stats grid + 5. Verification card */}
                   <div className="pin-details-stats">
                     <div className="pin-details-stats-grid">
                       <div className="pin-details-stat-card">
@@ -961,53 +1012,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                       );
                     })()}
                   </div>
-
-                  {images.length > 0 && (
-                    <section className="pin-details-section">
-                      <div className="pin-details-section-header">
-                        <h3 className="pin-details-section-title">
-                          <span className="material-icons-round">photo_library</span>
-                          Visual Evidence
-                        </h3>
-                        <span className="pin-details-attachment-badge">{images.length} ATTACHMENTS</span>
-                      </div>
-                      <div className="pin-details-images-grid">
-                        {images.map((url, index) => (
-                          <div
-                            key={index}
-                            className="pin-details-image-wrap"
-                            onClick={() => openImageModal(index)}
-                          >
-                            <img src={url} alt={`Evidence ${index + 1}`} />
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {pin.problemHeading && (
-                    <section className="pin-details-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">title</span>
-                        Problem Heading
-                      </h3>
-                      <div className="pin-details-problem-heading">
-                        <p>{pin.problemHeading}</p>
-                      </div>
-                    </section>
-                  )}
-
-                  {pin.description && (
-                    <section className="pin-details-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">subject</span>
-                        Description
-                      </h3>
-                      <div className="pin-details-description">
-                        <p>{pin.description}</p>
-                      </div>
-                    </section>
-                  )}
 
                   {/* ── Fix Status Timeline ── */}
                   <section className="pin-details-section">

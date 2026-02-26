@@ -23,31 +23,6 @@ const VERIFICATION_FILTER_OPTIONS = [
   { value: 'highly-verified', label: 'Highly Verified' }
 ];
 
-const FIX_STATUS_FILTER_OPTIONS = [
-  { value: '', label: 'All' },
-  { value: 'Reported', label: 'Reported' },
-  { value: 'Partially Verified', label: 'Partially Verified' },
-  { value: 'Awaiting Action', label: 'Awaiting Action' },
-  { value: 'Scheduled', label: 'Scheduled' },
-  { value: 'Resolved', label: 'Resolved' }
-];
-
-// Fix Status: Reported → Verified (score > 80) → Awaiting Action → Scheduled → Resolved (same logic as PinDetails)
-const getCurrentFixStatus = (pin, scheduledEvents = []) => {
-  const vScore = getVerificationScore(pin?.pinVerification);
-  const resolves = pin?.resolveVerification || [];
-  const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
-  const isResolved = resolveScore > 80;
-  const isScheduled = (scheduledEvents?.length ?? 0) > 0;
-  const isVerified = vScore > 80; // Verified step in PinDetails is active only when score > 80
-  if (isResolved) return { label: 'Resolved', className: 'fix-status-resolved' };
-  if (isScheduled) return { label: 'Scheduled', className: 'fix-status-scheduled' };
-  if (isVerified) return { label: 'Awaiting Action', className: 'fix-status-awaiting' };
-  if (vScore >= 41) return { label: 'Partially Verified', className: 'fix-status-partially-verified' };
-  if (vScore > 0) return { label: 'Reported', className: 'fix-status-reported' }; // some verification but not yet Verified step
-  return { label: 'Reported', className: 'fix-status-reported' };
-};
-
 const PROBLEM_TYPES = [
   { value: 'Trash Pile', label: 'Trash Pile' },
   { value: 'Pothole', label: 'Pothole' },
@@ -91,7 +66,6 @@ const PinListPanel = ({
   const [filterSavedOnly, setFilterSavedOnly] = useState(false);
   const [filterContributedOnly, setFilterContributedOnly] = useState(false);
   const [filterVerification, setFilterVerification] = useState(''); // '' = All, or unverified | partially-verified | verified | highly-verified
-  const [filterFixStatus, setFilterFixStatus] = useState(''); // '' = All, or Reported | Verified | Awaiting Action | Scheduled | Resolved
   const [viewSize, setViewSize] = useState('small'); // 'big' | 'small' — list view is default
 
   const filteredPins = useMemo(() => {
@@ -105,11 +79,8 @@ const PinListPanel = ({
         return vs.className === filterVerification;
       });
     }
-    if (filterFixStatus) {
-      list = list.filter((p) => getCurrentFixStatus(p).label === filterFixStatus);
-    }
     return list;
-  }, [pins, typeFilter, filterSavedOnly, filterContributedOnly, filterVerification, filterFixStatus, user?.id]);
+  }, [pins, typeFilter, filterSavedOnly, filterContributedOnly, filterVerification, user?.id]);
 
   const sortedPins = useMemo(() => {
     const list = [...filteredPins];
@@ -235,20 +206,7 @@ const PinListPanel = ({
                 ))}
               </select>
             </div>
-            <div className="pins-status-filter-group">
-              <h3 className="pins-section-heading">Fix status</h3>
-              <select
-                className="pins-filter-select"
-                value={filterFixStatus}
-                onChange={(e) => setFilterFixStatus(e.target.value)}
-                aria-label="Filter by fix status"
-              >
-                {FIX_STATUS_FILTER_OPTIONS.map(({ value, label }) => (
-                  <option key={value || 'all'} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-          </section>
+            </section>
 
           <section className="pins-type-section">
             <h3 className="pins-section-heading">Filter by type</h3>
@@ -380,14 +338,6 @@ const PinListPanel = ({
                               <span className={`pin-card-severity ${getSeverityClass(pin.severity)}`}>
                                 {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                               </span>
-                              {(() => {
-                                const fs = getCurrentFixStatus(pin);
-                                return (
-                                  <span className={`pin-card-fix-status-badge ${fs.className}`} title="Fix Status">
-                                    {fs.label}
-                                  </span>
-                                );
-                              })()}
                             </div>
                           </div>
                           {pin.description && (
@@ -453,14 +403,6 @@ const PinListPanel = ({
                               <span className={`pin-card-severity small ${getSeverityClass(pin.severity)}`}>
                                 {getSeverityLabel(pin.severity)} ({pin.severity ?? 0}/10)
                               </span>
-                              {(() => {
-                                const fs = getCurrentFixStatus(pin);
-                                return (
-                                  <span className={`pin-card-fix-status-badge small ${fs.className}`} title="Fix Status">
-                                    {fs.label}
-                                  </span>
-                                );
-                              })()}
                             </div>
                           </div>
                           {pin.description && (

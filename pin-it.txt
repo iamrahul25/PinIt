@@ -1,0 +1,172 @@
+📍Pint-it -> Pin any civic issue in your locality/surrounding to the map.
+
+# Issues like: 
+
+	1. Trash Pile 
+	2. Pot Hole - on roads
+	3. Garbage inside water body - River, Lake, etc 
+	4. Stray animal colony
+	5. Broken Pipes or Fuse Street lights
+	6. Etc 
+
+Any issue in your surrounding just pin it to the map.
+
+Drop the pin - to the map, add details of the problem and photos to the pin. And just post it. And NGO's and people and help in fixing the issue. 
+
+
+⭐ So, this website I made for NGO's and people specific only, not for government specific. 
+
+Government have website as well for reporting issue like that. 
+Eg: 
+	- CPGRAMS (Centralized Public Grievance Redress and Monitoring System): www.pgportal.gov.in
+	- Swachhata App (MoHUA)
+    - National Government Services Portal 
+
+Because, it's not government who is throwing the trash anywhere and causing the litter. It's us who are creating the problem. And so, it's our equal responsibility as well to make surrounding clean. 
+
+Once people take part in such drive and work on ground - they will realise how big is the problem. And they will definitely stop doing litter and they will also stop others if to do so. This awareness creates a ripple effect. So, everyone should join the clean-up drives (or other drives) at-least once.  
+
+
+And one of the main reason for creating the website was that: 
+
+I am a part of a NGO. Every week they conduct drives in city they available. In some cities due to less no. of volunteers we have difficulty in finding the place for clean-ups, plantation, painting, etc. also the number of volunteers were very less. 
+
+So, I created this website which helps in marking and finding the issue nearby us, help in connecting people and NGO together, fixing the problem and spreading the awareness. 
+
+
+Means there are many NGO's which conduct drives such as: 
+	1. Cleanup drives - Cleanup of Parks, Ground, Rivers, Lakes, etc 
+	2. Plantation drives
+	3. Painting Drives - Removing posters and painting the walls, pillar, etc 
+	4. Pothole Fix - Drives
+	5. Awareness Drives
+	6. Etc 
+
+
+We can join them, because it's our nation and it's our responsibility to make it green and clean. 
+
+
+
+
+Features of Pin-it website & how to use it
+
+
+Map Page 
+
+- User can adding pins (civic issues/problem) to the map, by clicking on the "Pin an Issue" button on bottom left side of the screen. 
+- User can view the existing pins (issues) by clicking on the right side arrow "<" to view the side panel of pins. 
+- User can click on particular pin - To view full detail. Check the Pin details page separately for more info. 
+- User can change the view (small or Large) card. 
+- User can filter the pins based on type, saved, date, time, likes, etc 
+
+
+Pin Details (Form/page): 
+
+It will show the problem 
+
+- heading
+- description, 
+- before images (when problem is not fixed/resolved), other can also add more before images
+- after images (when problem is resolved), others can also add more after images.
+- verification status,
+- severity (1 to 10) (low to high) (Severity of the issue) 
+- likes and dislikes, 
+- date of publish - when issue was pinned to the map
+
+
+- Verification of the pins - this will show that the pin if verified or not means it's just to verify that it's not spam and it's actual issue. Verification of pin depend on score or verification. And score depend the number of votes and score each user (access level) can give to. 
+
+Means verification score should be >80 to be verified. 
+And each access level user can give this score. 
+
+user - 10
+Reviewers - 30
+Ngo - 50
+Admin - 60 
+
+
+- Fix Status of Pin: 
+ 
+Different steps of fix status are
+
+	1. Reported - When the pin/issue is reported 
+	2. Verified - when score of verification of pin is >80
+	3. Awaiting - Awaiting for any action - Means waiting for any event/drive to be schedule for the fixing of the issue. 
+	4. Scheduled - When an event/drive is scheduled by an NGO for the fix
+	5. Resolved - When the issue is resolved and people have marked as resolved. 
+
+- Mark as Resolved - Score based system similar to "Verification of Pin" to verify if issue if resolved or not. 
+
+- Precise Location - address and location details. (Map address and latitude and longitude) 
+
+- Comment option - (Nested comments feature as well till 3 levels) with like, dislike and reply 
+
+
+
+Profile Page 
+
+- Show all the stats of the user related to its contribution. 
+- Show the role of the user. There are four roles right now (user (default), reviewer, ngo, admin) 
+- No. of pins, events, NGO's, suggestions, comments, like, etc made. 
+- Based on these above contribution score is calculated and it's will reflect as a level of the user. (1 to 5 level) 
+- Added badges section also for the user. For gamification and motivating people to make more contribution. 
+
+- Below that it's will show user's contribution in detail. Like pins, comments, Saved pins, suggestions, etc 
+
+
+
+Suggestion Page 
+
+- User can add suggestion/feedback/bug report/ ideas/ anything to improving the pin-it website. 
+- User can select between feature request, UI change, Bug report, Improvement, etc 
+- Once user submit the suggestion we will try to solve the issue and act on it. 
+- Here also we have filter as well. 
+
+
+NGO's Page
+
+- Here anyone can add NGO and its details. 
+- It will help to increase the NGO database. Which will help in collaboration, conduction more drive, gathering more people and creating greater impact. 
+- In the NGO's page we have filter by city option as well. So, a user can filter NGO's by city and can join any NGO in their city and work for a good cause. 
+- Also in NGO's details we have social media details of a NGO. So, anyone can view those details and they can reach out to them, or ask them for collaboration. 
+
+- Also people will aware that there are different types of NGO's those can work for say: Trash problem, Plants, Potholes, animals, etc. 
+
+
+Events Page:
+
+- So, there is a problem of people want's to join the drives conducted by the NGO's but they are not aware that there is any drive which is going to be happen in their area. 
+- So, anyone can add Events (Drives details) if they are aware that some NGO's is conducting any drive. 
+- It will help as a database to search for drive in our city, filtering the desired date and time. 
+- Overall create awareness and more people will know and join the cause. 
+
+Leaderboard Page:
+
+- Two section one is "Leaderboard" section and other is "Platform at a Glance" (Pint it website statistics) 
+
+ Leaderboard 
+	- It will show daily, weekly, monthly and yearly top contributors 
+	- Made this leaderboard for recognition, gamification and motivating the people to do contribution.
+	- Each contribution (Adding pin, NGO's, event, etc) has some score. Based on total score the leaderboard is formed. 
+	- Also, later we can also give some reward to top users on leaderboard for their efforts.  
+	
+
+ "Platform at a Glance" (Pint it website statistics) 
+- Show statistics related to the Pin-it website. 
+- Like: Total number of user's joined the Pin-it website, Active user this week, total pins, NGO's, events, suggestions created, pin resolved, etc. 
+
+
+
+Join Discussion (Discord):
+
+- Created the discord channel for discussion. In navbar of Pinit it's at the end (Click on Button to join). 
+- Taking feedbacks, suggestion, ideas, etc. 
+- Added  "#i-can-contribute-as" channel in this channel people can comment how can they help to NGO's eg: as a Volunteer, video editor, speaker, event organiser, social media handler, etc. 
+- Added "#useful-info" and "#inspirational-stories"
+- Similar in future will add more useful "#channels" to grow the community and connect more people NGO's and people.  
+
+Install as a App (option):
+
+	- User can install Pin-it as a App as well. (Supports for Android, IOS, Mac and windows) 
+	- For mobile view -> It's below "Join Discussion" (Discord) button. 
+	- For Desktop view -> Simply click on install icon on search bar of browser. 

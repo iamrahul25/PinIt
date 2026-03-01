@@ -1,620 +1,896 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DISCORD_INVITE_URL } from '../config';
 import './About.css';
 
 function About() {
-  const navigate = useNavigate();
+    const navigate = useNavigate();
+    const animRefs = useRef([]);
 
-  return (
-    <div className="about-page">
-      {/* Hero Section */}
-      <section className="about-hero">
-        <div className="about-hero-content">
-          <div className="about-hero-icon">📍</div>
-          <h1 className="about-hero-title">Pin-It</h1>
-          <p className="about-hero-tagline">Pin any civic issue in your locality/surrounding to the map.</p>
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            },
+            { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+        );
+
+        const elements = document.querySelectorAll('.about-animate');
+        elements.forEach((el) => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, []);
+
+    const scrollToSection = (id) => {
+        const el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    return (
+        <div className="about-page">
+
+            {/* ===== HERO ===== */}
+            <section className="about-hero">
+                <div className="about-hero-particles">
+                    <div className="about-particle" />
+                    <div className="about-particle" />
+                    <div className="about-particle" />
+                    <div className="about-particle" />
+                    <div className="about-particle" />
+                    <div className="about-particle" />
+                </div>
+                <div className="about-hero-content">
+                    <div className="about-hero-badge">
+                        <span className="material-icons-round">location_on</span>
+                        Civic Issue Reporting Platform
+                    </div>
+                    <h1 className="about-hero-title">
+                        Pin Any Civic Issue<br />
+                        <span className="about-highlight">In Your Locality</span>
+                    </h1>
+                    <p className="about-hero-subtitle">
+                        Pin-It empowers citizens to report local problems by dropping geo-located pins on a map.
+                        NGOs and community members then collaborate to solve these issues — making neighborhoods cleaner, safer, and greener.
+                    </p>
+                    <div className="about-hero-cta-group">
+                        <button className="about-cta-btn about-cta-primary" onClick={() => navigate('/')}>
+                            <span className="material-icons-round">explore</span>
+                            Explore the Map
+                        </button>
+                        <button className="about-cta-btn about-cta-secondary" onClick={() => scrollToSection('about-features')}>
+                            <span className="material-icons-round">info</span>
+                            Learn More
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== WHY PIN-IT ===== */}
+            <section className="about-why">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">lightbulb</span> Why Pin-It?
+                        </div>
+                        <h2 className="about-section-title">Built for NGOs &amp; People</h2>
+                        <p className="about-section-desc">
+                            This website is made specifically for NGO's and people to come together and take civic responsibility.
+                        </p>
+                    </div>
+
+                    <div className="about-why-grid">
+                        <div className="about-why-text about-animate">
+                            <div className="about-why-quote">
+                                <span className="material-icons-round">account_balance</span>
+                                Government have websites as well for reporting issues like that. For example —
+                                <strong> CPGRAMS</strong> (Centralized Public Grievance Redress and Monitoring System): pgportal.gov.in,
+                                <strong> Swachhata App</strong> (MoHUA), and
+                                <strong> National Government Services Portal</strong>.
+                            </div>
+                            <div className="about-why-quote">
+                                <span className="material-icons-round">format_quote</span>
+                                Because, it's not government who is throwing the trash anywhere and causing the litter. It's us who are creating the problem. And so, it's our equal responsibility as well to make surrounding clean.
+                            </div>
+                            <div className="about-why-quote">
+                                <span className="material-icons-round">format_quote</span>
+                                Once people take part in such drive and work on ground - they will realise how big is the problem. And they will definitely stop doing litter and they will also stop others if to do so. This awareness creates a ripple effect. So, everyone should join the clean-up drives (or other drives) at-least once.
+                            </div>
+                            <div className="about-why-problems">
+                                <h4 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>The Problem</h4>
+                                <div className="about-problem-item">
+                                    <div className="about-problem-icon">
+                                        <span className="material-icons-round">search_off</span>
+                                    </div>
+                                    <div className="about-problem-text">
+                                        <h4>Hard to Find Locations</h4>
+                                        <p>Many NGOs conduct drives (cleanups, plantations, painting, etc.) but struggle to find locations</p>
+                                    </div>
+                                </div>
+                                <div className="about-problem-item">
+                                    <div className="about-problem-icon">
+                                        <span className="material-icons-round">group_off</span>
+                                    </div>
+                                    <div className="about-problem-text">
+                                        <h4>Low Volunteer Participation</h4>
+                                        <p>Low volunteer participation in some cities</p>
+                                    </div>
+                                </div>
+                                <div className="about-problem-item">
+                                    <div className="about-problem-icon">
+                                        <span className="material-icons-round">visibility_off</span>
+                                    </div>
+                                    <div className="about-problem-text">
+                                        <h4>Lack of Awareness</h4>
+                                        <p>Lack of awareness about ongoing drives</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="about-solution-cards about-animate">
+                            <h4 style={{ color: '#f1f5f9', fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>The Solution — Pin-It helps in:</h4>
+                            <div className="about-solution-card">
+                                <div className="about-solution-icon green">✅</div>
+                                <div>
+                                    <h4>Marking and finding issues nearby</h4>
+                                    <p>Geo-located pins make it easy to spot problems around you</p>
+                                </div>
+                            </div>
+                            <div className="about-solution-card">
+                                <div className="about-solution-icon blue">🤝</div>
+                                <div>
+                                    <h4>Connecting people and NGOs together</h4>
+                                    <p>Bridge the gap between willing volunteers and NGOs</p>
+                                </div>
+                            </div>
+                            <div className="about-solution-card">
+                                <div className="about-solution-icon orange">🔧</div>
+                                <div>
+                                    <h4>Fixing problems collaboratively</h4>
+                                    <p>Track issues from reported to resolved together</p>
+                                </div>
+                            </div>
+                            <div className="about-solution-card">
+                                <div className="about-solution-icon teal">📢</div>
+                                <div>
+                                    <h4>Spreading awareness</h4>
+                                    <p>This awareness creates a ripple effect</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== ISSUE TYPES ===== */}
+            <section className="about-issues-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">report_problem</span> Issue Types
+                        </div>
+                        <h2 className="about-section-title">What Can You Report?</h2>
+                        <p className="about-section-desc">
+                            From potholes to stray animals — pin any civic problem you encounter in your daily life.
+                        </p>
+                    </div>
+
+                    <div className="about-issues-grid about-animate">
+                        <div className="about-issue-card">
+                            <span className="about-issue-emoji">🗑️</span>
+                            <h4>Trash Pile</h4>
+                            <p>Accumulated garbage in open areas</p>
+                        </div>
+                        <div className="about-issue-card">
+                            <span className="about-issue-emoji">🕳️</span>
+                            <h4>Pothole</h4>
+                            <p>Road damage and potholes</p>
+                        </div>
+                        <div className="about-issue-card">
+                            <span className="about-issue-emoji">🌊</span>
+                            <h4>Water Pollution</h4>
+                            <p>Garbage in rivers, lakes, etc.</p>
+                        </div>
+                        <div className="about-issue-card">
+                            <span className="about-issue-emoji">🐕</span>
+                            <h4>Stray Animals</h4>
+                            <p>Areas with stray animal issues</p>
+                        </div>
+                        <div className="about-issue-card">
+                            <span className="about-issue-emoji">💡</span>
+                            <h4>Broken Infrastructure</h4>
+                            <p>Broken pipes, fuse street lights</p>
+                        </div>
+                        <div className="about-issue-card">
+                            <span className="about-issue-emoji">➕</span>
+                            <h4>And More</h4>
+                            <p>Any civic issue you encounter</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== HOW IT WORKS ===== */}
+            <section className="about-how-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">route</span> How It Works
+                        </div>
+                        <h2 className="about-section-title">Four Simple Steps</h2>
+                        <p className="about-section-desc">
+                            Report an issue in under a minute and watch the community come together to fix it.
+                        </p>
+                    </div>
+
+                    <div className="about-how-steps about-animate">
+                        <div className="about-how-step">
+                            <div className="about-step-number">1</div>
+                            <h4>Drop the Pin</h4>
+                            <p>Click on the map to mark the location of the issue</p>
+                        </div>
+                        <div className="about-how-step">
+                            <div className="about-step-number">2</div>
+                            <h4>Add Details</h4>
+                            <p>Describe the problem with type, severity, and description</p>
+                        </div>
+                        <div className="about-how-step">
+                            <div className="about-step-number">3</div>
+                            <h4>Attach Photos</h4>
+                            <p>Upload photos as evidence of the issue</p>
+                        </div>
+                        <div className="about-how-step">
+                            <div className="about-step-number">4</div>
+                            <h4>Post It</h4>
+                            <p>Publish for NGOs and people to see and take action</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== FEATURES SHOWCASE ===== */}
+            <section id="about-features" className="about-features-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">auto_awesome</span> Features
+                        </div>
+                        <h2 className="about-section-title">Everything You Need</h2>
+                        <p className="about-section-desc">
+                            A comprehensive platform designed to make civic engagement simple, effective, and rewarding.
+                        </p>
+                    </div>
+
+                    <div className="about-feature-showcase">
+
+                        {/* Map Page */}
+                        <div className="about-feature-block about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag map">
+                                    <span className="material-icons-round">map</span> Map Page
+                                </div>
+                                <h3>Interactive Map Interface</h3>
+                                <p>
+                                    The main hub for viewing and reporting civic issues. Click anywhere on the map to pin an issue, browse all pins through the side panel, or filter by type, date, and more.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Pin an issue with one click
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        View all pins in a side panel
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Filter by type, saved, date, likes
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Toggle between card view sizes
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/map-page.png" alt="Pin-It Map Page" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* Pin Details */}
+                        <div className="about-feature-block reverse about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag pin">
+                                    <span className="material-icons-round">push_pin</span> Pin Details
+                                </div>
+                                <h3>Comprehensive Issue View</h3>
+                                <p>
+                                    Every pin has a detailed page showing the issue heading, description, before/after images, verification status, severity rating, and precise GPS location.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Before &amp; After images
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Verification score system
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Nested comments (3 levels)
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Severity scale 1-10
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/pin-details.png" alt="Pin Details View" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* Profile Page */}
+                        <div className="about-feature-block about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag profile">
+                                    <span className="material-icons-round">person</span> Profile
+                                </div>
+                                <h3>Track Your Contributions</h3>
+                                <p>
+                                    Your profile showcases your civic journey — contribution stats, level badges (Bronze to Diamond), gamification badges, pins you've created, and more.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Contribution statistics
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Level system (1-5)
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Gamification badges
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        User role display
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/profile-page.png" alt="Profile Page" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* Suggestions */}
+                        <div className="about-feature-block reverse about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag suggestion">
+                                    <span className="material-icons-round">tips_and_updates</span> Suggestions
+                                </div>
+                                <h3>Share Your Ideas</h3>
+                                <p>
+                                    Submit feature requests, UI improvements, bug reports, or general improvement ideas. Track the status and action taken on every suggestion.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Feature requests &amp; bug reports
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Filter by type and status
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Track action taken
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/suggestion-page.png" alt="Suggestion Page" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* NGOs */}
+                        <div className="about-feature-block about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag ngo">
+                                    <span className="material-icons-round">corporate_fare</span> NGOs
+                                </div>
+                                <h3>Discover &amp; Connect with NGOs</h3>
+                                <p>
+                                    Browse a growing database of NGOs. Anyone can add NGO details, filter by city, connect via social media, and find organizations by their focus area.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Community-built NGO database
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        City-based filtering
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Direct social media links
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Filter by focus area
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/ngos-page.png" alt="NGOs Page" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* Events */}
+                        <div className="about-feature-block reverse about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag event">
+                                    <span className="material-icons-round">event</span> Events
+                                </div>
+                                <h3>Find &amp; Share Drive Events</h3>
+                                <p>
+                                    Many people want to join cleanup or plantation drives but aren't aware of them. Pin-It's events page solves this by centralizing all community drive information.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Add and share drive details
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Search by city
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Date &amp; time filtering
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Comprehensive event details
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/events-page.png" alt="Events Page" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* Leaderboard */}
+                        <div className="about-feature-block about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag leaderboard">
+                                    <span className="material-icons-round">emoji_events</span> Leaderboard
+                                </div>
+                                <h3>Recognition &amp; Statistics</h3>
+                                <p>
+                                    See top contributors across daily, weekly, monthly, and yearly timeframes. Plus, get a bird's-eye view of platform stats — total users, pins, NGOs, events, and more.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Daily, weekly, monthly, yearly rankings
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Platform statistics at a glance
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Gamification &amp; rewards
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/leaderboard-page.png" alt="Leaderboard Page" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                        {/* Discord */}
+                        <div className="about-feature-block reverse about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag discord">
+                                    <span className="material-icons-round">forum</span> Community
+                                </div>
+                                <h3>Join the Discussion on Discord</h3>
+                                <p>
+                                    Connect with the community on Discord! Share how you can contribute, find useful resources, and get inspired by stories from fellow volunteers.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        #i-can-contribute-as channel
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        #useful-info resources
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        #inspirational-stories
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img src="/images/discord.png" alt="Discord Community" className="about-feature-img" loading="lazy" />
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== VERIFICATION ===== */}
+            <section className="about-verification-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">verified</span> Systems
+                        </div>
+                        <h2 className="about-section-title">Verification &amp; Resolution</h2>
+                        <p className="about-section-desc">
+                            A trust-based system where different user roles contribute different verification scores, and issues follow a clear resolution workflow.
+                        </p>
+                    </div>
+
+                    <div className="about-verification-grid about-animate">
+                        <div className="about-verify-card">
+                            <h3>
+                                <span className="material-icons-round" style={{ color: '#2dd4a8' }}>verified_user</span>
+                                Verification Scores
+                            </h3>
+                            <p style={{ color: '#94a3b8', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+                                Pins need a score &gt; 80 to be verified. Each role contributes:
+                            </p>
+                            <div className="about-verify-roles">
+                                <div className="about-verify-role">
+                                    <div className="about-verify-role-info">
+                                        <span className="about-verify-role-emoji">👤</span>
+                                        <span className="about-verify-role-name">User</span>
+                                    </div>
+                                    <span className="about-verify-role-score">+10 pts</span>
+                                </div>
+                                <div className="about-verify-role">
+                                    <div className="about-verify-role-info">
+                                        <span className="about-verify-role-emoji">🔍</span>
+                                        <span className="about-verify-role-name">Reviewer</span>
+                                    </div>
+                                    <span className="about-verify-role-score">+30 pts</span>
+                                </div>
+                                <div className="about-verify-role">
+                                    <div className="about-verify-role-info">
+                                        <span className="about-verify-role-emoji">🏢</span>
+                                        <span className="about-verify-role-name">NGO</span>
+                                    </div>
+                                    <span className="about-verify-role-score">+50 pts</span>
+                                </div>
+                                <div className="about-verify-role">
+                                    <div className="about-verify-role-info">
+                                        <span className="about-verify-role-emoji">👑</span>
+                                        <span className="about-verify-role-name">Admin</span>
+                                    </div>
+                                    <span className="about-verify-role-score">+60 pts</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="about-verify-card">
+                            <h3>
+                                <span className="material-icons-round" style={{ color: '#3498db' }}>timeline</span>
+                                Fix Status Workflow
+                            </h3>
+                            <p style={{ color: '#94a3b8', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+                                Each issue progresses through a clear pipeline:
+                            </p>
+                            <div className="about-status-flow">
+                                <div className="about-status-step">
+                                    <div className="about-status-dot reported">📍</div>
+                                    <div className="about-status-info">
+                                        <h4>Reported</h4>
+                                        <p>Initial state when the pin is created</p>
+                                    </div>
+                                </div>
+                                <div className="about-status-step">
+                                    <div className="about-status-dot verified">✅</div>
+                                    <div className="about-status-info">
+                                        <h4>Verified</h4>
+                                        <p>Verification score exceeds 80</p>
+                                    </div>
+                                </div>
+                                <div className="about-status-step">
+                                    <div className="about-status-dot awaiting">⏳</div>
+                                    <div className="about-status-info">
+                                        <h4>Awaiting</h4>
+                                        <p>Waiting for an event/drive to be scheduled</p>
+                                    </div>
+                                </div>
+                                <div className="about-status-step">
+                                    <div className="about-status-dot scheduled">📅</div>
+                                    <div className="about-status-info">
+                                        <h4>Scheduled</h4>
+                                        <p>An NGO has scheduled an event for the fix</p>
+                                    </div>
+                                </div>
+                                <div className="about-status-step">
+                                    <div className="about-status-dot resolved">✨</div>
+                                    <div className="about-status-info">
+                                        <h4>Resolved</h4>
+                                        <p>Issue has been fixed and marked as resolved</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== NGO DRIVES ===== */}
+            <section className="about-drives-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">volunteer_activism</span> NGO Drives
+                        </div>
+                        <h2 className="about-section-title">Types of Community Drives</h2>
+                        <p className="about-section-desc">
+                            NGOs organize a variety of drives to address civic issues. Here's what you can participate in.
+                        </p>
+                    </div>
+
+                    <div className="about-drives-grid about-animate">
+                        <div className="about-drive-card">
+                            <span className="about-drive-emoji">🧹</span>
+                            <h4>Cleanup Drives</h4>
+                            <p>Parks, grounds, rivers, and lakes</p>
+                        </div>
+                        <div className="about-drive-card">
+                            <span className="about-drive-emoji">🌱</span>
+                            <h4>Plantation Drives</h4>
+                            <p>Tree planting initiatives</p>
+                        </div>
+                        <div className="about-drive-card">
+                            <span className="about-drive-emoji">🎨</span>
+                            <h4>Painting Drives</h4>
+                            <p>Removing posters, painting walls</p>
+                        </div>
+                        <div className="about-drive-card">
+                            <span className="about-drive-emoji">🕳️</span>
+                            <h4>Pothole Fix Drives</h4>
+                            <p>Road repair initiatives</p>
+                        </div>
+                        <div className="about-drive-card">
+                            <span className="about-drive-emoji">📢</span>
+                            <h4>Awareness Drives</h4>
+                            <p>Spreading civic awareness</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== GAMIFICATION ===== */}
+            <section className="about-gamification-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">military_tech</span> Gamification
+                        </div>
+                        <h2 className="about-section-title">Levels &amp; Badges</h2>
+                        <p className="about-section-desc">
+                            Stay motivated with a rewarding level system and achievement badges for your contributions.
+                        </p>
+                    </div>
+
+                    <div className="about-gamification-grid about-animate">
+                        <div className="about-levels-card">
+                            <h3>
+                                <span className="material-icons-round" style={{ color: '#f1c40f' }}>emoji_events</span>
+                                Level System
+                            </h3>
+                            <div className="about-levels-list">
+                                <div className="about-level-item">
+                                    <span className="about-level-badge">🥉</span>
+                                    <div className="about-level-info">
+                                        <span>Level 1</span>
+                                        <span>Bronze</span>
+                                    </div>
+                                </div>
+                                <div className="about-level-item">
+                                    <span className="about-level-badge">🥈</span>
+                                    <div className="about-level-info">
+                                        <span>Level 2</span>
+                                        <span>Silver</span>
+                                    </div>
+                                </div>
+                                <div className="about-level-item">
+                                    <span className="about-level-badge">🥇</span>
+                                    <div className="about-level-info">
+                                        <span>Level 3</span>
+                                        <span>Gold</span>
+                                    </div>
+                                </div>
+                                <div className="about-level-item">
+                                    <span className="about-level-badge">💎</span>
+                                    <div className="about-level-info">
+                                        <span>Level 4</span>
+                                        <span>Platinum</span>
+                                    </div>
+                                </div>
+                                <div className="about-level-item">
+                                    <span className="about-level-badge">👑</span>
+                                    <div className="about-level-info">
+                                        <span>Level 5</span>
+                                        <span>Diamond</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="about-badges-card">
+                            <h3>
+                                <span className="material-icons-round" style={{ color: '#e67e22' }}>workspace_premium</span>
+                                Achievement Badges
+                            </h3>
+                            <div className="about-badges-list">
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">🏆</span>
+                                    <span className="about-badge-name">Top Contributor</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">⭐</span>
+                                    <span className="about-badge-name">Active Volunteer</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">🌱</span>
+                                    <span className="about-badge-name">Eco Warrior</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">🔥</span>
+                                    <span className="about-badge-name">Streak Master</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">📸</span>
+                                    <span className="about-badge-name">Photo Reporter</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">💬</span>
+                                    <span className="about-badge-name">Community Voice</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">🗺️</span>
+                                    <span className="about-badge-name">Explorer</span>
+                                </div>
+                                <div className="about-badge-item">
+                                    <span className="about-badge-emoji">🤝</span>
+                                    <span className="about-badge-name">Collaborator</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== PWA INSTALL ===== */}
+            <section className="about-pwa-section">
+                <div className="about-section">
+                    <div className="about-section-header about-animate">
+                        <div className="about-section-eyebrow">
+                            <span className="material-icons-round">install_mobile</span> Install
+                        </div>
+                        <h2 className="about-section-title">Install as App (PWA)</h2>
+                        <p className="about-section-desc">
+                            Pin-It works as a Progressive Web App — install it on any device for a native app-like experience.
+                        </p>
+                    </div>
+
+                    <div className="about-pwa-content about-animate">
+                        <div className="about-pwa-info">
+                            <h3>Available on All Platforms</h3>
+                            <p>
+                                No app store needed. Install Pin-It directly from your browser and get instant access on your home screen.
+                            </p>
+                            <div className="about-pwa-platforms">
+                                <div className="about-pwa-platform">
+                                    <span className="about-pwa-platform-emoji">🤖</span>
+                                    <span className="about-pwa-platform-name">Android</span>
+                                </div>
+                                <div className="about-pwa-platform">
+                                    <span className="about-pwa-platform-emoji">🍎</span>
+                                    <span className="about-pwa-platform-name">iOS</span>
+                                </div>
+                                <div className="about-pwa-platform">
+                                    <span className="about-pwa-platform-emoji">💻</span>
+                                    <span className="about-pwa-platform-name">Windows</span>
+                                </div>
+                                <div className="about-pwa-platform">
+                                    <span className="about-pwa-platform-emoji">🍎</span>
+                                    <span className="about-pwa-platform-name">Mac</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="about-pwa-install-instructions">
+                            <div className="about-install-method">
+                                <h4>
+                                    <span className="material-icons-round" style={{ color: '#2dd4a8', fontSize: '1.1rem' }}>smartphone</span>
+                                    On Mobile
+                                </h4>
+                                <p>
+                                    Tap the <strong>"Install"</strong> button below the "Join Discussion" link in the navigation bar.
+                                </p>
+                            </div>
+                            <div className="about-install-method">
+                                <h4>
+                                    <span className="material-icons-round" style={{ color: '#3498db', fontSize: '1.1rem' }}>computer</span>
+                                    On Desktop
+                                </h4>
+                                <p>
+                                    Look for the <strong>install icon</strong> in your browser's address bar and click it to install Pin-It as a desktop app.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== FINAL CTA ===== */}
+            <section className="about-final-cta">
+                <div className="about-final-cta-content">
+                    <p className="about-final-cta-quote">
+                        "It's our nation and it's our responsibility to make it green and clean."
+                    </p>
+                    <h2>Ready to Make a<br />Difference?</h2>
+                    <p>
+                        Join Pin-It today and be part of a growing community of citizens and NGOs working together for cleaner, greener neighborhoods.
+                    </p>
+                    <div className="about-final-cta-actions">
+                        <button className="about-cta-btn about-cta-primary" onClick={() => navigate('/')}>
+                            <span className="material-icons-round">location_on</span>
+                            Start Pinning Issues
+                        </button>
+                        <button className="about-cta-btn about-cta-secondary" onClick={() => navigate('/ngos')}>
+                            <span className="material-icons-round">corporate_fare</span>
+                            Explore NGOs
+                        </button>
+                        <button className="about-cta-btn about-cta-secondary" onClick={() => navigate('/events')}>
+                            <span className="material-icons-round">event</span>
+                            Find Events
+                        </button>
+                    </div>
+                    <div className="about-final-cta-emoji-row">
+                        <div className="about-final-cta-emoji-item">
+                            <span>📍</span>
+                            <span>Report Issues</span>
+                        </div>
+                        <div className="about-final-cta-emoji-item">
+                            <span>🤝</span>
+                            <span>Join Drives</span>
+                        </div>
+                        <div className="about-final-cta-emoji-item">
+                            <span>🌱</span>
+                            <span>Make a Difference</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ===== FOOTER ===== */}
+            <footer className="about-footer">
+                <p>
+                    Made with <span className="about-heart">❤️</span> for a cleaner, greener tomorrow
+                </p>
+            </footer>
+
         </div>
-      </section>
-
-      {/* About Section */}
-      <section className="about-section">
-        <div className="about-container">
-          <h2 className="about-section-title">
-            <span className="about-section-icon">🎯</span>
-            About Pin-It
-          </h2>
-          <p className="about-description">
-            Pin-It is a civic-issue reporting platform where citizens can drop geo-located pins on a map to report local problems. NGOs and people can then help in fixing these issues.
-          </p>
-
-          {/* Issue Types */}
-          <div className="about-issues-grid">
-            <h3 className="about-subtitle">Types of Issues You Can Report</h3>
-            <div className="about-cards-grid">
-              <div className="about-issue-card">
-                <span className="about-issue-icon">🗑️</span>
-                <h4>Trash Pile</h4>
-                <p>Accumulated garbage in an area</p>
-              </div>
-              <div className="about-issue-card">
-                <span className="about-issue-icon">🕳️</span>
-                <h4>Pothole</h4>
-                <p>Road damage and potholes</p>
-              </div>
-              <div className="about-issue-card">
-                <span className="about-issue-icon">🌊</span>
-                <h4>Garbage in Water Bodies</h4>
-                <p>Pollution in rivers, lakes, etc.</p>
-              </div>
-              <div className="about-issue-card">
-                <span className="about-issue-icon">🐕</span>
-                <h4>Stray Animal Colony</h4>
-                <p>Areas with stray animal issues</p>
-              </div>
-              <div className="about-issue-card">
-                <span className="about-issue-icon">💡</span>
-                <h4>Broken Infrastructure</h4>
-                <p>Broken pipes, fuse street lights</p>
-              </div>
-              <div className="about-issue-card">
-                <span className="about-issue-icon">➕</span>
-                <h4>And More</h4>
-                <p>Any civic issue in your surroundings</p>
-              </div>
-            </div>
-          </div>
-
-          {/* How It Works */}
-          <div className="about-how-it-works">
-            <h3 className="about-subtitle">How It Works</h3>
-            <div className="about-steps">
-              <div className="about-step">
-                <div className="about-step-number">1</div>
-                <div className="about-step-content">
-                  <h4>Drop the pin</h4>
-                  <p>Click on the map to mark the location</p>
-                </div>
-              </div>
-              <div className="about-step">
-                <div className="about-step-number">2</div>
-                <div className="about-step-content">
-                  <h4>Add details</h4>
-                  <p>Describe the problem</p>
-                </div>
-              </div>
-              <div className="about-step">
-                <div className="about-step-number">3</div>
-                <div className="about-step-content">
-                  <h4>Attach photos</h4>
-                  <p>Add images to the pin</p>
-                </div>
-              </div>
-              <div className="about-step">
-                <div className="about-step-number">4</div>
-                <div className="about-step-content">
-                  <h4>Post it</h4>
-                  <p>For NGOs and people to see and help</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Pin-It Section */}
-      <section className="about-section about-why-section">
-        <div className="about-container">
-          <h2 className="about-section-title">
-            <span className="about-section-icon">💡</span>
-            Why Pin-It?
-          </h2>
-          
-          <div className="about-highlight-box">
-            <p className="about-highlight-text">
-              <strong>So, this website I made for NGO's and people specific only, not for government specific.</strong>
-            </p>
-          </div>
-
-          <div className="about-gov-examples">
-            <p>Government have website as well for reporting issue like that.</p>
-            <div className="about-gov-links">
-              <a href="https://www.pgportal.gov.in" target="_blank" rel="noopener noreferrer" className="about-gov-link">
-                <span className="material-icons-round">link</span>
-                CPGRAMS (Centralized Public Grievance Redress and Monitoring System)
-              </a>
-              <span className="about-gov-item">Swachhata App (MoHUA)</span>
-              <span className="about-gov-item">National Government Services Portal</span>
-            </div>
-          </div>
-
-          <div className="about-quotes">
-            <blockquote className="about-quote">
-              <p>Because, it's not government who is throwing the trash anywhere and causing the litter. It's us who are creating the problem. And so, it's our equal responsibility as well to make surrounding clean.</p>
-            </blockquote>
-            <blockquote className="about-quote">
-              <p>Once people take part in such drive and work on ground - they will realise how big is the problem. And they will definitely stop doing litter and they will also stop others if to do so. This awareness creates a ripple effect. So, everyone should join the clean-up drives (or other drives) at-least once.</p>
-            </blockquote>
-          </div>
-
-          {/* Problem & Solution */}
-          <div className="about-problem-solution">
-            <div className="about-problem">
-              <h3 className="about-subtitle">The Problem</h3>
-              <ul className="about-list">
-                <li>Many NGOs conduct drives (cleanups, plantations, painting, etc.) but struggle to find locations</li>
-                <li>Low volunteer participation in some cities</li>
-                <li>Lack of awareness about ongoing drives</li>
-              </ul>
-            </div>
-            <div className="about-solution">
-              <h3 className="about-subtitle">The Solution</h3>
-              <p className="about-solution-intro">Pin-It helps in:</p>
-              <ul className="about-check-list">
-                <li><span className="about-check">✅</span> Marking and finding issues nearby</li>
-                <li><span className="about-check">✅</span> Connecting people and NGOs together</li>
-                <li><span className="about-check">✅</span> Fixing problems collaboratively</li>
-                <li><span className="about-check">✅</span> Spreading awareness</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* NGO Drives */}
-          <div className="about-drives">
-            <h3 className="about-subtitle">Types of NGO Drives</h3>
-            <div className="about-drives-grid">
-              <div className="about-drive-card">
-                <span className="about-drive-icon">🧹</span>
-                <h4>Cleanup Drives</h4>
-                <p>Parks, grounds, rivers, lakes</p>
-              </div>
-              <div className="about-drive-card">
-                <span className="about-drive-icon">🌱</span>
-                <h4>Plantation Drives</h4>
-                <p>Tree planting initiatives</p>
-              </div>
-              <div className="about-drive-card">
-                <span className="about-drive-icon">🎨</span>
-                <h4>Painting Drives</h4>
-                <p>Removing posters, painting walls/pillars</p>
-              </div>
-              <div className="about-drive-card">
-                <span className="about-drive-icon">🕳️</span>
-                <h4>Pothole Fix Drives</h4>
-                <p>Road repair initiatives</p>
-              </div>
-              <div className="about-drive-card">
-                <span className="about-drive-icon">📢</span>
-                <h4>Awareness Drives</h4>
-                <p>Spreading awareness about civic issues</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section className="about-section about-features-section">
-        <div className="about-container">
-          <h2 className="about-section-title">
-            <span className="about-section-icon">✨</span>
-            Features
-          </h2>
-
-          {/* Map Page */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">🗺️</span>
-              <h3>Map Page</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">The main interface for interacting with civic issues.</p>
-              <div className="about-feature-table">
-                <div className="about-feature-row">
-                  <div className="about-feature-name">Pin an Issue</div>
-                  <div className="about-feature-desc-cell">Click the "Pin an Issue" button (bottom-left) to add a new civic issue</div>
-                </div>
-                <div className="about-feature-row">
-                  <div className="about-feature-name">View Pins Panel</div>
-                  <div className="about-feature-desc-cell">Click the arrow "side" on the right to open the side panel listing all pins</div>
-                </div>
-                <div className="about-feature-row">
-                  <div className="about-feature-name">Pin Details</div>
-                  <div className="about-feature-desc-cell">Click on any pin to view full details</div>
-                </div>
-                <div className="about-feature-row">
-                  <div className="about-feature-name">Card View Toggle</div>
-                  <div className="about-feature-desc-cell">Switch between small and large card views</div>
-                </div>
-                <div className="about-feature-row">
-                  <div className="about-feature-name">Filters</div>
-                  <div className="about-feature-desc-cell">Filter pins by type, saved status, date, time, likes, etc.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Pin Details */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">📌</span>
-              <h3>Pin Details</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Comprehensive information about each reported issue.</p>
-              
-              <h4 className="about-feature-subtitle">Information Displayed</h4>
-              <div className="about-info-grid">
-                <div className="about-info-item"><strong>Heading</strong> - Title of the issue</div>
-                <div className="about-info-item"><strong>Description</strong> - Detailed description of the problem</div>
-                <div className="about-info-item"><strong>Before Images</strong> - Photos showing the issue</div>
-                <div className="about-info-item"><strong>After Images</strong> - Photos showing resolution</div>
-                <div className="about-info-item"><strong>Verification Status</strong> - Whether the pin is verified</div>
-                <div className="about-info-item"><strong>Severity</strong> - Scale of 1-10 (low to high)</div>
-                <div className="about-info-item"><strong>Likes/Dislikes</strong> - Community engagement</div>
-                <div className="about-info-item"><strong>Date of Publish</strong> - When the issue was pinned</div>
-                <div className="about-info-item"><strong>Location</strong> - Address, latitude & longitude</div>
-              </div>
-
-              <h4 className="about-feature-subtitle">Verification System</h4>
-              <p className="about-feature-desc">Pins need a verification score greater than 80 to be verified. Different user roles contribute different scores:</p>
-              <div className="about-verification-table">
-                <div className="about-verification-row">
-                  <span className="about-verification-role">👤 User</span>
-                  <span className="about-verification-score">10 points</span>
-                </div>
-                <div className="about-verification-row">
-                  <span className="about-verification-role">🔍 Reviewer</span>
-                  <span className="about-verification-score">30 points</span>
-                </div>
-                <div className="about-verification-row">
-                  <span className="about-verification-role">🏢 NGO</span>
-                  <span className="about-verification-score">50 points</span>
-                </div>
-                <div className="about-verification-row">
-                  <span className="about-verification-role">👑 Admin</span>
-                  <span className="about-verification-score">60 points</span>
-                </div>
-              </div>
-
-              <h4 className="about-feature-subtitle">Fix Status Workflow</h4>
-              <div className="about-workflow">
-                <div className="about-workflow-step">
-                  <span className="about-workflow-icon">📍</span>
-                  <span>Reported</span>
-                </div>
-                <span className="about-workflow-arrow">→</span>
-                <div className="about-workflow-step">
-                  <span className="about-workflow-icon">✅</span>
-                  <span>Verified</span>
-                </div>
-                <span className="about-workflow-arrow">→</span>
-                <div className="about-workflow-step">
-                  <span className="about-workflow-icon">⏳</span>
-                  <span>Awaiting</span>
-                </div>
-                <span className="about-workflow-arrow">→</span>
-                <div className="about-workflow-step">
-                  <span className="about-workflow-icon">📅</span>
-                  <span>Scheduled</span>
-                </div>
-                <span className="about-workflow-arrow">→</span>
-                <div className="about-workflow-step">
-                  <span className="about-workflow-icon">✨</span>
-                  <span>Resolved</span>
-                </div>
-              </div>
-
-              <h4 className="about-feature-subtitle">Additional Features</h4>
-              <ul className="about-feature-list">
-                <li><strong>Mark as Resolved:</strong> Score-based system to verify resolution</li>
-                <li><strong>Comments:</strong> Nested comments up to 3 levels with like, dislike, and reply options</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Profile Page */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">👤</span>
-              <h3>Profile Page</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Track your contributions and achievements.</p>
-              
-              <h4 className="about-feature-subtitle">User Statistics</h4>
-              <ul className="about-feature-list">
-                <li>📊 Contribution stats</li>
-                <li>🎖️ User role (User, Reviewer, NGO, Admin)</li>
-                <li>📍 Number of pins, events, NGOs, suggestions, comments, likes, etc.</li>
-              </ul>
-
-              <h4 className="about-feature-subtitle">Level System</h4>
-              <p className="about-feature-desc">Based on contribution score, users achieve levels (1-5):</p>
-              <div className="about-levels">
-                <div className="about-level"><span className="about-level-badge">🥉</span> Level 1 - Bronze</div>
-                <div className="about-level"><span className="about-level-badge">🥈</span> Level 2 - Silver</div>
-                <div className="about-level"><span className="about-level-badge">🥇</span> Level 3 - Gold</div>
-                <div className="about-level"><span className="about-level-badge">💎</span> Level 4 - Platinum</div>
-                <div className="about-level"><span className="about-level-badge">👑</span> Level 5 - Diamond</div>
-              </div>
-
-              <h4 className="about-feature-subtitle">Badges Section</h4>
-              <p className="about-feature-desc">Gamification badges to motivate contributions:</p>
-              <div className="about-badges">
-                <span className="about-badge">🏆 Top Contributor</span>
-                <span className="about-badge">⭐ Active Volunteer</span>
-                <span className="about-badge">🌱 Eco Warrior</span>
-                <span className="about-badge">And more...</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Suggestion Page */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">💬</span>
-              <h3>Suggestion Page</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Share your ideas to improve Pin-It.</p>
-              
-              <h4 className="about-feature-subtitle">Suggestion Types</h4>
-              <div className="about-suggestion-types">
-                <div className="about-suggestion-type">
-                  <span className="about-suggestion-icon">🚀</span>
-                  <span>Feature Request</span>
-                </div>
-                <div className="about-suggestion-type">
-                  <span className="about-suggestion-icon">🎨</span>
-                  <span>UI Change</span>
-                </div>
-                <div className="about-suggestion-type">
-                  <span className="about-suggestion-icon">🐛</span>
-                  <span>Bug Report</span>
-                </div>
-                <div className="about-suggestion-type">
-                  <span className="about-suggestion-icon">⚡</span>
-                  <span>Improvement</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* NGOs Page */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">🏢</span>
-              <h3>NGOs Page</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Discover and connect with NGOs.</p>
-              
-              <div className="about-feature-grid">
-                <div className="about-feature-item">
-                  <strong>Add NGO</strong>
-                  <p>Anyone can add NGO details to expand the database</p>
-                </div>
-                <div className="about-feature-item">
-                  <strong>City Filter</strong>
-                  <p>Filter NGOs by city to find local organizations</p>
-                </div>
-                <div className="about-feature-item">
-                  <strong>Social Media Links</strong>
-                  <p>Connect with NGOs directly</p>
-                </div>
-                <div className="about-feature-item">
-                  <strong>NGO Types</strong>
-                  <p>Find NGOs by focus area (trash, plants, potholes, animals, etc.)</p>
-                </div>
-              </div>
-
-              <h4 className="about-feature-subtitle">Benefits</h4>
-              <ul className="about-check-list">
-                <li><span className="about-check">🤝</span> Increase NGO database</li>
-                <li><span className="about-check">📍</span> Find NGOs in your city</li>
-                <li><span className="about-check">🔗</span> Facilitate collaboration</li>
-                <li><span className="about-check">👥</span> Gather more volunteers</li>
-                <li><span className="about-check">🌍</span> Create greater impact</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Events Page */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">📅</span>
-              <h3>Events Page</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Find and share drive events.</p>
-              
-              <div className="about-highlight-box about-highlight-box--small">
-                <p>Many people want to join NGO drives but aren't aware of events happening in their area.</p>
-              </div>
-
-              <div className="about-feature-grid">
-                <div className="about-feature-item">
-                  <strong>Add Events</strong>
-                  <p>Share drive details if you know about upcoming events</p>
-                </div>
-                <div className="about-feature-item">
-                  <strong>Search Database</strong>
-                  <p>Find drives in your city</p>
-                </div>
-                <div className="about-feature-item">
-                  <strong>Date/Time Filter</strong>
-                  <p>Filter by desired date and time</p>
-                </div>
-                <div className="about-feature-item">
-                  <strong>Event Details</strong>
-                  <p>Full information about each drive</p>
-                </div>
-              </div>
-
-              <h4 className="about-feature-subtitle">Impact</h4>
-              <ul className="about-check-list">
-                <li><span className="about-check">📢</span> Create awareness</li>
-                <li><span className="about-check">👥</span> More people join the cause</li>
-                <li><span className="about-check">🗺️</span> Centralized event database</li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Leaderboard Page */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">🏆</span>
-              <h3>Leaderboard Page</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Two sections for recognition and statistics.</p>
-              
-              <div className="about-leaderboard-sections">
-                <div className="about-leaderboard-section">
-                  <h4 className="about-feature-subtitle">🥇 Leaderboard</h4>
-                  <p>Top contributors recognized for their efforts.</p>
-                  <div className="about-timeframes">
-                    <span className="about-timeframe">Daily</span>
-                    <span className="about-timeframe">Weekly</span>
-                    <span className="about-timeframe">Monthly</span>
-                    <span className="about-timeframe">Yearly</span>
-                  </div>
-                  <p className="about-feature-desc"><strong>Purpose:</strong></p>
-                  <ul className="about-feature-list">
-                    <li>🎖️ Recognition for contributors</li>
-                    <li>🎮 Gamification element</li>
-                    <li>💪 Motivation to contribute</li>
-                    <li>🎁 Potential rewards for top users</li>
-                  </ul>
-                </div>
-                <div className="about-leaderboard-section">
-                  <h4 className="about-feature-subtitle">📊 Platform at a Glance</h4>
-                  <p>Pin-It website statistics:</p>
-                  <div className="about-stats-grid">
-                    <div className="about-stat"><span className="about-stat-icon">👥</span> Total Users</div>
-                    <div className="about-stat"><span className="about-stat-icon">🟢</span> Active Users</div>
-                    <div className="about-stat"><span className="about-stat-icon">📍</span> Total Pins</div>
-                    <div className="about-stat"><span className="about-stat-icon">🏢</span> Total NGOs</div>
-                    <div className="about-stat"><span className="about-stat-icon">📅</span> Total Events</div>
-                    <div className="about-stat"><span className="about-stat-icon">💡</span> Suggestions</div>
-                    <div className="about-stat"><span className="about-stat-icon">✅</span> Pins Resolved</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Discord Section */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">💬</span>
-              <h3>Join Discussion (Discord)</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Connect with the community!</p>
-              
-              <a href={DISCORD_INVITE_URL} target="_blank" rel="noopener noreferrer" className="about-discord-btn">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-                </svg>
-                Join Discussion
-              </a>
-
-              <h4 className="about-feature-subtitle">Discord Channels</h4>
-              <div className="about-channels">
-                <div className="about-channel">
-                  <code>#i-can-contribute-as</code>
-                  <p>Share how you can help (Volunteer, Video Editor, Speaker, Event Organizer, Social Media Handler, etc.)</p>
-                </div>
-                <div className="about-channel">
-                  <code>#useful-info</code>
-                  <p>Helpful resources and information</p>
-                </div>
-                <div className="about-channel">
-                  <code>#inspirational-stories</code>
-                  <p>Stories to inspire the community</p>
-                </div>
-              </div>
-
-              <blockquote className="about-quote about-quote--small">
-                <p>Similar in future will add more useful "#channels" to grow the community and connect more people NGO's and people.</p>
-              </blockquote>
-            </div>
-          </div>
-
-          {/* Install as App */}
-          <div className="about-feature-block">
-            <div className="about-feature-header">
-              <span className="about-feature-icon">📱</span>
-              <h3>Install as App</h3>
-            </div>
-            <div className="about-feature-content">
-              <p className="about-feature-desc">Pin-It can be installed as a Progressive Web App (PWA).</p>
-              
-              <h4 className="about-feature-subtitle">Supported Platforms</h4>
-              <div className="about-platforms">
-                <div className="about-platform"><span className="about-platform-icon">🤖</span> Android</div>
-                <div className="about-platform"><span className="about-platform-icon">🍎</span> iOS</div>
-                <div className="about-platform"><span className="about-platform-icon">💻</span> Windows</div>
-                <div className="about-platform"><span className="about-platform-icon">🍎</span> Mac</div>
-              </div>
-
-              <h4 className="about-feature-subtitle">How to Install</h4>
-              <div className="about-install-instructions">
-                <div className="about-install-item">
-                  <strong>Mobile:</strong>
-                  <p>Tap "Install" button below "Join Discussion" in the navbar</p>
-                </div>
-                <div className="about-install-item">
-                  <strong>Desktop:</strong>
-                  <p>Click the install icon in the browser's address bar</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Get Involved Section */}
-      <section className="about-section about-cta-section">
-        <div className="about-container">
-          <h2 className="about-section-title">
-            <span className="about-section-icon">🌟</span>
-            Get Involved
-          </h2>
-          <blockquote className="about-quote about-quote--large">
-            <p>"It's our nation and it's our responsibility to make it green and clean."</p>
-          </blockquote>
-          <p className="about-cta-text">Join Pin-It today and be part of the change!</p>
-          <div className="about-cta-actions">
-            <div className="about-cta-item">
-              <span className="about-cta-icon">📍</span>
-              <span>Report issues in your locality</span>
-            </div>
-            <div className="about-cta-item">
-              <span className="about-cta-icon">🤝</span>
-              <span>Join NGO drives</span>
-            </div>
-            <div className="about-cta-item">
-              <span className="about-cta-icon">🌱</span>
-              <span>Make a difference</span>
-            </div>
-          </div>
-          <button className="about-cta-btn" onClick={() => navigate('/')}>
-            Get Started
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="about-footer">
-        <div className="about-container">
-          <p>Made with ❤️ for a cleaner, greener tomorrow</p>
-        </div>
-      </footer>
-    </div>
-  );
+    );
 }
 
 export default About;

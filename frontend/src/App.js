@@ -15,6 +15,7 @@ import EventDetail from './pages/EventDetail';
 import NgoDetail from './pages/NgoDetail';
 import NgoEdit from './pages/NgoEdit';
 import Leaderboard from './pages/Leaderboard';
+import About from './pages/About';
 import { reverseGeocode } from './utils/geocode';
 import { checkGraphicsAcceleration } from './utils/graphics';
 import { API_BASE_URL, DISCORD_INVITE_URL } from './config';
@@ -33,6 +34,7 @@ function App() {
   const isNgoDetailPage = location.pathname.match(/^\/ngo\/[^/]+$/);
   const isNgoEditPage = location.pathname.startsWith('/ngos/') && location.pathname.endsWith('/edit');
   const isLeaderboardPage = location.pathname === '/leaderboard';
+  const isAboutPage = location.pathname === '/about';
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
   const [focusedPinId, setFocusedPinId] = useState(null);
@@ -449,6 +451,14 @@ function App() {
           >
             🏆 Leaderboard
           </button>
+          <button
+            type="button"
+            className="header-nav-btn"
+            onClick={() => navigate('/about')}
+            title="About"
+          >
+            ℹ️ About
+          </button>
           <button type="button" className="logout-btn" onClick={handleSignOut}>
             <span className="logout-btn-icon" aria-hidden="true">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -526,6 +536,9 @@ function App() {
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/leaderboard')}>
           🏆 Leaderboard
         </button>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/about')}>
+          ℹ️ About
+        </button>
         <a
           href={DISCORD_INVITE_URL}
           target="_blank"
@@ -600,6 +613,10 @@ function App() {
       ) : isLeaderboardPage ? (
         <div className="app-profile-container">
           <Leaderboard />
+        </div>
+      ) : isAboutPage ? (
+        <div className="app-profile-container">
+          <About />
         </div>
       ) : (
         <div className="map-container">

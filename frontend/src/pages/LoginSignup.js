@@ -5,11 +5,13 @@ import { useAuth } from '../context/AuthContext';
 import './LoginSignup.css';
 
 const TICKER_ITEMS = [
-  { dot: 'rose', strong: 'Broken Streetlight', text: ' reported in Downtown' },
-  { dot: 'blue', strong: 'Pothole', text: ' fixed on 5th Avenue' },
-  { dot: 'rose', strong: 'Graffiti Removal', text: ' requested at Park St.' },
-  { dot: 'amber', strong: 'Clogged Drain', text: ' reported by @citizenX' },
-  { dot: 'red', strong: 'Illegal Parking', text: ' reported in Suburbia' },
+  { dot: 'rose', strong: 'Trash Pile', text: ' reported near City Park' },
+  { dot: 'blue', strong: 'Pothole', text: ' fixed on Main Road' },
+  { dot: 'amber', strong: 'Garbage in River', text: ' reported by a volunteer' },
+  { dot: 'rose', strong: 'Stray Animal Colony', text: ' pinned in Sector 12' },
+  { dot: 'red', strong: 'Broken Streetlight', text: ' reported on MG Road' },
+  { dot: 'blue', strong: 'Cleanup Drive', text: ' scheduled at Lake Park' },
+  { dot: 'amber', strong: 'Plantation Drive', text: ' organized by Green NGO' },
 ];
 
 function LoginContent() {

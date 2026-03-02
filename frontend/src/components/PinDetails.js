@@ -1476,6 +1476,19 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                               View on map
                             </button>
                           )}
+                          {pin.location?.latitude != null && pin.location?.longitude != null && (
+                            <a
+                              href={`https://www.google.com/maps?q=${pin.location.latitude},${pin.location.longitude}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="pin-details-view-on-map-btn pin-details-google-map-btn"
+                              title="Open this location in Google Maps"
+                              aria-label="View on Google Map"
+                            >
+                              <span className="material-icons-round">open_in_new</span>
+                              View on Google Map
+                            </a>
+                          )}
                         </div>
                       </div>
                     </section>

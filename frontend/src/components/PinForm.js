@@ -1,11 +1,16 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
+import exifr from 'exifr';
 import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
+import { reverseGeocode } from '../utils/geocode';
 import Toast from './Toast';
 import './PinForm.css';
+
+const LOCATION_SOURCE_PIN = 'pin';
+const LOCATION_SOURCE_IMAGE = 'image';
 
 // Compress image in frontend before upload (reduces size sent to Cloudinary)
 const COMPRESSION_OPTIONS = {
@@ -55,9 +60,14 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const [compressingImages, setCompressingImages] = useState(false);
   const [error, setError] = useState('');
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [locationSource, setLocationSource] = useState(LOCATION_SOURCE_PIN); // 'pin' | 'image'
+  const [imageLocation, setImageLocation] = useState(null); // { lat, lng, address } when from image GPS
+  const [imageLocationLoading, setImageLocationLoading] = useState(false);
   const fileInputRef = useRef(null);
   const fileInputAfterRef = useRef(null);
   const typeDropdownRef = useRef(null);
+  // Keep original "before" image files for EXIF reading (compression strips metadata)
+  const originalBeforeFilesRef = useRef([]);
 
   // Close type dropdown on outside click or Escape
   useEffect(() => {
@@ -79,6 +89,14 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
     const name = user?.fullName || user?.email || '';
     if (name && !formData.contributor_name) setFormData((prev) => ({ ...prev, contributor_name: name }));
   }, [user, formData.contributor_name]);
+
+  // If user had "From image" and removes all before images, revert to pin location
+  useEffect(() => {
+    if (locationSource === LOCATION_SOURCE_IMAGE && imageFiles.length === 0) {
+      setLocationSource(LOCATION_SOURCE_PIN);
+      setImageLocation(null);
+    }
+  }, [locationSource, imageFiles.length]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -103,6 +121,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       );
       const newFiles = [...imageFiles, ...compressed];
       setImageFiles(newFiles);
+      originalBeforeFilesRef.current = [...originalBeforeFilesRef.current, ...toAdd];
 
       const newPreviews = new Array(newFiles.length);
       let loaded = 0;
@@ -163,6 +182,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const removeImage = (index) => {
     const newFiles = imageFiles.filter((_, i) => i !== index);
     const newPreviews = imagePreviews.filter((_, i) => i !== index);
+    originalBeforeFilesRef.current = originalBeforeFilesRef.current.filter((_, i) => i !== index);
     setImageFiles(newFiles);
     setImagePreviews(newPreviews);
     setError('');
@@ -175,6 +195,58 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
     setImagePreviewsAfter(newPreviews);
     setError('');
   };
+
+  // Extract GPS from first "before" image (EXIF). Returns { lat, lng } or null.
+  const extractImageGps = useCallback(async (file) => {
+    try {
+      const gps = await exifr.gps(file);
+      if (gps && typeof gps.latitude === 'number' && typeof gps.longitude === 'number') {
+        return { lat: gps.latitude, lng: gps.longitude };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleLocationSourceChange = useCallback(async (e) => {
+    const value = e.target.value;
+    if (value === LOCATION_SOURCE_PIN) {
+      setLocationSource(LOCATION_SOURCE_PIN);
+      setImageLocation(null);
+      setError('');
+      return;
+    }
+    if (value === LOCATION_SOURCE_IMAGE) {
+      if (!imageFiles.length) {
+        setError('Add at least one before image first to use image location.');
+        return;
+      }
+      // Use original file for EXIF (compression strips metadata)
+      const fileToRead = originalBeforeFilesRef.current[0] ?? imageFiles[0];
+      setImageLocationLoading(true);
+      setError('');
+      try {
+        const coords = await extractImageGps(fileToRead);
+        if (!coords) {
+          setLocationSource(LOCATION_SOURCE_PIN);
+          setImageLocation(null);
+          setError('No GPS detail found. Take location from pin drop only.');
+          window.alert('No GPS detail found. Take location from pin drop only.');
+          return;
+        }
+        const address = await reverseGeocode(coords.lat, coords.lng);
+        setImageLocation({ lat: coords.lat, lng: coords.lng, address: address || 'Address not found' });
+        setLocationSource(LOCATION_SOURCE_IMAGE);
+      } catch (err) {
+        setError('Could not read image location. Use pin location.');
+        setLocationSource(LOCATION_SOURCE_PIN);
+        setImageLocation(null);
+      } finally {
+        setImageLocationLoading(false);
+      }
+    }
+  }, [imageFiles, extractImageGps]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -244,15 +316,16 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
       setSubmitPhase('submitting');
 
+      const useImageLocation = locationSource === LOCATION_SOURCE_IMAGE && imageLocation;
+      const submitLocation = useImageLocation
+        ? { latitude: imageLocation.lat, longitude: imageLocation.lng, address: imageLocation.address || '' }
+        : { latitude: location.lat, longitude: location.lng, address: location.address || '' };
+
       const pinData = {
         problemType: formData.problemType,
         severity: parseInt(formData.severity, 10),
         problemHeading: (formData.problemHeading || '').trim(),
-        location: {
-          latitude: location.lat,
-          longitude: location.lng,
-          address: location.address || ''
-        },
+        location: submitLocation,
         images: imageUrls,
         imagesAfter: imageUrlsAfter,
         contributor_id: user?.id || '',
@@ -302,17 +375,63 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           />
 
           <div className="form-group">
-            <label>Address <span className="optional">(from pin location)</span></label>
+            <label className="pin-form-location-choose-label">Choose location from:</label>
+            <div className="pin-form-location-source-wrap">
+              <div className="pin-form-location-source-field">
+                <span className="material-icons-round pin-form-location-source-icon">my_location</span>
+                <select
+                  className="pin-form-location-source-select"
+                  value={locationSource}
+                  onChange={handleLocationSourceChange}
+                  disabled={imageLocationLoading}
+                  aria-label="Choose location from pin or image"
+                >
+                  <option value={LOCATION_SOURCE_PIN}>From pin location</option>
+                  <option value={LOCATION_SOURCE_IMAGE}>From image location</option>
+                </select>
+              </div>
+              {imageLocationLoading && (
+                <span className="pin-form-location-loading" aria-hidden="true">Reading image GPS…</span>
+              )}
+            </div>
+            <label className="pin-form-address-sublabel">Address</label>
             <div className="form-input-wrap form-input-with-icon">
               <span className="material-icons-round form-icon">location_on</span>
               <input
                 type="text"
                 className="form-input address-input"
-                value={location.address !== undefined ? (location.address || 'Address not found') : 'Loading address...'}
+                value={
+                  imageLocationLoading
+                    ? 'Reading image GPS…'
+                    : locationSource === LOCATION_SOURCE_IMAGE && imageLocation
+                      ? (imageLocation.address || 'Address not found')
+                      : location.address !== undefined
+                        ? (location.address || 'Address not found')
+                        : 'Loading address...'
+                }
                 readOnly
                 aria-readonly="true"
               />
             </div>
+            {(() => {
+              const lat = locationSource === LOCATION_SOURCE_IMAGE && imageLocation
+                ? imageLocation.lat
+                : location?.lat;
+              const lng = locationSource === LOCATION_SOURCE_IMAGE && imageLocation
+                ? imageLocation.lng
+                : location?.lng;
+              if (lat != null && lng != null) {
+                const latNum = Number(lat);
+                const lngNum = Number(lng);
+                return (
+                  <div className="pin-form-coords" aria-label="Coordinates">
+                    <span>LAT: {latNum.toFixed(5)}° {latNum >= 0 ? 'N' : 'S'}</span>
+                    <span>LONG: {lngNum.toFixed(5)}° {lngNum >= 0 ? 'E' : 'W'}</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           <div className="form-grid">

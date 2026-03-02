@@ -1555,6 +1555,10 @@
   color: var(--pin-slate-700);
 }
 
+.pin-details-google-map-btn {
+  text-decoration: none;
+}
+
 /* Scheduled events for this pin */
 .pin-details-events-section {
   padding: 1rem;

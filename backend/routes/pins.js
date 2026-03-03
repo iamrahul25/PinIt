@@ -4,6 +4,7 @@ const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
 const UserData = require('../models/UserData');
 const { deleteFromCloudinaryByUrls } = require('../utils/cloudinary');
+const { sanitizePinForResponse } = require('../utils/sanitizePin');
 
 const MAX_IMAGES_PER_SECTION = 10;
 
@@ -13,7 +14,9 @@ router.get('/', async (req, res) => {
     const { createdBy } = req.query;
     const filter = createdBy ? { contributor_id: createdBy } : {};
     const pins = await Pin.find(filter).populate('comments').sort({ createdAt: -1 });
-    res.json(pins);
+    const userId = req.auth?.userId;
+    const sanitized = pins.map((p) => sanitizePinForResponse(p, userId));
+    res.json(sanitized);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -146,7 +149,7 @@ router.post('/:id/verify', async (req, res) => {
     await pin.save();
 
     const populated = await Pin.findById(pin._id).populate('comments');
-    res.json(populated);
+    res.json(sanitizePinForResponse(populated, userId));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -197,7 +200,7 @@ router.post('/:id/resolve', async (req, res) => {
     await pin.save();
 
     const populated = await Pin.findById(pin._id).populate('comments');
-    res.json(populated);
+    res.json(sanitizePinForResponse(populated, userId));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -237,7 +240,7 @@ router.post('/:id/images', async (req, res) => {
     pin.updatedAt = new Date();
     await pin.save();
     const populated = await Pin.findById(pin._id).populate('comments');
-    res.json(populated);
+    res.json(sanitizePinForResponse(populated, userId));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -250,7 +253,7 @@ router.get('/:id', async (req, res) => {
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });
     }
-    res.json(pin);
+    res.json(sanitizePinForResponse(pin, req.auth?.userId));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -293,7 +296,7 @@ router.post('/', async (req, res) => {
     });
 
     const savedPin = await pin.save();
-    res.status(201).json(savedPin);
+    res.status(201).json(sanitizePinForResponse(savedPin, contributorId));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -340,7 +343,7 @@ router.put('/:id', async (req, res) => {
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });
     }
-    res.json(pin);
+    res.json(sanitizePinForResponse(pin, userId));
   } catch (error) {
     res.status(400).json({ error: error.message });
   }

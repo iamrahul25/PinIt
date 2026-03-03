@@ -3,6 +3,7 @@ const router = express.Router();
 const UserData = require('../models/UserData');
 const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
+const { sanitizePinForResponse } = require('../utils/sanitizePin');
 
 /**
  * Create or update user profile in MongoDB (upsert by userId).
@@ -184,7 +185,8 @@ router.get('/me/pins', async (req, res) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     const pins = await Pin.find({ contributor_id: authUserId }).sort({ createdAt: -1 }).lean();
-    res.json(pins);
+    const sanitized = pins.map((p) => sanitizePinForResponse(p, authUserId));
+    res.json(sanitized);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -204,7 +206,8 @@ router.get('/me/saved-pins', async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     const savedPins = await Pin.find({ _id: { $in: user.pinIds } }).lean();
-    res.json(savedPins);
+    const sanitized = savedPins.map((p) => sanitizePinForResponse(p, authUserId));
+    res.json(sanitized);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

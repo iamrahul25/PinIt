@@ -53,6 +53,24 @@ const getVerificationRoleCounts = (pinVerification) => {
 const truncateReplyText = (text, max = 60) =>
   text && text.length > max ? `${text.slice(0, max)}…` : (text || '…');
 
+// Distance between two lat/lng points in meters (Haversine).
+const getDistanceMeters = (lat1, lon1, lat2, lon2) => {
+  const R = 6371000; // Earth radius in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+const formatDistance = (meters) => {
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${(meters / 1000).toFixed(2)} km`;
+};
+
 // Recursively collect all descendants beyond level 3, flattened with parent-message info.
 // Each returned entry has an extra `replyingToText` field for the "Replied to \"…\"" badge.
 const flattenDeepReplies = (parentId, parentText, repliesMap) => {
@@ -66,7 +84,7 @@ const flattenDeepReplies = (parentId, parentText, repliesMap) => {
   return result;
 };
 
-const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
+const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onRequestRepositionPin, onCancelReposition, newLocationForEdit, onConsumeNewLocation, isRepositioningPin, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
   const navigate = useNavigate();
   const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
@@ -117,6 +135,23 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
     fetchVoteStatus();
     fetchImages();
   }, [authLoading, getToken, pin._id, userId, pin.images, pin.imagesAfter]);
+
+  // When parent sends new location from map (reposition flow), update edit form
+  useEffect(() => {
+    if (!newLocationForEdit || newLocationForEdit.pinId !== pin._id) return;
+    setEditForm((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        location: {
+          latitude: newLocationForEdit.lat,
+          longitude: newLocationForEdit.lng,
+          address: newLocationForEdit.address || ''
+        }
+      };
+    });
+    onConsumeNewLocation?.();
+  }, [newLocationForEdit, pin._id, onConsumeNewLocation]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -466,12 +501,14 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
   };
 
   const startEditing = useCallback(() => {
+    const loc = pin.location;
     setEditForm({
       problemType: pin.problemType || 'Other',
       severity: pin.severity ?? 5,
       problemHeading: pin.problemHeading || '',
       description: pin.description || '',
-      contributor_name: pin.contributor_name || ''
+      contributor_name: pin.contributor_name || '',
+      location: loc ? { latitude: loc.latitude, longitude: loc.longitude, address: loc.address ?? '' } : { latitude: 0, longitude: 0, address: '' }
     });
     setEditImages(pin.images && Array.isArray(pin.images) ? [...pin.images] : []);
     setNewImageFiles([]);
@@ -638,7 +675,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
         problemHeading: heading,
         description: editForm.description || '',
         contributor_name: pin.contributor_name || '',
-        location: pin.location || { latitude: 0, longitude: 0, address: '' },
+        location: editForm.location || pin.location || { latitude: 0, longitude: 0, address: '' },
         images: allImages,
         imagesAfter: allImagesAfter
       };
@@ -777,8 +814,22 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
 
   return (
     <>
-      <div className="pin-details-overlay" onClick={onClose}>
-        <div className="pin-details-wrapper" onClick={(e) => e.stopPropagation()}>
+      <div className={`pin-details-overlay ${isRepositioningPin ? 'pin-details-overlay-repositioning' : ''}`} onClick={isRepositioningPin ? undefined : onClose}>
+        <div className={`pin-details-wrapper ${isRepositioningPin ? 'pin-details-wrapper-repositioning' : ''}`} onClick={(e) => e.stopPropagation()}>
+          {isRepositioningPin ? (
+            <div className="pin-details-reposition-bar">
+              <p className="pin-details-reposition-bar-message">
+                <span className="material-icons-round pin-details-reposition-bar-icon">place</span>
+                Click on the map to drop the pin at the new location.
+              </p>
+              {onCancelReposition && (
+                <button type="button" className="pin-details-reposition-bar-cancel" onClick={onCancelReposition}>
+                  Cancel
+                </button>
+              )}
+            </div>
+          ) : (
+          <>
           {prevPin && (
             <button
               type="button"
@@ -836,14 +887,78 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
                 <form onSubmit={handleSaveEdit} className="pin-details-edit-form">
                   {editError && <div className="pin-details-edit-error" role="alert">{editError}</div>}
                   <div className="pin-details-edit-group">
-                    <label>Address <span className="pin-details-edit-optional">(read-only)</span></label>
-                    <input
-                      type="text"
-                      className="pin-details-edit-input"
-                      value={pin.location?.address ?? '—'}
-                      readOnly
-                      aria-readonly="true"
-                    />
+                    <label>Address</label>
+                    <div className="pin-details-edit-address-row">
+                      <input
+                        type="text"
+                        className="pin-details-edit-input"
+                        value={editForm.location?.address ?? pin.location?.address ?? '—'}
+                        readOnly
+                        aria-readonly="true"
+                      />
+                      {onRequestRepositionPin && (
+                        <button
+                          type="button"
+                          className="pin-details-edit-change-location-btn"
+                          onClick={() => onRequestRepositionPin(pin)}
+                          disabled={isRepositioningPin}
+                          title="Move pin to a new location on the map"
+                          aria-label="Change location on map"
+                        >
+                          <span className="material-icons-round">place</span>
+                          {isRepositioningPin ? 'Drop pin on map…' : 'Change location'}
+                        </button>
+                      )}
+                    </div>
+                    {(() => {
+                      const lat = editForm.location?.latitude ?? pin.location?.latitude;
+                      const lng = editForm.location?.longitude ?? pin.location?.longitude;
+                      if (lat != null && lng != null) {
+                        const latNum = Number(lat);
+                        const lngNum = Number(lng);
+                        return (
+                          <div className="pin-details-edit-coords" aria-label="GPS coordinates">
+                            <span>LAT: {latNum.toFixed(5)}° {latNum >= 0 ? 'N' : 'S'}</span>
+                            <span>LONG: {lngNum.toFixed(5)}° {lngNum >= 0 ? 'E' : 'W'}</span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {(() => {
+                      const oldLat = pin.location?.latitude;
+                      const oldLng = pin.location?.longitude;
+                      const newLat = editForm.location?.latitude;
+                      const newLng = editForm.location?.longitude;
+                      if (oldLat != null && oldLng != null && newLat != null && newLng != null) {
+                        const same = Number(oldLat).toFixed(5) === Number(newLat).toFixed(5) &&
+                          Number(oldLng).toFixed(5) === Number(newLng).toFixed(5);
+                        if (!same) {
+                          const meters = getDistanceMeters(
+                            Number(oldLat), Number(oldLng),
+                            Number(newLat), Number(newLng)
+                          );
+                          return (
+                            <p className="pin-details-edit-location-changed" role="status">
+                              GPS location changed by → {formatDistance(meters)}
+                            </p>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                    {isRepositioningPin && (
+                      <div className="pin-details-edit-reposition-hint-wrap">
+                        <p className="pin-details-edit-reposition-hint" role="status">
+                          Click on the map to drop the pin at the new location.
+                        </p>
+                        {onCancelReposition && (
+                          <button type="button" className="pin-details-edit-cancel-reposition" onClick={onCancelReposition}>
+                            Cancel
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="pin-details-edit-row">
                     <div className="pin-details-edit-group">
@@ -1964,6 +2079,8 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, user, o
             >
               <span className="material-icons-round">chevron_right</span>
             </button>
+          )}
+          </>
           )}
         </div>
       </div>

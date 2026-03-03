@@ -33,6 +33,20 @@
   animation: pinFadeIn 0.3s ease-out;
 }
 
+/* When repositioning: overlay only a bottom bar so map is visible and clickable */
+.pin-details-overlay-repositioning {
+  align-items: flex-end;
+  justify-content: center;
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0 1rem 1.5rem;
+  pointer-events: none;
+}
+
+.pin-details-overlay-repositioning .pin-details-wrapper-repositioning {
+  pointer-events: auto;
+}
+
 .pin-details-wrapper {
   position: relative;
   display: flex;
@@ -40,6 +54,55 @@
   justify-content: center;
   width: 100%;
   max-width: 100%;
+}
+
+.pin-details-wrapper-repositioning {
+  width: 100%;
+  max-width: 36rem;
+}
+
+.pin-details-reposition-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--pin-slate-200);
+}
+
+.pin-details-reposition-bar-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--pin-slate-700);
+  font-weight: 500;
+}
+
+.pin-details-reposition-bar-icon {
+  color: var(--pin-primary, #ec4899);
+  font-size: 1.25rem;
+}
+
+.pin-details-reposition-bar-cancel {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--pin-slate-700);
+  background: var(--pin-slate-100);
+  border: 1px solid var(--pin-slate-200);
+  border-radius: 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.pin-details-reposition-bar-cancel:hover {
+  background: var(--pin-slate-200);
 }
 
 @keyframes pinFadeIn {
@@ -625,6 +688,93 @@
 .pin-details-edit-input[readonly] {
   background: var(--pin-slate-50);
   color: var(--pin-slate-600);
+}
+
+.pin-details-edit-address-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.pin-details-edit-address-row .pin-details-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pin-details-edit-coords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--pin-slate-600);
+  font-variant-numeric: tabular-nums;
+}
+
+.pin-details-edit-location-changed {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--pin-primary, #ec4899);
+}
+
+.pin-details-edit-change-location-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--pin-slate-700);
+  background: var(--pin-slate-100);
+  border: 1px solid var(--pin-slate-200);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.pin-details-edit-change-location-btn:hover:not(:disabled) {
+  background: var(--pin-slate-200);
+  border-color: var(--pin-slate-300);
+}
+
+.pin-details-edit-change-location-btn:disabled {
+  opacity: 0.8;
+  cursor: wait;
+}
+
+.pin-details-edit-change-location-btn .material-icons-round {
+  font-size: 1rem;
+}
+
+.pin-details-edit-reposition-hint-wrap {
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.pin-details-edit-reposition-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--pin-slate-600);
+}
+
+.pin-details-edit-cancel-reposition {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--pin-slate-600);
+  background: transparent;
+  border: 1px solid var(--pin-slate-300);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pin-details-edit-cancel-reposition:hover {
+  background: var(--pin-slate-100);
 }
 
 .pin-details-edit-select {

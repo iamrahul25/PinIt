@@ -140,10 +140,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
 });
 
-function MapClickHandler({ onMapClick, isAddPinMode }) {
+function MapClickHandler({ onMapClick, isAddPinMode, isRepositionPinMode }) {
   useMapEvents({
     click: (e) => {
-      if (isAddPinMode) {
+      if (isAddPinMode || isRepositionPinMode) {
         onMapClick(e);
       }
     },
@@ -152,7 +152,7 @@ function MapClickHandler({ onMapClick, isAddPinMode }) {
 }
 
 // Pin clustering for OSM: use leaflet.markercluster imperatively (React 18 compatible)
-function PinsCluster({ pins, hoveredPinId, highlightedPinId, onPinClick }) {
+function PinsCluster({ pins, hoveredPinId, highlightedPinId, repositionPinId, onPinClick }) {
   const map = useMap();
   const groupRef = useRef(null);
   const onPinClickRef = useRef(onPinClick);
@@ -168,7 +168,8 @@ function PinsCluster({ pins, hoveredPinId, highlightedPinId, onPinClick }) {
     pins.forEach((pin) => {
       const isHovered = pin._id === hoveredPinId;
       const isHighlighted = pin._id === highlightedPinId && !isHovered;
-      const highlightClass = isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : '');
+      const isOldLocation = pin._id === repositionPinId;
+      const highlightClass = isOldLocation ? 'pin-marker-old-location' : (isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : ''));
       const marker = L.marker([pin.location.latitude, pin.location.longitude], {
         icon: L.divIcon({
           className: `custom-pin-icon ${highlightClass}`.trim(),
@@ -188,7 +189,7 @@ function PinsCluster({ pins, hoveredPinId, highlightedPinId, onPinClick }) {
         groupRef.current = null;
       }
     };
-  }, [map, pins, hoveredPinId, highlightedPinId]);
+  }, [map, pins, hoveredPinId, highlightedPinId, repositionPinId]);
 
   return null;
 }
@@ -237,7 +238,7 @@ const MAP_LAYERS = [
 // Zoom level / Reset zoom out (broad regional view)
 const STATE_LEVEL_ZOOM = 8;
 
-const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, tempPinLocation, onCancelAddPin }) => {
+const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, isRepositionPinMode, repositionPinId, tempPinLocation, onCancelAddPin }) => {
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
@@ -253,6 +254,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   const [userLocation, setUserLocation] = useState(null); // { lat, lng, accuracy } - accuracy in meters
   const [isMyLocationLoading, setIsMyLocationLoading] = useState(false);
   const [pointerPosition, setPointerPosition] = useState(null); // { x, y } for following pin when placing
+  const [isTouchOrNarrow, setIsTouchOrNarrow] = useState(false); // true when no hover (touch) or narrow viewport – show pin at center
   const mapWrapperRef = useRef(null);
   const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
 
@@ -388,10 +390,19 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
     return null;
   };
 
-  // Clear following pin position when leaving add-pin mode
+  // Clear following pin position when leaving add-pin or reposition mode
   useEffect(() => {
-    if (!isAddPinMode) setPointerPosition(null);
-  }, [isAddPinMode]);
+    if (!isAddPinMode && !isRepositionPinMode) setPointerPosition(null);
+  }, [isAddPinMode, isRepositionPinMode]);
+
+  // Detect touch device or narrow viewport so we show the placement pin at center on mobile (no mouse move)
+  useEffect(() => {
+    const query = window.matchMedia('(pointer: coarse), (max-width: 768px)');
+    const update = () => setIsTouchOrNarrow(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
 
   // Close layers dropdown when clicking outside
   useEffect(() => {
@@ -602,13 +613,15 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
     }
   }, [flyToPinId, pins, mapType, leafletMapInstance, googleMapInstance]);
 
+  const showPinCursor = isAddPinMode || isRepositionPinMode;
+
   return (
     <div
       ref={mapWrapperRef}
       className="map-view-wrapper"
       style={{ position: 'relative', height: '100%', width: '100%' }}
-      onMouseMove={isAddPinMode ? handlePointerMove : undefined}
-      onMouseLeave={isAddPinMode ? handlePointerLeave : undefined}
+      onMouseMove={showPinCursor ? handlePointerMove : undefined}
+      onMouseLeave={showPinCursor ? handlePointerLeave : undefined}
     >
       {/* Floating Controls Overlay - contains all search and button elements */}
       <div className="map-floating-controls" style={{ 
@@ -884,70 +897,126 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         </div>
       </div>
 
+      {showPinCursor && (pointerPosition != null || isTouchOrNarrow) && (
+        <div
+          className="map-view-pin-cursor"
+          style={{
+            position: 'absolute',
+            ...(pointerPosition != null
+              ? { left: pointerPosition.x - 10, top: pointerPosition.y - 20, width: 20, height: 20 }
+              : {
+                  left: '50%',
+                  top: '50%',
+                  width: 20,
+                  height: 20,
+                  marginLeft: -10,
+                  marginTop: -20,
+                  transform: 'scale(1.6)',
+                  transformOrigin: '50% 100%'
+                }
+            ),
+            zIndex: 1001,
+            pointerEvents: 'none',
+            filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
+          }}
+          aria-hidden
+        >
+          <PinIconSvg />
+        </div>
+      )}
       {isAddPinMode && (
         <>
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '11px',
-            background: 'rgba(99, 102, 241, 0.75)',
-            color: 'white',
-            padding: '8px 14px 8px 17px',
-            borderRadius: '6px',
-            fontSize: '10px',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-            whiteSpace: 'nowrap',
-            border: '1px solid rgba(255,255,255,0.25)',
-            backdropFilter: 'blur(6px)'
-          }}>
-            <span style={{ pointerEvents: 'none' }}>Click on the map to place a pin</span>
-            {onCancelAddPin && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onCancelAddPin(); }}
-                aria-label="Cancel"
-                style={{
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none',
-                  color: 'white',
-                  width: '20px',
-                  height: '20px',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: 0,
-                  transition: 'background 0.2s'
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
-              >
-                <span className="material-icons-round" style={{ fontSize: '13px' }}>close</span>
-              </button>
-            )}
-          </div>
-          {pointerPosition != null && (
-            <div
-              style={{
-                position: 'absolute',
-                left: pointerPosition.x - 10,
-                top: pointerPosition.y - 20,
-                width: 20,
-                height: 20,
-                zIndex: 1001,
-                pointerEvents: 'none',
-                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))'
-              }}
-              aria-hidden
-            >
-              <PinIconSvg />
+          {isTouchOrNarrow ? (
+            <div style={{
+              position: 'absolute',
+              bottom: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '100%',
+              maxWidth: '36rem',
+              zIndex: 1002,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.75rem',
+              background: 'white',
+              margin: '0 auto',
+              padding: '0.75rem 1rem 1.25rem',
+              boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+              border: '1px solid rgba(0,0,0,0.08)',
+              borderBottom: 'none',
+              borderRadius: '12px 12px 0 0'
+            }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
+                Tap on the map to place a pin
+              </span>
+              {onCancelAddPin && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onCancelAddPin(); }}
+                  aria-label="Cancel"
+                  style={{
+                    background: '#f3f4f6',
+                    border: '1px solid #e5e7eb',
+                    color: '#374151',
+                    padding: '0.4rem 0.75rem',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.8125rem',
+                    fontWeight: 500
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          ) : (
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '11px',
+              background: 'rgba(99, 102, 241, 0.75)',
+              color: 'white',
+              padding: '8px 14px 8px 17px',
+              borderRadius: '6px',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+              whiteSpace: 'nowrap',
+              border: '1px solid rgba(255,255,255,0.25)',
+              backdropFilter: 'blur(6px)'
+            }}>
+              <span style={{ pointerEvents: 'none' }}>Click on the map to place a pin</span>
+              {onCancelAddPin && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); onCancelAddPin(); }}
+                  aria-label="Cancel"
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: 'white',
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    transition: 'background 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.3)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; }}
+                >
+                  <span className="material-icons-round" style={{ fontSize: '13px' }}>close</span>
+                </button>
+              )}
             </div>
           )}
         </>
@@ -970,7 +1039,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           style={{ 
             height: '100%', 
             width: '100%',
-            cursor: isAddPinMode ? 'crosshair' : 'default'
+            cursor: showPinCursor ? 'crosshair' : 'default'
           }}
         >
           <TileLayer
@@ -993,7 +1062,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <ZoomControl position="bottomright" />
           <LeafletMapCapture />
           <MapUpdater center={center} zoom={zoom} onMapMove={handleLeafletMapMove} />
-          <MapClickHandler onMapClick={onMapClick} isAddPinMode={isAddPinMode} />
+          <MapClickHandler onMapClick={onMapClick} isAddPinMode={isAddPinMode} isRepositionPinMode={isRepositionPinMode} />
           <LocationSearch onLocationFound={handleLocationFound} />
           {userLocation && (
             <>
@@ -1035,13 +1104,15 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               pins={pins}
               hoveredPinId={hoveredPinId}
               highlightedPinId={highlightedPinId}
+              repositionPinId={repositionPinId}
               onPinClick={onPinClick}
             />
           ) : (
             pins.map((pin) => {
               const isHovered = pin._id === hoveredPinId;
               const isHighlighted = pin._id === highlightedPinId && !isHovered;
-              const highlightClass = isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : '');
+              const isOldLocation = pin._id === repositionPinId;
+              const highlightClass = isOldLocation ? 'pin-marker-old-location' : (isHovered ? 'pin-marker-hover' : (isHighlighted ? 'pin-marker-highlighted' : ''));
               return (
                 <Marker
                   key={pin._id}
@@ -1128,9 +1199,12 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               {pins.map((pin) => {
                 const isHovered = pin._id === hoveredPinId;
                 const isHighlighted = pin._id === highlightedPinId && !isHovered;
+                const isOldLocation = pin._id === repositionPinId;
                 const baseHtml = getProblemTypeMarkerHtml(pin.problemType);
                 let content = baseHtml;
-                if (isHovered) {
+                if (isOldLocation) {
+                  content = `<div class="pin-marker-old-location" style="display:inline-flex;align-items:center;justify-content:center;padding:4px;border-radius:50%;border:2px dashed #6b7280;background:rgba(107,114,128,0.2);filter:grayscale(0.8);opacity:0.85;">${baseHtml}</div>`;
+                } else if (isHovered) {
                   content = `<div class="pin-marker-hover" style="display:inline-flex;align-items:center;justify-content:center;padding:3px;border-radius:50%;border:3px solid #000;box-sizing:border-box;">${baseHtml}</div>`;
                 } else if (isHighlighted) {
                   content = `<div class="pin-marker-highlighted" style="display:inline-flex;align-items:center;justify-content:center;padding:4px;border-radius:50%;box-shadow:0 0 0 4px rgba(102,126,234,0.8);">${baseHtml}</div>`;

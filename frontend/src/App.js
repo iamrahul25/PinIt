@@ -43,6 +43,8 @@ function App() {
   const [formLocation, setFormLocation] = useState(null);
   const [isAddPinMode, setIsAddPinMode] = useState(false);
   const [tempPinLocation, setTempPinLocation] = useState(null);
+  const [repositionPinId, setRepositionPinId] = useState(null);
+  const [newLocationForEdit, setNewLocationForEdit] = useState(null); // { pinId, lat, lng, address }
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
@@ -221,6 +223,15 @@ function App() {
   };
 
   const handleMapClick = (e) => {
+    if (repositionPinId) {
+      const lat = e.latlng.lat;
+      const lng = e.latlng.lng;
+      reverseGeocode(lat, lng).then((address) => {
+        setNewLocationForEdit({ pinId: repositionPinId, lat, lng, address: address || '' });
+      });
+      setRepositionPinId(null);
+      return;
+    }
     if (isAddPinMode) {
       const location = { lat: e.latlng.lat, lng: e.latlng.lng };
       setTempPinLocation(location);
@@ -288,6 +299,8 @@ function App() {
     navigate('/');
     setSelectedPin(null);
     setIsAddPinMode(false);
+    setRepositionPinId(null);
+    setNewLocationForEdit(null);
     setFocusedPinId(null);
   };
 
@@ -296,6 +309,19 @@ function App() {
     setSelectedPin(null);
     setFocusedPinId(pin._id);
     setIsPanelOpen(false);
+  };
+
+  const handleRequestRepositionPin = (pin) => {
+    setRepositionPinId(pin._id);
+    setIsPanelOpen(false);
+  };
+
+  const handleConsumeNewLocation = () => {
+    setNewLocationForEdit(null);
+  };
+
+  const handleCancelReposition = () => {
+    setRepositionPinId(null);
   };
 
   const handleTogglePanel = () => {
@@ -628,6 +654,8 @@ function App() {
             hoveredPinId={hoveredPinId}
             flyToPinId={focusedPinId}
             isAddPinMode={isAddPinMode}
+            isRepositionPinMode={!!repositionPinId}
+            repositionPinId={repositionPinId}
             tempPinLocation={tempPinLocation}
             onCancelAddPin={handleAddButtonClick}
           />
@@ -662,6 +690,11 @@ function App() {
               onSelectPin={handleShowDetails}
               onClose={handleDetailsClose}
               onViewOnMap={handleViewPinOnMap}
+              onRequestRepositionPin={handleRequestRepositionPin}
+              onCancelReposition={handleCancelReposition}
+              newLocationForEdit={selectedPin._id === newLocationForEdit?.pinId ? newLocationForEdit : null}
+              onConsumeNewLocation={handleConsumeNewLocation}
+              isRepositioningPin={repositionPinId === selectedPin._id}
               user={user}
               onUpdate={fetchPins}
               onPinUpdated={setSelectedPin}

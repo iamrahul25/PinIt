@@ -555,6 +555,22 @@ body.mobile-menu-open {
   box-sizing: border-box;
 }
 
+/* Old pin location when repositioning (so user can distinguish from new drop) */
+.pin-marker-old-location,
+.custom-pin-icon.pin-marker-old-location {
+  z-index: 999 !important;
+  opacity: 0.9;
+}
+.custom-pin-icon.pin-marker-old-location > div {
+  filter: grayscale(0.7);
+  opacity: 0.9;
+  border: 2px dashed #6b7280 !important;
+  border-radius: 50%;
+  padding: 2px;
+  box-sizing: border-box;
+  background: rgba(107, 114, 128, 0.15);
+}
+
 /* User location circle center point (Leaflet) */
 .leaflet-marker-icon.user-location-center-dot {
   background: transparent !important;

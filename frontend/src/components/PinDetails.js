@@ -508,6 +508,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
       problemHeading: pin.problemHeading || '',
       description: pin.description || '',
       contributor_name: pin.contributor_name || '',
+      anonymous: pin.anonymous !== false,
       location: loc ? { latitude: loc.latitude, longitude: loc.longitude, address: loc.address ?? '' } : { latitude: 0, longitude: 0, address: '' }
     });
     setEditImages(pin.images && Array.isArray(pin.images) ? [...pin.images] : []);
@@ -675,6 +676,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
         problemHeading: heading,
         description: editForm.description || '',
         contributor_name: pin.contributor_name || '',
+        anonymous: editForm.anonymous !== false,
         location: editForm.location || pin.location || { latitude: 0, longitude: 0, address: '' },
         images: allImages,
         imagesAfter: allImagesAfter
@@ -1012,6 +1014,18 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                       rows={3}
                       className="pin-details-edit-input pin-details-edit-textarea"
                     />
+                  </div>
+                  <div className="pin-details-edit-group">
+                    <label>Post as</label>
+                    <select
+                      value={editForm.anonymous !== false ? 'anonymous' : 'public'}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, anonymous: e.target.value === 'anonymous' }))}
+                      className="pin-details-edit-input"
+                      aria-label="Post as Anonymous or Public"
+                    >
+                      <option value="anonymous">Anonymous User</option>
+                      <option value="public">Post Publically</option>
+                    </select>
                   </div>
                   <div className="pin-details-edit-group">
                     <label>Before images (before fix) <span className="required">*</span> (at least 1, max {MAX_IMAGES_PER_SECTION})</label>
@@ -1609,7 +1623,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                     </section>
                   )}
 
-                  {(user?.role === 'admin' || pin.contributor_id === user?.id) && (
+                  {(user?.role === 'admin' || pin.contributor_id === user?.id || pin.reportedByMe) && (
                     <div className="pin-details-bottom-actions">
                       <button
                         type="button"

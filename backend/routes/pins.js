@@ -262,7 +262,7 @@ router.get('/:id', async (req, res) => {
 // Create a new pin
 router.post('/', async (req, res) => {
   try {
-    const { problemType, severity, location, images, imagesAfter, problemHeading, contributor_name, description } = req.body;
+    const { problemType, severity, location, images, imagesAfter, problemHeading, contributor_name, description, anonymous } = req.body;
     const contributorId = req.auth?.userId;
     if (!contributorId) {
       return res.status(401).json({ error: 'Unauthorized' });
@@ -292,6 +292,7 @@ router.post('/', async (req, res) => {
       problemHeading: heading,
       contributor_id: contributorId,
       contributor_name: contributor_name || '',
+      anonymous: anonymous !== false,
       description: description || ''
     });
 
@@ -303,7 +304,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update pin (admin or pin creator only)
-const ALLOWED_UPDATE_FIELDS = ['problemType', 'severity', 'location', 'images', 'imagesAfter', 'problemHeading', 'contributor_name', 'description'];
+const ALLOWED_UPDATE_FIELDS = ['problemType', 'severity', 'location', 'images', 'imagesAfter', 'problemHeading', 'contributor_name', 'description', 'anonymous'];
 router.put('/:id', async (req, res) => {
   try {
     const userId = req.auth?.userId;
@@ -333,6 +334,10 @@ router.put('/:id', async (req, res) => {
     const updates = {};
     for (const key of ALLOWED_UPDATE_FIELDS) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    // When admin edits, preserve existing contributor_name if body sent empty (admin doesn't receive it due to sanitize)
+    if (isAdmin && (updates.contributor_name === '' || (typeof updates.contributor_name === 'string' && !updates.contributor_name.trim()))) {
+      delete updates.contributor_name;
     }
     updates.updatedAt = new Date();
     const pin = await Pin.findByIdAndUpdate(

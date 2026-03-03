@@ -71,7 +71,7 @@ const PinListPanel = ({
   const filteredPins = useMemo(() => {
     let list = pins;
     if (filterSavedOnly) list = list.filter((p) => p.saved);
-    if (filterContributedOnly && user?.id) list = list.filter((p) => p.contributor_id === user.id);
+    if (filterContributedOnly && user?.id) list = list.filter((p) => p.contributor_id === user.id || p.reportedByMe);
     if (typeFilter) list = list.filter((p) => p.problemType === typeFilter);
     if (filterVerification) {
       list = list.filter((p) => {

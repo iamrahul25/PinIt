@@ -48,6 +48,10 @@ const pinSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  anonymous: {
+    type: Boolean,
+    default: true
+  },
   description: {
     type: String,
     default: ''

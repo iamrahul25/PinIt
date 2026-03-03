@@ -51,6 +51,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
     description: '',
     images: []
   });
+  const [postAsAnonymous, setPostAsAnonymous] = useState(true); // default: Anonymous User
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [imageFilesAfter, setImageFilesAfter] = useState([]);
@@ -330,6 +331,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
         imagesAfter: imageUrlsAfter,
         contributor_id: user?.id || '',
         contributor_name: formData.contributor_name || '',
+        anonymous: postAsAnonymous,
         description: formData.description || ''
       };
 
@@ -535,6 +537,19 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               rows="3"
               className="form-input form-textarea"
             />
+          </div>
+
+          <div className="form-group">
+            <label>Post as</label>
+            <select
+              value={postAsAnonymous ? 'anonymous' : 'public'}
+              onChange={(e) => setPostAsAnonymous(e.target.value === 'anonymous')}
+              className="form-input"
+              aria-label="Post as Anonymous or Public"
+            >
+              <option value="anonymous">Anonymous User</option>
+              <option value="public">Post Publically</option>
+            </select>
           </div>
 
           <div className="form-group">

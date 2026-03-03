@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Event = require('../models/Event');
 const UserData = require('../models/UserData');
+const { deleteFromCloudinaryByUrl } = require('../utils/cloudinary');
 
 // Helper: add hasAttending and volunteerCount to event list
 function withAttendance(events, userId) {
@@ -226,7 +227,7 @@ router.delete('/:id', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const event = await Event.findById(req.params.id).select('authorId').lean();
+    const event = await Event.findById(req.params.id).select('authorId bannerUrl foundationLogoUrl').lean();
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
     }
@@ -235,6 +236,9 @@ router.delete('/:id', async (req, res) => {
     if (!isAdmin && !isAuthor) {
       return res.status(403).json({ error: 'Forbidden: only admin or the author can delete this event' });
     }
+    // Delete Cloudinary images (banner, logo) if present
+    if (event.bannerUrl) await deleteFromCloudinaryByUrl(event.bannerUrl);
+    if (event.foundationLogoUrl) await deleteFromCloudinaryByUrl(event.foundationLogoUrl);
     await Event.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {

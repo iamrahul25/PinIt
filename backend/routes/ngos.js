@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Ngo = require('../models/Ngo');
 const UserData = require('../models/UserData');
+const { deleteFromCloudinaryByUrl } = require('../utils/cloudinary');
 
 const NGO_LEVELS = ['International', 'National', 'State', 'City'];
 
@@ -212,7 +213,7 @@ router.delete('/:id', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const ngo = await Ngo.findById(req.params.id).select('authorId').lean();
+    const ngo = await Ngo.findById(req.params.id).select('authorId logoUrl').lean();
     if (!ngo) {
       return res.status(404).json({ error: 'NGO not found' });
     }
@@ -221,6 +222,8 @@ router.delete('/:id', async (req, res) => {
     if (!isAdmin && !isAuthor) {
       return res.status(403).json({ error: 'Forbidden: only admin or the author can delete this NGO' });
     }
+    // Delete logo from Cloudinary if it's a Cloudinary URL
+    if (ngo.logoUrl) await deleteFromCloudinaryByUrl(ngo.logoUrl);
     await Ngo.findByIdAndDelete(req.params.id);
     res.status(204).send();
   } catch (error) {

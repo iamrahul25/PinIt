@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Suggestion = require('../models/Suggestion');
 const UserData = require('../models/UserData');
+const { deleteFromCloudinaryByUrls } = require('../utils/cloudinary');
 
 // List suggestions (sort: top | new, optional state/category filter) – includes hasVoted for current user
 const VALID_STATES = ['new', 'todo', 'in_progress', 'hold', 'in_review', 'done', 'cancelled'];
@@ -265,7 +266,7 @@ router.delete('/:id', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const suggestion = await Suggestion.findById(req.params.id).select('authorId').lean();
+    const suggestion = await Suggestion.findById(req.params.id).select('authorId images').lean();
     if (!suggestion) {
       return res.status(404).json({ error: 'Suggestion not found' });
     }
@@ -273,6 +274,10 @@ router.delete('/:id', async (req, res) => {
     const isAuthor = suggestion.authorId && String(suggestion.authorId) === String(userId);
     if (!isAdmin && !isAuthor) {
       return res.status(403).json({ error: 'Forbidden: only admin or the author can delete this suggestion' });
+    }
+    // Delete Cloudinary images if present
+    if (Array.isArray(suggestion.images) && suggestion.images.length > 0) {
+      await deleteFromCloudinaryByUrls(suggestion.images);
     }
     await Suggestion.findByIdAndDelete(req.params.id);
     res.status(204).send();

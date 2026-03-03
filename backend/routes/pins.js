@@ -3,6 +3,7 @@ const router = express.Router();
 const Pin = require('../models/Pin');
 const Comment = require('../models/Comment');
 const UserData = require('../models/UserData');
+const { deleteFromCloudinaryByUrls } = require('../utils/cloudinary');
 
 const MAX_IMAGES_PER_SECTION = 10;
 
@@ -352,7 +353,7 @@ router.delete('/:id', async (req, res) => {
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const existingPin = await Pin.findById(req.params.id).select('contributor_id').lean();
+    const existingPin = await Pin.findById(req.params.id).select('contributor_id images imagesAfter').lean();
     if (!existingPin) {
       return res.status(404).json({ error: 'Pin not found' });
     }
@@ -361,6 +362,9 @@ router.delete('/:id', async (req, res) => {
     if (!isAdmin && !isCreator) {
       return res.status(403).json({ error: 'Forbidden: only admin or the pin creator can delete this pin' });
     }
+    // Delete images from Cloudinary before removing the pin
+    const allImageUrls = [...(existingPin.images || []), ...(existingPin.imagesAfter || [])];
+    await deleteFromCloudinaryByUrls(allImageUrls);
     const pin = await Pin.findByIdAndDelete(req.params.id);
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });

@@ -317,6 +317,27 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       setError(`Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.`);
       return;
     }
+    // Ensure we respect the chosen location source and do not silently fall back
+    if (locationSource === LOCATION_SOURCE_GPS) {
+      if (gpsLocationLoading) {
+        setError('Detecting your GPS location. Please wait a moment before submitting.');
+        return;
+      }
+      if (!gpsLocation) {
+        setError('GPS location is not available. Please try again or switch to pin location.');
+        return;
+      }
+    }
+    if (locationSource === LOCATION_SOURCE_IMAGE) {
+      if (imageLocationLoading) {
+        setError('Reading image GPS location. Please wait a moment before submitting.');
+        return;
+      }
+      if (!imageLocation) {
+        setError('Image location is not available. Please try again or switch to pin location.');
+        return;
+      }
+    }
 
     setLoading(true);
     setSubmitPhase('uploading');

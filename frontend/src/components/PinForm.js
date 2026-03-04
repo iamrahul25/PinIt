@@ -401,6 +401,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
   const handleCameraClick = () => {
     if (uploadDisabled) return;
+
+    // Whenever the user chooses to take a picture from the camera,
+    // automatically switch the location source to GPS.
+    handleLocationSourceChange({ target: { value: LOCATION_SOURCE_GPS } });
+
     const ua = navigator.userAgent || '';
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
     if (!isMobile) {

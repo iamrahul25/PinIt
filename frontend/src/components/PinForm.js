@@ -11,6 +11,7 @@ import './PinForm.css';
 
 const LOCATION_SOURCE_PIN = 'pin';
 const LOCATION_SOURCE_IMAGE = 'image';
+const LOCATION_SOURCE_GPS = 'gps';
 
 // Compress image in frontend before upload (reduces size sent to Cloudinary)
 const COMPRESSION_OPTIONS = {
@@ -60,11 +61,15 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const [submitPhase, setSubmitPhase] = useState(null); // null | 'uploading' | 'submitting'
   const [compressingImages, setCompressingImages] = useState(false);
   const [error, setError] = useState('');
+  const [toastType, setToastType] = useState('error');
   const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
-  const [locationSource, setLocationSource] = useState(LOCATION_SOURCE_PIN); // 'pin' | 'image'
+  const [locationSource, setLocationSource] = useState(LOCATION_SOURCE_PIN); // 'pin' | 'image' | 'gps'
   const [imageLocation, setImageLocation] = useState(null); // { lat, lng, address } when from image GPS
   const [imageLocationLoading, setImageLocationLoading] = useState(false);
+  const [gpsLocation, setGpsLocation] = useState(null); // { lat, lng, address } when from GPS
+  const [gpsLocationLoading, setGpsLocationLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
   const fileInputAfterRef = useRef(null);
   const typeDropdownRef = useRef(null);
   // Keep original "before" image files for EXIF reading (compression strips metadata)
@@ -215,11 +220,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
     if (value === LOCATION_SOURCE_PIN) {
       setLocationSource(LOCATION_SOURCE_PIN);
       setImageLocation(null);
+      setGpsLocation(null);
       setError('');
       return;
     }
     if (value === LOCATION_SOURCE_IMAGE) {
       if (!imageFiles.length) {
+        setToastType('warning');
         setError('Add at least one before image first to use image location.');
         return;
       }
@@ -232,6 +239,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
         if (!coords) {
           setLocationSource(LOCATION_SOURCE_PIN);
           setImageLocation(null);
+          setToastType('warning');
           setError('No GPS detail found. Take location from pin drop only.');
           window.alert('No GPS detail found. Take location from pin drop only.');
           return;
@@ -246,6 +254,43 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       } finally {
         setImageLocationLoading(false);
       }
+      return;
+    }
+    if (value === LOCATION_SOURCE_GPS) {
+      if (!navigator.geolocation) {
+        setToastType('warning');
+        setError('GPS is not supported in this browser. Use pin location instead.');
+        setLocationSource(LOCATION_SOURCE_PIN);
+        return;
+      }
+      setGpsLocationLoading(true);
+      setError('');
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          let address = '';
+          try {
+            address = await reverseGeocode(latitude, longitude);
+          } catch (geoErr) {
+            console.warn('Reverse geocoding failed for GPS location', geoErr);
+          }
+          setGpsLocation({
+            lat: latitude,
+            lng: longitude,
+            address: address || 'Address not found'
+          });
+          setLocationSource(LOCATION_SOURCE_GPS);
+          setGpsLocationLoading(false);
+        },
+        (err) => {
+          console.warn('GPS error', err);
+          setToastType('warning');
+          setError('Unable to get your GPS location. Please enable location services or use pin location.');
+          setLocationSource(LOCATION_SOURCE_PIN);
+          setGpsLocation(null);
+          setGpsLocationLoading(false);
+        }
+      );
     }
   }, [imageFiles, extractImageGps]);
 
@@ -318,9 +363,12 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       setSubmitPhase('submitting');
 
       const useImageLocation = locationSource === LOCATION_SOURCE_IMAGE && imageLocation;
-      const submitLocation = useImageLocation
-        ? { latitude: imageLocation.lat, longitude: imageLocation.lng, address: imageLocation.address || '' }
-        : { latitude: location.lat, longitude: location.lng, address: location.address || '' };
+      const useGpsLocation = locationSource === LOCATION_SOURCE_GPS && gpsLocation;
+      const submitLocation = useGpsLocation
+        ? { latitude: gpsLocation.lat, longitude: gpsLocation.lng, address: gpsLocation.address || '' }
+        : useImageLocation
+          ? { latitude: imageLocation.lat, longitude: imageLocation.lng, address: imageLocation.address || '' }
+          : { latitude: location.lat, longitude: location.lng, address: location.address || '' };
 
       const pinData = {
         problemType: formData.problemType,
@@ -351,6 +399,20 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const uploadDisabled = imageFiles.length >= MAX_IMAGES_PER_SECTION || compressingImages;
   const uploadAfterDisabled = imageFilesAfter.length >= MAX_IMAGES_PER_SECTION || compressingImages;
 
+  const handleCameraClick = () => {
+    if (uploadDisabled) return;
+    const ua = navigator.userAgent || '';
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(ua);
+    if (!isMobile) {
+      setToastType('warning');
+      setError('Camera capture is typically not available on desktop devices. Please use "Click to upload before images" or open this page on your mobile device to take photos.');
+      return;
+    }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.click();
+    }
+  };
+
   return (
     <div className="pin-form-overlay" onClick={onClose}>
       <div className="pin-form-container" onClick={(e) => e.stopPropagation()}>
@@ -371,9 +433,12 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           <Toast
             visible={!!error}
             message={error}
-            type="error"
-            onClose={() => setError('')}
-            position="top-center"
+            type={toastType}
+            onClose={() => {
+              setError('');
+              setToastType('error');
+            }}
+            position="bottom-right"
           />
 
           <div className="form-group">
@@ -385,15 +450,18 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                   className="pin-form-location-source-select"
                   value={locationSource}
                   onChange={handleLocationSourceChange}
-                  disabled={imageLocationLoading}
-                  aria-label="Choose location from pin or image"
+                  disabled={imageLocationLoading || gpsLocationLoading}
+                  aria-label="Choose location from pin, GPS, or image"
                 >
                   <option value={LOCATION_SOURCE_PIN}>From pin location</option>
                   <option value={LOCATION_SOURCE_IMAGE}>From image location</option>
+                  <option value={LOCATION_SOURCE_GPS}>From my GPS</option>
                 </select>
               </div>
-              {imageLocationLoading && (
-                <span className="pin-form-location-loading" aria-hidden="true">Reading image GPS…</span>
+              {(imageLocationLoading || gpsLocationLoading) && (
+                <span className="pin-form-location-loading" aria-hidden="true">
+                  {imageLocationLoading ? 'Reading image GPS…' : 'Detecting your location…'}
+                </span>
               )}
             </div>
             <label className="pin-form-address-sublabel">Address</label>
@@ -405,23 +473,36 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 value={
                   imageLocationLoading
                     ? 'Reading image GPS…'
-                    : locationSource === LOCATION_SOURCE_IMAGE && imageLocation
-                      ? (imageLocation.address || 'Address not found')
-                      : location.address !== undefined
-                        ? (location.address || 'Address not found')
-                        : 'Loading address...'
+                    : gpsLocationLoading
+                      ? 'Detecting your location…'
+                      : locationSource === LOCATION_SOURCE_IMAGE && imageLocation
+                        ? (imageLocation.address || 'Address not found')
+                        : locationSource === LOCATION_SOURCE_GPS && gpsLocation
+                          ? (gpsLocation.address || 'Address not found')
+                          : location.address !== undefined
+                            ? (location.address || 'Address not found')
+                            : 'Loading address...'
                 }
                 readOnly
                 aria-readonly="true"
               />
             </div>
+            {locationSource === LOCATION_SOURCE_GPS && gpsLocation && !gpsLocationLoading && (
+              <div className="pin-form-gps-hint">
+                We are using your current GPS location for this report.
+              </div>
+            )}
             {(() => {
               const lat = locationSource === LOCATION_SOURCE_IMAGE && imageLocation
                 ? imageLocation.lat
-                : location?.lat;
+                : locationSource === LOCATION_SOURCE_GPS && gpsLocation
+                  ? gpsLocation.lat
+                  : location?.lat;
               const lng = locationSource === LOCATION_SOURCE_IMAGE && imageLocation
                 ? imageLocation.lng
-                : location?.lng;
+                : locationSource === LOCATION_SOURCE_GPS && gpsLocation
+                  ? gpsLocation.lng
+                  : location?.lng;
               if (lat != null && lng != null) {
                 const latNum = Number(lat);
                 const lngNum = Number(lng);
@@ -577,6 +658,37 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               ref={fileInputRef}
               type="file"
               accept="image/*"
+              multiple
+              onChange={handleImageChange}
+              className="file-input-hidden"
+              aria-hidden="true"
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              className={`upload-area upload-area-camera ${uploadDisabled ? 'disabled' : ''}`}
+              onClick={handleCameraClick}
+              onKeyDown={(e) => {
+                if ((e.key === 'Enter' || e.key === ' ') && !uploadDisabled) {
+                  e.preventDefault();
+                  handleCameraClick();
+                }
+              }}
+              aria-label="Click to take photos from camera"
+            >
+              <div className="upload-area-icon-wrap">
+                <span className="material-icons-round upload-area-icon">photo_camera</span>
+              </div>
+              <p className="upload-area-text">
+                {compressingImages ? 'Compressing images...' : 'Click images from camera'}
+              </p>
+              <p className="upload-count">{imageFiles.length}/{MAX_IMAGES_PER_SECTION} images</p>
+            </div>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture
               multiple
               onChange={handleImageChange}
               className="file-input-hidden"

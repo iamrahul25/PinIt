@@ -364,6 +364,43 @@ function About({ showAuthButton = false }) {
                             </div>
                         </div>
 
+                        {/* Anonymous posting */}
+                        <div className="about-feature-block about-animate">
+                            <div className="about-feature-info">
+                                <div className="about-feature-tag privacy">
+                                    <span className="material-icons-round">visibility_off</span> Privacy
+                                </div>
+                                <h3>Post as Anonymous (By Default)</h3>
+                                <p>
+                                    Not everyone is comfortable putting their name on a report — and that is completely okay. By default,
+                                    every new pin is posted as Anonymous User, so you can focus on fixing the problem
+                                    without worrying about your identity and location.
+                                </p>
+                                <div className="about-feature-highlights">
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Choose between posting as Anonymous or Public on every report
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Your exact profile is never shown when you post anonymously
+                                    </div>
+                                    <div className="about-feature-highlight">
+                                        <span className="material-icons-round">check_circle</span>
+                                        Switch to public posting when you want recognition for your contribution
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="about-feature-image-wrap">
+                                <img
+                                    src="/images/post-as-anonymous-user.png"
+                                    alt="Post as Anonymous User option in the report form"
+                                    className="about-feature-img"
+                                    loading="lazy"
+                                />
+                            </div>
+                        </div>
+
                         {/* Profile Page */}
                         <div className="about-feature-block about-animate">
                             <div className="about-feature-info">

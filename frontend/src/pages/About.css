@@ -707,6 +707,11 @@
     color: #7289da;
 }
 
+.about-feature-tag.privacy {
+    background: rgba(148, 163, 184, 0.18);
+    color: #e2e8f0;
+}
+
 .about-feature-info h3 {
     font-size: 1.75rem;
     font-weight: 800;

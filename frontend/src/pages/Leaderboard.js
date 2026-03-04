@@ -74,7 +74,7 @@ function periodLabel(start, end, period) {
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Leaderboard() {
     const { getToken } = useAuth();
-    const [period, setPeriod] = useState('weekly');
+    const [period, setPeriod] = useState('yearly');
     const [expanded, setExpanded] = useState(null); // userId of expanded row
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
     const showToast = useCallback((message, type = 'info') => {

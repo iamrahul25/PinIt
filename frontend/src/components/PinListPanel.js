@@ -66,7 +66,7 @@ const PinListPanel = ({
   const [filterSavedOnly, setFilterSavedOnly] = useState(false);
   const [filterContributedOnly, setFilterContributedOnly] = useState(false);
   const [filterVerification, setFilterVerification] = useState(''); // '' = All, or unverified | partially-verified | verified | highly-verified
-  const [viewSize, setViewSize] = useState('small'); // 'big' | 'small' — list view is default
+  const [viewSize, setViewSize] = useState('big'); // 'big' | 'small' — large cards are default
 
   const filteredPins = useMemo(() => {
     let list = pins;

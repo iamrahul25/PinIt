@@ -739,6 +739,13 @@
     font-size: 1.2rem;
 }
 
+/* Discord CTA button inside About feature block */
+.about-discord-btn {
+    align-self: flex-start;
+    margin-top: 1.25rem;
+    width: auto;
+}
+
 .about-feature-image-wrap {
     position: relative;
     border-radius: 16px;

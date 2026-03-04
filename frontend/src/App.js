@@ -142,9 +142,12 @@ function App() {
   useEffect(() => {
     if (authLoading) return;
     if (!isSignedIn) {
-      navigate('/login', { replace: true });
+      // Allow unauthenticated users on / and /about; redirect everything else
+      if (location.pathname !== '/' && location.pathname !== '/about') {
+        navigate('/', { replace: true });
+      }
     }
-  }, [authLoading, isSignedIn, navigate]);
+  }, [authLoading, isSignedIn, navigate, location.pathname]);
 
   useEffect(() => {
     if (!isSignedIn || authLoading) return;
@@ -377,7 +380,16 @@ function App() {
     );
   }
 
-  if (!isSignedIn) return null;
+  // Show About page as public landing for unauthenticated users
+  if (!isSignedIn) {
+    return (
+      <div className="App">
+        <div className="app-profile-container">
+          <About showAuthButton={true} />
+        </div>
+      </div>
+    );
+  }
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 

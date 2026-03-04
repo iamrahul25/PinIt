@@ -1,10 +1,23 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Toast from '../components/Toast';
 import './About.css';
 
-function About() {
+function About({ showAuthButton = false }) {
     const navigate = useNavigate();
     const animRefs = useRef([]);
+    const [toast, setToast] = useState({ visible: false, message: '' });
+
+    const hideToast = () => setToast(t => ({ ...t, visible: false }));
+
+    // For unauthenticated users, show info toast instead of navigating
+    const handleProtectedAction = (path, actionLabel) => {
+        if (showAuthButton) {
+            setToast({ visible: true, message: `Please login to ${actionLabel}. Click "Login / Sign Up" at the top to continue.` });
+        } else {
+            navigate(path);
+        }
+    };
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -32,6 +45,22 @@ function About() {
     return (
         <div className="about-page">
 
+            {/* ===== AUTH TOP BAR (only for unauthenticated visitors) ===== */}
+            {showAuthButton && (
+                <div className="about-auth-topbar">
+                    <div className="about-auth-topbar-inner">
+                        <div className="about-auth-brand">
+                            <span className="material-icons-round" style={{ fontSize: '1.5rem', color: '#2dd4a8' }}>push_pin</span>
+                            <span className="about-auth-brand-text">Pin-It</span>
+                        </div>
+                        <button className="about-auth-login-btn" onClick={() => navigate('/login')}>
+                            <span className="material-icons-round">login</span>
+                            Login / Sign Up
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* ===== HERO ===== */}
             <section className="about-hero">
                 <div className="about-hero-particles">
@@ -56,7 +85,7 @@ function About() {
                         NGOs and community members then collaborate to solve these issues — making neighborhoods cleaner, safer, and greener.
                     </p>
                     <div className="about-hero-cta-group">
-                        <button className="about-cta-btn about-cta-primary" onClick={() => navigate('/')}>
+                        <button className="about-cta-btn about-cta-primary" onClick={() => handleProtectedAction('/', 'Explore the Map')}>
                             <span className="material-icons-round">explore</span>
                             Explore the Map
                         </button>
@@ -852,15 +881,15 @@ function About() {
                         Join Pin-It today and be part of a growing community of citizens and NGOs working together for cleaner, greener neighborhoods.
                     </p>
                     <div className="about-final-cta-actions">
-                        <button className="about-cta-btn about-cta-primary" onClick={() => navigate('/')}>
+                        <button className="about-cta-btn about-cta-primary" onClick={() => handleProtectedAction('/', 'Start Pinning Issues')}>
                             <span className="material-icons-round">location_on</span>
                             Start Pinning Issues
                         </button>
-                        <button className="about-cta-btn about-cta-secondary" onClick={() => navigate('/ngos')}>
+                        <button className="about-cta-btn about-cta-secondary" onClick={() => handleProtectedAction('/ngos', 'Explore NGOs')}>
                             <span className="material-icons-round">corporate_fare</span>
                             Explore NGOs
                         </button>
-                        <button className="about-cta-btn about-cta-secondary" onClick={() => navigate('/events')}>
+                        <button className="about-cta-btn about-cta-secondary" onClick={() => handleProtectedAction('/events', 'Find Events')}>
                             <span className="material-icons-round">event</span>
                             Find Events
                         </button>
@@ -888,6 +917,16 @@ function About() {
                     Made with <span className="about-heart">❤️</span> for a cleaner, greener tomorrow
                 </p>
             </footer>
+
+            {/* ===== LOGIN INFO TOAST ===== */}
+            <Toast
+                visible={toast.visible}
+                message={toast.message}
+                type="info"
+                autoHideMs={5000}
+                onClose={hideToast}
+                position="top-center"
+            />
 
         </div>
     );

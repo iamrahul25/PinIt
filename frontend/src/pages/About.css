@@ -13,6 +13,71 @@
     scroll-behavior: smooth;
 }
 
+/* ===== AUTH TOP BAR (for unauthenticated visitors) ===== */
+.about-auth-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(10, 14, 26, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.75rem 2rem;
+    animation: aboutFadeInDown 0.6s ease;
+}
+
+.about-auth-topbar-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.about-auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.about-auth-brand-text {
+    font-family: 'Montserrat', 'Inter', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    letter-spacing: -0.02em;
+}
+
+.about-auth-login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    background: linear-gradient(135deg, #16a085, #27ae60);
+    color: white;
+    box-shadow: 0 4px 18px rgba(22, 160, 133, 0.3);
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.about-auth-login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(22, 160, 133, 0.5);
+}
+
+.about-auth-login-btn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+.about-auth-login-btn .material-icons-round {
+    font-size: 1.15rem;
+}
+
 /* ===== HERO SECTION ===== */
 .about-hero {
     position: relative;
@@ -1353,5 +1418,18 @@
     .about-final-cta-emoji-row {
         gap: 1rem;
         flex-wrap: wrap;
+    }
+
+    .about-auth-topbar {
+        padding: 0.6rem 1rem;
+    }
+
+    .about-auth-brand-text {
+        font-size: 1.1rem;
+    }
+
+    .about-auth-login-btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
     }
 }

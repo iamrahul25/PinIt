@@ -48,24 +48,56 @@
   line-height: 1;
 }
 
-.login-decor-item.item-1 { top: 10%; left: 15%; opacity: 0.2; animation: login-pulse 4s infinite; }
-.login-decor-item.item-1 .login-glow-pin { font-size: 1.8rem !important; }
+.login-decor-item.item-1 {
+  top: 10%;
+  left: 15%;
+  opacity: 0.2;
+  animation: login-pulse 4s infinite;
+}
 
-.login-decor-item.item-2 { bottom: 20%; right: 10%; opacity: 0.1; }
-.login-decor-item.item-2 .login-glow-pin { font-size: 3.6rem !important; }
+.login-decor-item.item-1 .login-glow-pin {
+  font-size: 1.8rem !important;
+}
 
-.login-decor-item.item-3 { top: 50%; left: 5%; opacity: 0.1; animation: login-bounce 2s infinite; }
-.login-decor-item.item-3 .login-glow-pin { font-size: 6.3rem !important; }
+.login-decor-item.item-2 {
+  bottom: 20%;
+  right: 10%;
+  opacity: 0.1;
+}
 
-.login-decor-item.item-4 { top: 15%; right: 20%; opacity: 0.2; animation: login-pulse 3s infinite; }
-.login-decor-item.item-4 .login-glow-pin { font-size: 2.7rem !important; }
+.login-decor-item.item-2 .login-glow-pin {
+  font-size: 3.6rem !important;
+}
+
+.login-decor-item.item-3 {
+  top: 50%;
+  left: 5%;
+  opacity: 0.1;
+  animation: login-bounce 2s infinite;
+}
+
+.login-decor-item.item-3 .login-glow-pin {
+  font-size: 6.3rem !important;
+}
+
+.login-decor-item.item-4 {
+  top: 15%;
+  right: 20%;
+  opacity: 0.2;
+  animation: login-pulse 3s infinite;
+}
+
+.login-decor-item.item-4 .login-glow-pin {
+  font-size: 2.7rem !important;
+}
 
 /* Main card */
 .login-main-container {
   position: relative;
   z-index: 10;
   width: 100%;
-  max-width: 21.6rem; /* 20% narrower than 32rem, then -10% */
+  max-width: 21.6rem;
+  /* 20% narrower than 32rem, then -10% */
 }
 
 .login-card {
@@ -254,18 +286,75 @@
   box-shadow: 0 0 8px red;
 }
 
+/* Back to home button */
+.login-back-home-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.7875rem;
+  background: transparent;
+  border: 1px solid var(--slate-200);
+  color: var(--slate-600);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.login-back-home-btn:hover {
+  background: #f0fdf4;
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.1);
+}
+
+.login-back-home-btn:active {
+  transform: scale(0.97) translateY(0);
+}
+
+.login-back-home-btn svg {
+  flex-shrink: 0;
+}
+
 /* Animations */
 @keyframes login-scroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes login-pulse {
-  0%, 100% { opacity: 0.2; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(1.1); }
+
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(1.1);
+  }
 }
 
 @keyframes login-bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-25px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-25px);
+  }
 }

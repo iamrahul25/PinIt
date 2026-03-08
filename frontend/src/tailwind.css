@@ -1,3 +1,92 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 13%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 13%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 13%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 56%;
+    --radius: 0.625rem;
+  }
+
+  .dark {
+    --background: 0 0% 9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 87%;
+    --primary-foreground: 0 0% 13%;
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 56%;
+    --accent: 0 0% 26%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 18%;
+    --input: 0 0% 22%;
+    --ring: 0 0% 45%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* Custom severity slider (PinForm) */
+input[type="range"].severity-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="range"].severity-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 3px solid #8b5cf6;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input[type="range"].severity-range::-webkit-slider-thumb:hover {
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.5);
+}
+
+input[type="range"].severity-range::-moz-range-thumb:hover {
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.5);
+}

@@ -6,7 +6,6 @@ import { AuthProvider } from './context/AuthContext';
 import BackendHealthChecker from './components/BackendHealthChecker';
 import { register as registerServiceWorker } from './serviceWorkerRegistration';
 import LoginSignup from './pages/LoginSignup';
-import MainLayout from './pages/MainLayout';
 import App from './App';
 import './tailwind.css';
 import './index.css';
@@ -20,21 +19,21 @@ const queryClient = new QueryClient({
   },
 });
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById('root')!);
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
           <BackendHealthChecker>
-          <Routes>
-            <Route path="/login" element={<LoginSignup />} />
-            {/* Single route for all app paths so App stays mounted and navbar navigation doesn't reload the page */}
-            <Route path="/*" element={<App />} />
-          </Routes>
-        </BackendHealthChecker>
-      </BrowserRouter>
-    </AuthProvider>
+            <Routes>
+              <Route path="/login" element={<LoginSignup />} />
+              {/* Single route for all app paths so App stays mounted and navbar navigation doesn't reload the page */}
+              <Route path="/*" element={<App />} />
+            </Routes>
+          </BackendHealthChecker>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   </React.StrictMode>
 );

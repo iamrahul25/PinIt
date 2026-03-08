@@ -167,14 +167,14 @@ function LoginContent() {
 }
 
 export default function LoginSignup() {
-  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   if (!clientId) {
     return (
       <div className="login-page">
         <div className="login-main-container">
           <div className="login-card">
             <div className="login-error" role="alert">
-              Missing REACT_APP_GOOGLE_CLIENT_ID. Add it to frontend/.env
+              Missing VITE_GOOGLE_CLIENT_ID. Add it to frontend/.env
             </div>
           </div>
         </div>

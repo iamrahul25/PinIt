@@ -1,26 +1,26 @@
-// Lightweight service worker registration for CRA-style setup.
+// Lightweight service worker registration for Vite PWA setup.
 // This keeps the app online-only: no caching logic is added.
 
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
-    window.location.hostname === '[::1]' ||
-    window.location.hostname.match(
-      /^127(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d?\d)){3}$/
-    )
+  window.location.hostname === '[::1]' ||
+  window.location.hostname.match(
+    /^127(?:\.(?:25[0-5]|2[0-4]\d|[01]?\d?\d)){3}$/
+  )
 );
 
 export function register() {
-  if (process.env.NODE_ENV !== 'production' || !('serviceWorker' in navigator)) {
+  if (import.meta.env.MODE !== 'production' || !('serviceWorker' in navigator)) {
     return;
   }
 
-  const publicUrl = new URL(process.env.PUBLIC_URL, window.location.href);
+  const publicUrl = new URL(import.meta.env.BASE_URL, window.location.href);
   if (publicUrl.origin !== window.location.origin) {
     return;
   }
 
   window.addEventListener('load', () => {
-    const swUrl = `${process.env.PUBLIC_URL}/service-worker.js`;
+    const swUrl = `${import.meta.env.BASE_URL}service-worker.js`;
 
     if (isLocalhost) {
       // On localhost, just check that the service worker exists.
@@ -31,7 +31,7 @@ export function register() {
   });
 }
 
-function registerValidSW(swUrl) {
+function registerValidSW(swUrl: string) {
   navigator.serviceWorker
     .register(swUrl)
     .catch(() => {
@@ -39,7 +39,7 @@ function registerValidSW(swUrl) {
     });
 }
 
-function checkValidServiceWorker(swUrl) {
+function checkValidServiceWorker(swUrl: string) {
   fetch(swUrl)
     .then((response) => {
       const contentType = response.headers.get('content-type');
@@ -68,4 +68,3 @@ export function unregister() {
     });
   }
 }
-

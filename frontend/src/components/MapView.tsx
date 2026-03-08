@@ -16,7 +16,7 @@ if (typeof window !== 'undefined') window.L = L;
 const GOOGLE_MAPS_LIBRARIES = ['places', 'marker'];
 
 // Default map ID for AdvancedMarkerElement (can be customized in Google Cloud Console)
-const DEFAULT_MAP_ID = process.env.REACT_APP_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
+const DEFAULT_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
 
 // 20x20 SVG pin for cursor-following placement (tip at bottom center)
 const PinIconSvg = () => (
@@ -86,7 +86,7 @@ const AdvancedMarker = ({ position, map, content, onClick }) => {
     // Create marker element
     const markerElement = document.createElement('div');
     markerElement.style.cssText = 'display: flex; align-items: center; justify-content: center;';
-    
+
     if (currentContent) {
       if (typeof currentContent === 'string') {
         markerElement.innerHTML = currentContent;
@@ -203,7 +203,7 @@ function MapUpdater({ center, zoom, onMapMove }) {
   // Sync map movements back to parent
   useEffect(() => {
     if (!onMapMove) return;
-    
+
     const handleMoveEnd = () => {
       const mapCenter = map.getCenter();
       const mapZoom = map.getZoom();
@@ -256,7 +256,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
   const [pointerPosition, setPointerPosition] = useState(null); // { x, y } for following pin when placing
   const [isTouchOrNarrow, setIsTouchOrNarrow] = useState(false); // true when no hover (touch) or narrow viewport – show pin at center
   const mapWrapperRef = useRef(null);
-  const googleMapsApiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+  const googleMapsApiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '';
 
   // Don't auto-move to user location on load (so shared pin links show the pin, not user's location).
   // User location is only fetched and map moved when "My Location" button is clicked.
@@ -267,7 +267,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       const currentCenter = googleMapInstance.getCenter();
       const currentZoom = googleMapInstance.getZoom();
       const newCenter = { lat: center[0], lng: center[1] };
-      
+
       // Only update if there's a significant difference to avoid infinite loops
       if (currentCenter && (
         Math.abs(currentCenter.lat() - newCenter.lat) > 0.0001 ||
@@ -422,22 +422,22 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
     const searchInput = searchInputRef.current;
     const suggestionsList = suggestionsListRef.current;
     const clearButton = clearButtonRef.current;
-    
+
     if (!searchInput || !suggestionsList || !clearButton) return;
 
     let timeout;
-    
+
     const handleInput = async (e) => {
       clearTimeout(timeout);
       const query = e.target.value.trim();
-      
+
       // Show/hide clear button based on input
       if (query.length > 0) {
         clearButton.style.display = 'flex';
       } else {
         clearButton.style.display = 'none';
       }
-      
+
       if (query.length > 2) {
         timeout = setTimeout(async () => {
           try {
@@ -445,10 +445,10 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
             );
             const data = await response.json();
-            
+
             // Clear previous suggestions
             suggestionsList.innerHTML = '';
-            
+
             if (data.length > 0) {
               data.forEach((result, index) => {
                 const suggestionItem = document.createElement('div');
@@ -459,7 +459,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                   transition: background-color 0.2s;
                 `;
                 suggestionItem.textContent = result.display_name;
-                
+
                 // Hover effect
                 suggestionItem.addEventListener('mouseenter', () => {
                   suggestionItem.style.backgroundColor = '#f5f5f5';
@@ -467,7 +467,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                 suggestionItem.addEventListener('mouseleave', () => {
                   suggestionItem.style.backgroundColor = 'white';
                 });
-                
+
                 // Click handler
                 suggestionItem.addEventListener('click', () => {
                   const lat = parseFloat(result.lat);
@@ -479,7 +479,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                   suggestionsList.style.display = 'none';
                   clearButton.style.display = 'flex';
                 });
-                
+
                 suggestionsList.appendChild(suggestionItem);
               });
               suggestionsList.style.display = 'block';
@@ -576,12 +576,12 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
 
   // Zoom out button functionality
   const handleZoomOutClick = () => {
-    const currentCenter = mapType === 'osm' && leafletMapInstance 
-      ? leafletMapInstance.getCenter() 
-      : mapType === 'google' && googleMapInstance 
-        ? googleMapInstance.getCenter() 
+    const currentCenter = mapType === 'osm' && leafletMapInstance
+      ? leafletMapInstance.getCenter()
+      : mapType === 'google' && googleMapInstance
+        ? googleMapInstance.getCenter()
         : { lat: center[0], lng: center[1] };
-    
+
     if (mapType === 'osm' && leafletMapInstance) {
       leafletMapInstance.setView([currentCenter.lat, currentCenter.lng], STATE_LEVEL_ZOOM);
     } else if (mapType === 'google' && googleMapInstance) {
@@ -624,13 +624,13 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       onMouseLeave={showPinCursor ? handlePointerLeave : undefined}
     >
       {/* Floating Controls Overlay - contains all search and button elements */}
-      <div className="map-floating-controls" style={{ 
-        position: 'absolute', 
-        top: '10px', 
-        left: '10px', 
+      <div className="map-floating-controls" style={{
+        position: 'absolute',
+        top: '10px',
+        left: '10px',
         right: '10px',
-        zIndex: 1000, 
-        display: 'flex', 
+        zIndex: 1000,
+        display: 'flex',
         flexWrap: 'wrap',
         flexDirection: 'row',
         gap: '8px',
@@ -872,20 +872,20 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               aria-label="Zoom Out"
               onClick={handleZoomOutClick}
               style={{
-              width: '36px',
-              height: '36px',
-              padding: 0,
-              border: 'none',
-              borderRadius: '6px',
-              background: 'white',
-              boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#374151',
-              transition: 'transform 0.1s'
-            }}
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                border: 'none',
+                borderRadius: '6px',
+                background: 'white',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#374151',
+                transition: 'transform 0.1s'
+              }}
               onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
               onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -905,15 +905,15 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
             ...(pointerPosition != null
               ? { left: pointerPosition.x - 10, top: pointerPosition.y - 20, width: 20, height: 20 }
               : {
-                  left: '50%',
-                  top: '50%',
-                  width: 20,
-                  height: 20,
-                  marginLeft: -10,
-                  marginTop: -20,
-                  transform: 'scale(1.6)',
-                  transformOrigin: '50% 100%'
-                }
+                left: '50%',
+                top: '50%',
+                width: 20,
+                height: 20,
+                marginLeft: -10,
+                marginTop: -20,
+                transform: 'scale(1.6)',
+                transformOrigin: '50% 100%'
+              }
             ),
             zIndex: 1001,
             pointerEvents: 'none',
@@ -1021,7 +1021,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           )}
         </>
       )}
-      
+
       {/* OpenStreetMap - Always mounted, shown/hidden via CSS */}
       <div style={{
         position: 'absolute',
@@ -1036,8 +1036,8 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           center={center}
           zoom={zoom}
           zoomControl={false}
-          style={{ 
-            height: '100%', 
+          style={{
+            height: '100%',
             width: '100%',
             cursor: showPinCursor ? 'crosshair' : 'default'
           }}
@@ -1048,15 +1048,15 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               mapLayer === 'standard'
                 ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 : mapLayer === 'satellite'
-                ? '&copy; <a href="https://www.esri.com/">Esri</a>'
-                : '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
+                  ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+                  : '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
             }
             url={
               mapLayer === 'standard'
                 ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
                 : mapLayer === 'satellite'
-                ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                : 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+                  ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                  : 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
             }
           />
           <ZoomControl position="bottomright" />
@@ -1144,7 +1144,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           display: mapType === 'google' ? 'block' : 'none',
           zIndex: mapType === 'google' ? 1 : 0
         }}>
-          <LoadScript 
+          <LoadScript
             googleMapsApiKey={googleMapsApiKey}
             libraries={GOOGLE_MAPS_LIBRARIES}
           >
@@ -1241,7 +1241,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         }}>
           <div>Google Maps API key not configured</div>
           <div style={{ fontSize: '12px' }}>
-            Please set REACT_APP_GOOGLE_MAPS_API_KEY in your .env file
+            Please set VITE_GOOGLE_MAPS_API_KEY in your .env file
           </div>
         </div>
       )}

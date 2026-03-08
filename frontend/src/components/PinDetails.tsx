@@ -6,16 +6,25 @@ import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
-import { Calendar } from 'lucide-react';
+import EditPinDetails from './EditPinDetails';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Separator } from './ui/separator';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { Label } from './ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from './ui/card';
+import {
+  Calendar, Bookmark, Share2, X, ChevronLeft, ChevronRight,
+  ThumbsUp, ThumbsDown, MapPin, Copy, Check, ExternalLink,
+  AlertTriangle, Flag, ShieldCheck, Clock, CalendarDays,
+  CheckCircle2, MessageSquare, Send, Edit3, Trash2, Plus,
+  ImagePlus, Info, ChevronDown, ChevronUp, Undo2, Map,
+  User, Users, Building2, ShieldAlert, Loader2, Eye
+} from 'lucide-react';
 import './PinDetails.css';
 
-const PROBLEM_TYPES = [
-  { value: 'Trash Pile', label: 'Trash Pile' },
-  { value: 'Pothole', label: 'Pothole' },
-  { value: 'Broken Pipe', label: 'Broken Pipe' },
-  { value: 'Fuse Street Light', label: 'Street Light' },
-  { value: 'Other', label: 'Other' }
-];
+const MAX_IMAGES_PER_SECTION = 10;
 
 const COMPRESSION_OPTIONS = {
   maxSizeMB: 0.6,
@@ -24,12 +33,9 @@ const COMPRESSION_OPTIONS = {
   initialQuality: 0.75
 };
 
-const MAX_IMAGES_PER_SECTION = 10;
-
-// Verification score weights by role
 const VERIFICATION_ROLE_SCORES = { user: 10, reviewer: 30, ngo: 50, admin: 60 };
 const VERIFICATION_ROLE_LABELS = { user: 'Users', reviewer: 'Reviewers', ngo: 'NGOs', admin: 'Admins' };
-const VERIFICATION_ROLE_ICONS = { user: 'person', reviewer: 'rate_review', ngo: 'business', admin: 'admin_panel_settings' };
+const VERIFICATION_ROLE_ICONS = { user: <User size={14} />, reviewer: <ShieldCheck size={14} />, ngo: <Building2 size={14} />, admin: <ShieldAlert size={14} /> };
 
 const getVerificationScore = (pinVerification) => {
   if (!pinVerification || pinVerification.length === 0) return 0;
@@ -49,36 +55,14 @@ const getVerificationRoleCounts = (pinVerification) => {
   return counts;
 };
 
-// Truncate a reply-preview string to keep the badge compact.
 const truncateReplyText = (text, max = 60) =>
   text && text.length > max ? `${text.slice(0, max)}…` : (text || '…');
 
-// Distance between two lat/lng points in meters (Haversine).
-const getDistanceMeters = (lat1, lon1, lat2, lon2) => {
-  const R = 6371000; // Earth radius in meters
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-};
-
-const formatDistance = (meters) => {
-  if (meters < 1000) return `${Math.round(meters)} m`;
-  return `${(meters / 1000).toFixed(2)} km`;
-};
-
-// Recursively collect all descendants beyond level 3, flattened with parent-message info.
-// Each returned entry has an extra `replyingToText` field for the "Replied to \"…\"" badge.
 const flattenDeepReplies = (parentId, parentText, repliesMap) => {
   const children = repliesMap[parentId] || [];
   const result = [];
   for (const child of children) {
     result.push({ ...child, replyingToText: parentText });
-    // Recurse so level-5, 6, … are also captured
     result.push(...flattenDeepReplies(child._id, child.text, repliesMap));
   }
   return result;
@@ -99,7 +83,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const [imagesBefore, setImagesBefore] = useState([]);
   const [imagesAfter, setImagesAfter] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [addingImageType, setAddingImageType] = useState(null); // 'before' | 'after' | null
+  const [addingImageType, setAddingImageType] = useState(null);
   const addBeforeInputRef = useRef(null);
   const addAfterInputRef = useRef(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(null);
@@ -109,25 +93,12 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const [scheduledEvents, setScheduledEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const imageModalRef = useRef(null);
-  // Edit mode (admin or pin creator)
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState(null);
-  const [editImages, setEditImages] = useState([]); // before URLs to keep
-  const [newImageFiles, setNewImageFiles] = useState([]);
-  const [newImagePreviews, setNewImagePreviews] = useState([]);
-  const [editImagesAfter, setEditImagesAfter] = useState([]);
-  const [newImageFilesAfter, setNewImageFilesAfter] = useState([]);
-  const [newImagePreviewsAfter, setNewImagePreviewsAfter] = useState([]);
-  const [editError, setEditError] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
-  const [compressingNewImages, setCompressingNewImages] = useState(false);
   const [copiedLocation, setCopiedLocation] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState(new Set());
   const [resolving, setResolving] = useState(false);
   const [verificationBreakdownExpanded, setVerificationBreakdownExpanded] = useState(false);
   const [resolveBreakdownExpanded, setResolveBreakdownExpanded] = useState(false);
-  const editFileInputRef = useRef(null);
-  const editFileAfterInputRef = useRef(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -135,23 +106,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     fetchVoteStatus();
     fetchImages();
   }, [authLoading, getToken, pin._id, userId, pin.images, pin.imagesAfter]);
-
-  // When parent sends new location from map (reposition flow), update edit form
-  useEffect(() => {
-    if (!newLocationForEdit || newLocationForEdit.pinId !== pin._id) return;
-    setEditForm((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        location: {
-          latitude: newLocationForEdit.lat,
-          longitude: newLocationForEdit.lng,
-          address: newLocationForEdit.address || ''
-        }
-      };
-    });
-    onConsumeNewLocation?.();
-  }, [newLocationForEdit, pin._id, onConsumeNewLocation]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -174,6 +128,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     fetchEventsForPin();
     return () => { cancelled = true; };
   }, [authLoading, pin._id]);
+
   useEffect(() => {
     setVoteStatus((prev) => ({ ...prev, upvotes: pin.upvotes, downvotes: pin.downvotes }));
   }, [pin.upvotes, pin.downvotes]);
@@ -238,10 +193,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const afterCount = imagesAfter.length;
 
   const handleVerify = async () => {
-    if (!userId) {
-      alert('Please log in to verify pins.');
-      return;
-    }
+    if (!userId) { alert('Please log in to verify pins.'); return; }
     if (authLoading) return;
     setVerifying(true);
     try {
@@ -251,41 +203,28 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
       onUpdate?.();
     } catch (error) {
       console.error('Error verifying pin:', error);
-      if (error.response?.data?.error) {
-        alert(error.response.data.error);
-      }
+      if (error.response?.data?.error) alert(error.response.data.error);
     } finally {
       setVerifying(false);
     }
   };
 
   const handleVote = async (voteType) => {
-    if (!userId) {
-      alert('Please log in to vote.');
-      return;
-    }
+    if (!userId) { alert('Please log in to vote.'); return; }
     if (authLoading) return;
     try {
       const config = await getAuthConfig();
-      await axios.post(`${API_BASE_URL}/api/votes`, {
-        pinId: pin._id,
-        voteType
-      }, config);
+      await axios.post(`${API_BASE_URL}/api/votes`, { pinId: pin._id, voteType }, config);
       fetchVoteStatus();
       onUpdate();
     } catch (error) {
       console.error('Error voting:', error);
-      if (error.response?.data?.error) {
-        alert(error.response.data.error);
-      }
+      if (error.response?.data?.error) alert(error.response.data.error);
     }
   };
 
   const handleResolve = async () => {
-    if (!userId) {
-      alert('Please log in.');
-      return;
-    }
+    if (!userId) { alert('Please log in.'); return; }
     if (authLoading) return;
     setResolving(true);
     try {
@@ -305,20 +244,12 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
     if (!newComment.trim()) return;
-    if (!userId) {
-      alert('Please log in to comment.');
-      return;
-    }
+    if (!userId) { alert('Please log in to comment.'); return; }
     if (authLoading) return;
-
     setLoading(true);
     try {
       const config = await getAuthConfig({ 'Content-Type': 'application/json' });
-      await axios.post(`${API_BASE_URL}/api/comments`, {
-        pinId: pin._id,
-        author: displayName,
-        text: newComment
-      }, config);
+      await axios.post(`${API_BASE_URL}/api/comments`, { pinId: pin._id, author: displayName, text: newComment }, config);
       setNewComment('');
       fetchComments();
     } catch (error) {
@@ -331,22 +262,13 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const handleReplySubmit = async (e) => {
     e.preventDefault();
     if (!replyText.trim() || !replyingTo) return;
-    if (!userId) {
-      alert('Please log in to reply.');
-      return;
-    }
+    if (!userId) { alert('Please log in to reply.'); return; }
     if (authLoading) return;
-
     const parentId = replyingTo;
     setCommentActionLoading(parentId);
     try {
       const config = await getAuthConfig({ 'Content-Type': 'application/json' });
-      await axios.post(`${API_BASE_URL}/api/comments`, {
-        pinId: pin._id,
-        author: displayName,
-        text: replyText.trim(),
-        parentId
-      }, config);
+      await axios.post(`${API_BASE_URL}/api/comments`, { pinId: pin._id, author: displayName, text: replyText.trim(), parentId }, config);
       setReplyingTo(null);
       setReplyText('');
       fetchComments();
@@ -358,10 +280,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   };
 
   const handleCommentLike = async (commentId) => {
-    if (!userId) {
-      alert('Please log in to like.');
-      return;
-    }
+    if (!userId) { alert('Please log in to like.'); return; }
     if (authLoading) return;
     setCommentActionLoading(commentId);
     try {
@@ -376,10 +295,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   };
 
   const handleCommentDislike = async (commentId) => {
-    if (!userId) {
-      alert('Please log in to dislike.');
-      return;
-    }
+    if (!userId) { alert('Please log in to dislike.'); return; }
     if (authLoading) return;
     setCommentActionLoading(commentId);
     try {
@@ -393,7 +309,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     }
   };
 
-  // Build comment tree: top-level comments and replies grouped by parentId
   const commentTree = React.useMemo(() => {
     const topLevel = comments.filter((c) => !c.parentId);
     const repliesMap = {};
@@ -405,18 +320,13 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
       }
     });
     Object.keys(repliesMap).forEach((pid) => {
-      repliesMap[pid].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      repliesMap[pid].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     });
     return { topLevel, repliesMap };
   }, [comments]);
 
-  const openImageModal = (index) => {
-    setSelectedImageIndex(index);
-  };
-
-  const closeImageModal = () => {
-    setSelectedImageIndex(null);
-  };
+  const openImageModal = (index) => setSelectedImageIndex(index);
+  const closeImageModal = () => setSelectedImageIndex(null);
 
   const goToPrevImage = (e) => {
     e.stopPropagation();
@@ -437,14 +347,9 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     const text = pin.description
       ? `${heading} - ${pin.description.substring(0, 100)}${pin.description.length > 100 ? '...' : ''}`
       : heading;
-
     if (navigator.share) {
       try {
-        await navigator.share({
-          title,
-          text,
-          url
-        });
+        await navigator.share({ title, text, url });
       } catch (err) {
         if (err.name !== 'AbortError') copyToClipboard(url);
       }
@@ -454,10 +359,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   };
 
   const handleSaveToggle = async () => {
-    if (!userId) {
-      alert('Please log in to save pins.');
-      return;
-    }
+    if (!userId) { alert('Please log in to save pins.'); return; }
     if (authLoading) return;
     setSaving(true);
     try {
@@ -500,199 +402,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     }
   };
 
-  const startEditing = useCallback(() => {
-    const loc = pin.location;
-    setEditForm({
-      problemType: pin.problemType || 'Other',
-      severity: pin.severity ?? 5,
-      problemHeading: pin.problemHeading || '',
-      description: pin.description || '',
-      contributor_name: pin.contributor_name || '',
-      anonymous: pin.anonymous !== false,
-      location: loc ? { latitude: loc.latitude, longitude: loc.longitude, address: loc.address ?? '' } : { latitude: 0, longitude: 0, address: '' }
-    });
-    setEditImages(pin.images && Array.isArray(pin.images) ? [...pin.images] : []);
-    setNewImageFiles([]);
-    setNewImagePreviews([]);
-    setEditImagesAfter(pin.imagesAfter && Array.isArray(pin.imagesAfter) ? [...pin.imagesAfter] : []);
-    setNewImageFilesAfter([]);
-    setNewImagePreviewsAfter([]);
-    setEditError('');
-    setIsEditing(true);
-  }, [pin]);
-
-  const cancelEditing = useCallback(() => {
-    setIsEditing(false);
-    setEditForm(null);
-    setEditImages([]);
-    setNewImageFiles([]);
-    setNewImagePreviews([]);
-    setEditImagesAfter([]);
-    setNewImageFilesAfter([]);
-    setNewImagePreviewsAfter([]);
-    setEditError('');
-  }, []);
-
-  const handleEditInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditForm((prev) => ({
-      ...prev,
-      [name]: name === 'severity' ? parseInt(value, 10) : value
-    }));
-  };
-
-  const removeEditImage = (index) => {
-    setEditImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const removeNewEditImage = (index) => {
-    setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
-    setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const removeEditImageAfter = (index) => {
-    setEditImagesAfter((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const removeNewEditImageAfter = (index) => {
-    setNewImageFilesAfter((prev) => prev.filter((_, i) => i !== index));
-    setNewImagePreviewsAfter((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const handleNewEditImages = useCallback(async (e) => {
-    const files = Array.from(e.target.files || []);
-    const totalSlots = MAX_IMAGES_PER_SECTION - editImages.length - newImageFiles.length;
-    const toAdd = files.slice(0, Math.max(0, totalSlots));
-    if (toAdd.length === 0) return;
-    if (e.target) e.target.value = '';
-    setCompressingNewImages(true);
-    try {
-      const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
-      setNewImageFiles((prev) => [...prev, ...compressed]);
-      const start = newImageFiles.length;
-      const newPreviews = await Promise.all(
-        compressed.map((file) => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(file);
-          });
-        })
-      );
-      setNewImagePreviews((prev) => [...prev.slice(0, start), ...newPreviews]);
-    } catch (err) {
-      setEditError('Failed to process new images.');
-    } finally {
-      setCompressingNewImages(false);
-    }
-  }, [editImages.length, newImageFiles.length]);
-
-  const handleNewEditImagesAfter = useCallback(async (e) => {
-    const files = Array.from(e.target.files || []);
-    const totalSlots = MAX_IMAGES_PER_SECTION - editImagesAfter.length - newImageFilesAfter.length;
-    const toAdd = files.slice(0, Math.max(0, totalSlots));
-    if (toAdd.length === 0) return;
-    if (e.target) e.target.value = '';
-    setCompressingNewImages(true);
-    try {
-      const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
-      setNewImageFilesAfter((prev) => [...prev, ...compressed]);
-      const start = newImageFilesAfter.length;
-      const newPreviews = await Promise.all(
-        compressed.map((file) => {
-          return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.readAsDataURL(file);
-          });
-        })
-      );
-      setNewImagePreviewsAfter((prev) => [...prev.slice(0, start), ...newPreviews]);
-    } catch (err) {
-      setEditError('Failed to process new after images.');
-    } finally {
-      setCompressingNewImages(false);
-    }
-  }, [editImagesAfter.length, newImageFilesAfter.length]);
-
-  const getEditImageUrl = (url) => {
-    if (!url) return '';
-    return url.startsWith('http') ? getFullImageUrl(url) : `${API_BASE_URL}/api/images/${url}`;
-  };
-
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    if (!editForm || authLoading) return;
-    const heading = (editForm.problemHeading || '').trim();
-    if (!heading) {
-      setEditError('Problem heading is required.');
-      return;
-    }
-    const totalBefore = editImages.length + newImageFiles.length;
-    if (totalBefore === 0) {
-      setEditError('At least one before image is required.');
-      return;
-    }
-    if (totalBefore > MAX_IMAGES_PER_SECTION) {
-      setEditError(`Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.`);
-      return;
-    }
-    const totalAfter = editImagesAfter.length + newImageFilesAfter.length;
-    if (totalAfter > MAX_IMAGES_PER_SECTION) {
-      setEditError(`Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.`);
-      return;
-    }
-    setSavingEdit(true);
-    setEditError('');
-    try {
-      const config = await getAuthConfig({ 'Content-Type': 'application/json' });
-      const newUrls = [];
-      for (const file of newImageFiles) {
-        const formData = new FormData();
-        formData.append('image', file);
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          formData,
-          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
-        );
-        newUrls.push(uploadRes.data.url);
-      }
-      const newUrlsAfter = [];
-      for (const file of newImageFilesAfter) {
-        const formData = new FormData();
-        formData.append('image', file);
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          formData,
-          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
-        );
-        newUrlsAfter.push(uploadRes.data.url);
-      }
-      const allImages = [...editImages, ...newUrls];
-      const allImagesAfter = [...editImagesAfter, ...newUrlsAfter];
-      const payload = {
-        problemType: editForm.problemType,
-        severity: parseInt(editForm.severity, 10),
-        problemHeading: heading,
-        description: editForm.description || '',
-        contributor_name: pin.contributor_name || '',
-        anonymous: editForm.anonymous !== false,
-        location: editForm.location || pin.location || { latitude: 0, longitude: 0, address: '' },
-        images: allImages,
-        imagesAfter: allImagesAfter
-      };
-      const response = await axios.put(`${API_BASE_URL}/api/pins/${pin._id}`, payload, config);
-      const updatedPin = response.data;
-      onUpdate?.();
-      onPinUpdated?.(updatedPin);
-      cancelEditing();
-    } catch (err) {
-      setEditError(err.response?.data?.error || 'Failed to save changes.');
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
   const handleAddPinImageClick = (type) => {
     if (type === 'before' && addBeforeInputRef.current) addBeforeInputRef.current.click();
     if (type === 'after' && addAfterInputRef.current) addAfterInputRef.current.click();
@@ -707,7 +416,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     setAddingImageType(type);
     try {
       const file = files[0];
-      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      const compressed = await imageCompression(file as File, COMPRESSION_OPTIONS);
       const formData = new FormData();
       formData.append('image', compressed);
       const config = await getAuthConfig({ 'Content-Type': 'multipart/form-data' });
@@ -715,11 +424,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
       const url = uploadRes.data?.url;
       if (!url) throw new Error('No URL returned');
       const payloadConfig = await getAuthConfig({ 'Content-Type': 'application/json' });
-      const response = await axios.post(
-        `${API_BASE_URL}/api/pins/${pin._id}/images`,
-        { type, url },
-        payloadConfig
-      );
+      const response = await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/images`, { type, url }, payloadConfig);
       onPinUpdated?.(response.data);
       onUpdate?.();
       setImagesBefore((response.data.images || []).map(normalizeImageUrl));
@@ -788,8 +493,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
@@ -814,1295 +518,769 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const handlePrev = () => prevPin && onSelectPin && onSelectPin(prevPin);
   const handleNext = () => nextPin && onSelectPin && onSelectPin(nextPin);
 
+  /* ─────────────── Render helper: Comment ─────────────── */
+  const renderComment = (comment, isNested = false, parentAuthor?: string) => {
+    const isReplyingThis = replyingTo === comment._id;
+    const isLoading = commentActionLoading === comment._id;
+    const avatarUrl = comment.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author)}&background=e2e8f0&color=64748b`;
+
+    return (
+      <div className={`flex gap-3 ${isNested ? '' : ''}`}>
+        <img alt="" className={`rounded-full shrink-0 bg-muted ${isNested ? 'size-6' : 'size-9'}`} src={avatarUrl} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap mb-0.5">
+            <span className="text-[13px] font-semibold">{comment.author}</span>
+            <span className="text-xs text-muted-foreground">{formatDate(comment.createdAt)}</span>
+          </div>
+          {parentAuthor && (
+            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
+              <Undo2 size={12} />
+              <span className="truncate">Replied to {parentAuthor}</span>
+            </div>
+          )}
+          <p className="text-sm leading-relaxed break-words mb-1">{comment.text}</p>
+          <div className="flex items-center gap-0.5">
+            <Button variant="ghost" size="sm" className={`h-7 px-2 gap-1 text-xs ${comment.userLiked ? 'text-primary' : 'text-muted-foreground'}`} onClick={() => handleCommentLike(comment._id)} disabled={!userId || isLoading}>
+              <ThumbsUp className={`size-3.5 ${comment.userLiked ? 'fill-current' : ''}`} />
+              {comment.likes > 0 && <span>{comment.likes}</span>}
+            </Button>
+            <Button variant="ghost" size="sm" className={`h-7 px-2 gap-1 text-xs ${comment.userDisliked ? 'text-destructive' : 'text-muted-foreground'}`} onClick={() => handleCommentDislike(comment._id)} disabled={!userId || isLoading}>
+              <ThumbsDown className={`size-3.5 ${comment.userDisliked ? 'fill-current' : ''}`} />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs font-semibold text-muted-foreground" onClick={() => setReplyingTo(isReplyingThis ? null : comment._id)} disabled={!userId}>
+              Reply
+            </Button>
+          </div>
+          {isReplyingThis && (
+            <div className="flex gap-2 mt-2">
+              <img alt="" className="size-6 rounded-full shrink-0" src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`} />
+              <form className="flex-1 space-y-2" onSubmit={handleReplySubmit}>
+                <Textarea placeholder={`Reply to ${comment.author}...`} value={replyText} onChange={(e) => setReplyText(e.target.value)} rows={1} className="min-h-[36px] text-sm resize-none" autoFocus />
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="ghost" size="sm" onClick={() => { setReplyingTo(null); setReplyText(''); }}>Cancel</Button>
+                  <Button type="submit" size="sm" disabled={commentActionLoading === comment._id || !replyText.trim()}>Reply</Button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <>
-      <div className={`pin-details-overlay ${isRepositioningPin ? 'pin-details-overlay-repositioning' : ''}`} onClick={isRepositioningPin ? undefined : onClose}>
-        <div className={`pin-details-wrapper ${isRepositioningPin ? 'pin-details-wrapper-repositioning' : ''}`} onClick={(e) => e.stopPropagation()}>
+      {/* Overlay */}
+      <div
+        className={`fixed inset-0 z-[1100] flex p-4 ${isRepositioningPin ? 'items-end justify-center bg-transparent pointer-events-none pb-6' : 'items-center justify-center bg-black/60 backdrop-blur-sm'}`}
+        style={{ animation: 'pinFadeIn 0.3s ease-out' }}
+        onClick={isRepositioningPin ? undefined : onClose}
+      >
+        <div
+          className={`relative flex w-full ${isRepositioningPin ? 'items-end justify-center max-w-[36rem] pointer-events-auto' : 'items-center justify-center md:flex-row gap-3 max-w-[54rem]'}`}
+          onClick={(e) => e.stopPropagation()}
+        >
           {isRepositioningPin ? (
-            <div className="pin-details-reposition-bar">
-              <p className="pin-details-reposition-bar-message">
-                <span className="material-icons-round pin-details-reposition-bar-icon">place</span>
-                Click on the map to drop the pin at the new location.
-              </p>
-              {onCancelReposition && (
-                <button type="button" className="pin-details-reposition-bar-cancel" onClick={onCancelReposition}>
-                  Cancel
-                </button>
-              )}
-            </div>
-          ) : (
-          <>
-          {prevPin && (
-            <button
-              type="button"
-              className="pin-details-nav pin-details-nav-prev"
-              onClick={handlePrev}
-              aria-label="Previous pin"
-              title="Previous pin"
-            >
-              <span className="material-icons-round">chevron_left</span>
-            </button>
-          )}
-          <div className="pin-details-container">
-            <header className="pin-details-header">
-              <div className="pin-details-header-content">
-                <div
-                  className="pin-type-icon-detail"
-                  dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 40) }}
-                />
-                <div>
-                  <div className="pin-details-title-row">
-                    <h2 className="pin-details-title">{pin.problemType}</h2>
-                  </div>
-                </div>
-              </div>
-              <div className="pin-details-header-actions">
-                {user && (
-                  <button
-                    type="button"
-                    className={`pin-details-btn pin-details-btn-primary ${isSaved ? 'saved' : ''}`}
-                    onClick={handleSaveToggle}
-                    disabled={saving}
-                    title={isSaved ? 'Unsave this pin' : 'Save this pin'}
-                  >
-                    <span className="material-icons-round">bookmark</span>
-                    <span className="pin-details-btn-label">{saving ? '...' : isSaved ? 'Saved' : 'Save'}</span>
-                  </button>
+            <Card className="w-full shadow-lg">
+              <CardContent className="flex items-center justify-between gap-4 p-4">
+                <p className="flex items-center gap-2 text-sm font-medium">
+                  <MapPin className="size-5 text-primary shrink-0" />
+                  Click on the map to drop the pin at the new location.
+                </p>
+                {onCancelReposition && (
+                  <Button variant="outline" size="sm" onClick={onCancelReposition}>Cancel</Button>
                 )}
-                <button
-                  type="button"
-                  className="pin-details-btn pin-details-btn-secondary"
-                  onClick={handleShare}
-                  title="Share this pin"
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {prevPin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="hidden md:flex rounded-full h-11 w-11 shrink-0 shadow-md"
+                  onClick={handlePrev}
+                  aria-label="Previous pin"
                 >
-                  <span className="material-icons-round">share</span>
-                  <span className="pin-details-btn-label">{shareCopied ? 'Copied!' : 'Share'}</span>
-                </button>
-                <button className="pin-details-close" onClick={onClose} aria-label="Close">
-                  <span className="material-icons-round">close</span>
-                </button>
-              </div>
-            </header>
+                  <ChevronLeft className="size-5" />
+                </Button>
+              )}
 
-            <main className="pin-details-main">
-              {isEditing && editForm ? (
-                <form onSubmit={handleSaveEdit} className="pin-details-edit-form">
-                  {editError && <div className="pin-details-edit-error" role="alert">{editError}</div>}
-                  <div className="pin-details-edit-group">
-                    <label>Address</label>
-                    <div className="pin-details-edit-address-row">
-                      <input
-                        type="text"
-                        className="pin-details-edit-input"
-                        value={editForm.location?.address ?? pin.location?.address ?? '—'}
-                        readOnly
-                        aria-readonly="true"
-                      />
-                      {onRequestRepositionPin && (
-                        <button
-                          type="button"
-                          className="pin-details-edit-change-location-btn"
-                          onClick={() => onRequestRepositionPin(pin)}
-                          disabled={isRepositioningPin}
-                          title="Move pin to a new location on the map"
-                          aria-label="Change location on map"
-                        >
-                          <span className="material-icons-round">place</span>
-                          {isRepositioningPin ? 'Drop pin on map…' : 'Change location'}
-                        </button>
+              {prevPin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="md:hidden absolute left-2 top-1/2 -translate-y-1/2 z-50 rounded-full h-10 w-10 shadow-lg bg-background"
+                  onClick={handlePrev}
+                  aria-label="Previous pin"
+                >
+                  <ChevronLeft className="size-5" />
+                </Button>
+              )}
+
+              {/* Main Container */}
+              <div
+                className="relative w-full max-w-3xl max-h-[100vh] flex flex-col bg-background rounded-xl border shadow-2xl overflow-hidden"
+                style={{ animation: 'pinSlideUp 0.4s ease-out', transform: 'scale(0.9)', transformOrigin: 'center center' }}
+              >
+                {/* Header */}
+                <header className="sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="flex items-center justify-center size-10 rounded-lg bg-primary/10 border border-primary/20 shrink-0 [&>div]:flex [&>div]:items-center [&>div]:justify-center"
+                      dangerouslySetInnerHTML={{ __html: getProblemTypeMarkerHtml(pin.problemType, 32) }}
+                    />
+                    <h2 className="text-base font-bold tracking-tight truncate">{pin.problemType}</h2>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {user && (
+                      <Button
+                        variant={isSaved ? "default" : "outline"}
+                        size="sm"
+                        onClick={handleSaveToggle}
+                        disabled={saving}
+                        className={`gap-1.5 ${isSaved ? 'bg-pink-600 hover:bg-pink-700 text-white' : ''}`}
+                      >
+                        <Bookmark className={`size-4 ${isSaved ? 'fill-current' : ''}`} />
+                        <span className="hidden sm:inline">{saving ? '...' : isSaved ? 'Saved' : 'Save'}</span>
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5">
+                      <Share2 className="size-4" />
+                      <span className="hidden sm:inline">{shareCopied ? 'Copied!' : 'Share'}</span>
+                    </Button>
+                    <Button variant="ghost" size="icon" className="size-8 rounded-full text-muted-foreground" onClick={onClose} aria-label="Close">
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                </header>
+
+                {/* Main Content */}
+                <main className={`flex-1 overflow-y-auto px-5 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-track]:bg-transparent ${isEditing ? 'pt-0 pb-5' : 'py-5'}`}>
+                  {isEditing ? (
+                    <EditPinDetails
+                      pin={pin}
+                      onCancel={() => setIsEditing(false)}
+                      onSaved={(updatedPin) => {
+                        onPinUpdated?.(updatedPin);
+                        onUpdate?.();
+                        setIsEditing(false);
+                      }}
+                      onRequestRepositionPin={onRequestRepositionPin}
+                      onCancelReposition={onCancelReposition}
+                      isRepositioningPin={isRepositioningPin}
+                      newLocationForEdit={newLocationForEdit}
+                      onConsumeNewLocation={onConsumeNewLocation}
+                    />
+                  ) : (
+                    <>
+                      {/* ── Problem Heading ── */}
+                      {pin.problemHeading && (
+                        <Card className="border-l-4 border-l-primary">
+                          <CardHeader className="pb-1">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <Flag className="size-4" />
+                              Problem Heading
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-[15px] font-medium leading-relaxed">{pin.problemHeading}</p>
+                          </CardContent>
+                        </Card>
                       )}
-                    </div>
-                    {(() => {
-                      const lat = editForm.location?.latitude ?? pin.location?.latitude;
-                      const lng = editForm.location?.longitude ?? pin.location?.longitude;
-                      if (lat != null && lng != null) {
-                        const latNum = Number(lat);
-                        const lngNum = Number(lng);
+
+                      {/* ── Description ── */}
+                      {pin.description && (
+                        <Card className="border-l-4 border-l-muted-foreground/30">
+                          <CardHeader className="pb-1">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <Info className="size-4" />
+                              Description
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{pin.description}</p>
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* ── Before Images ── */}
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <AlertTriangle className="size-4 text-rose-500" />
+                              Before (before fix)
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider">
+                              {beforeCount} attachments
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {imagesBefore.map((url, index) => (
+                              <div key={`before-${index}`} className="aspect-square rounded-lg overflow-hidden cursor-pointer border bg-muted transition-all hover:ring-2 hover:ring-primary/50" onClick={() => openImageModal(index)}>
+                                <img src={url} alt={`Before ${index + 1}`} className="size-full object-cover transition-transform hover:scale-110" />
+                              </div>
+                            ))}
+                            {user && beforeCount < MAX_IMAGES_PER_SECTION && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors cursor-pointer hover:border-primary hover:text-primary ${addingImageType === 'before' ? 'opacity-50 pointer-events-none' : ''}`}
+                                onClick={() => !addingImageType && handleAddPinImageClick('before')}
+                                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !addingImageType && handleAddPinImageClick('before')}
+                                aria-label="Add before image"
+                              >
+                                <ImagePlus className="size-6" />
+                                <span className="text-xs font-medium">{addingImageType === 'before' ? 'Uploading…' : 'Add image'}</span>
+                              </div>
+                            )}
+                          </div>
+                          {beforeCount >= MAX_IMAGES_PER_SECTION && user && (
+                            <p className="text-xs text-muted-foreground mt-2">Max {MAX_IMAGES_PER_SECTION} images.</p>
+                          )}
+                          <input ref={addBeforeInputRef} type="file" accept="image/*" className="sr-only" aria-hidden="true" onChange={(e) => handleAddPinImageFile(e, 'before')} />
+                        </CardContent>
+                      </Card>
+
+                      {/* ── After Images ── */}
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <CheckCircle2 className="size-4 text-emerald-500" />
+                              After (after fixing)
+                            </CardTitle>
+                            <Badge variant="secondary" className="text-[10px] font-bold uppercase tracking-wider">
+                              {afterCount} attachments
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {imagesAfter.map((url, index) => (
+                              <div key={`after-${index}`} className="aspect-square rounded-lg overflow-hidden cursor-pointer border bg-muted transition-all hover:ring-2 hover:ring-emerald-500/50" onClick={() => openImageModal(beforeCount + index)}>
+                                <img src={url} alt={`After ${index + 1}`} className="size-full object-cover transition-transform hover:scale-110" />
+                              </div>
+                            ))}
+                            {user && afterCount < MAX_IMAGES_PER_SECTION && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 text-muted-foreground transition-colors cursor-pointer hover:border-emerald-500 hover:text-emerald-500 ${addingImageType === 'after' ? 'opacity-50 pointer-events-none' : ''}`}
+                                onClick={() => !addingImageType && handleAddPinImageClick('after')}
+                                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !addingImageType && handleAddPinImageClick('after')}
+                                aria-label="Add after image"
+                              >
+                                <ImagePlus className="size-6" />
+                                <span className="text-xs font-medium">{addingImageType === 'after' ? 'Uploading…' : 'Add image'}</span>
+                              </div>
+                            )}
+                          </div>
+                          {afterCount >= MAX_IMAGES_PER_SECTION && user && (
+                            <p className="text-xs text-muted-foreground mt-2">Max {MAX_IMAGES_PER_SECTION} images.</p>
+                          )}
+                          <input ref={addAfterInputRef} type="file" accept="image/*" className="sr-only" aria-hidden="true" onChange={(e) => handleAddPinImageFile(e, 'after')} />
+                        </CardContent>
+                      </Card>
+
+                      {/* ── Stats Grid ── */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        <Card>
+                          <CardContent className="pt-4 pb-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Severity Score</p>
+                            <div className="flex items-end gap-2">
+                              <span className={`text-3xl font-black tabular-nums leading-none ${
+                                getSeverityLabel(pin.severity) === 'CRITICAL' || getSeverityLabel(pin.severity) === 'HIGH' ? 'text-red-600' :
+                                getSeverityLabel(pin.severity) === 'MEDIUM' ? 'text-amber-500' :
+                                getSeverityLabel(pin.severity) === 'LOW' ? 'text-slate-600' : 'text-emerald-600'
+                              }`}>{pin.severity}/10</span>
+                              <Badge variant={getSeverityLabel(pin.severity) === 'CRITICAL' || getSeverityLabel(pin.severity) === 'HIGH' ? 'destructive' : 'secondary'} className="mb-0.5 text-[10px]">
+                                {getSeverityLabel(pin.severity)}
+                              </Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="pt-4 pb-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Community Response</p>
+                            <div className="flex gap-2">
+                              <Button
+                                variant={voteStatus.voteType === 'upvote' ? 'default' : 'outline'}
+                                size="sm"
+                                className={`gap-1.5 ${voteStatus.voteType === 'upvote' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`}
+                                onClick={() => handleVote('upvote')}
+                              >
+                                <ThumbsUp className={`size-4 ${voteStatus.voteType === 'upvote' ? 'fill-current' : ''}`} />
+                                {voteStatus.upvotes}
+                              </Button>
+                              <Button
+                                variant={voteStatus.voteType === 'downvote' ? 'default' : 'outline'}
+                                size="sm"
+                                className={`gap-1.5 ${voteStatus.voteType === 'downvote' ? 'bg-red-600 hover:bg-red-700 text-white' : ''}`}
+                                onClick={() => handleVote('downvote')}
+                              >
+                                <ThumbsDown className={`size-4 ${voteStatus.voteType === 'downvote' ? 'fill-current' : ''}`} />
+                                {voteStatus.downvotes}
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="pt-4 pb-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Reported By</p>
+                            <div className="flex items-center gap-2.5">
+                              <img alt={`${reporterName} Avatar`} className="size-8 rounded-full border-2 border-background shadow-sm" src={reporterAvatar} />
+                              <span className="text-sm font-bold truncate">{reporterName}</span>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="pt-4 pb-4">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Published</p>
+                            <div className="flex items-center gap-2 text-sm font-bold">
+                              <Calendar className="size-4 text-muted-foreground shrink-0" />
+                              {formatDate(pin.createdAt)}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* ── Verification Status ── */}
+                      {(() => {
+                        const verifications = pin.pinVerification || [];
+                        const vScore = getVerificationScore(verifications);
+                        const vStatus = getVerificationStatus(vScore);
+                        const roleCounts = getVerificationRoleCounts(verifications);
+                        const hasVerified = verifications.some((v) => String(v.userId) === String(userId));
+                        const maxScore = 180;
+                        const progressPct = Math.min((vScore / maxScore) * 100, 100);
                         return (
-                          <div className="pin-details-edit-coords" aria-label="GPS coordinates">
-                            <span>LAT: {latNum.toFixed(5)}° {latNum >= 0 ? 'N' : 'S'}</span>
-                            <span>LONG: {lngNum.toFixed(5)}° {lngNum >= 0 ? 'E' : 'W'}</span>
-                          </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                    {(() => {
-                      const oldLat = pin.location?.latitude;
-                      const oldLng = pin.location?.longitude;
-                      const newLat = editForm.location?.latitude;
-                      const newLng = editForm.location?.longitude;
-                      if (oldLat != null && oldLng != null && newLat != null && newLng != null) {
-                        const same = Number(oldLat).toFixed(5) === Number(newLat).toFixed(5) &&
-                          Number(oldLng).toFixed(5) === Number(newLng).toFixed(5);
-                        if (!same) {
-                          const meters = getDistanceMeters(
-                            Number(oldLat), Number(oldLng),
-                            Number(newLat), Number(newLng)
-                          );
-                          return (
-                            <p className="pin-details-edit-location-changed" role="status">
-                              GPS location changed by → {formatDistance(meters)}
-                            </p>
-                          );
-                        }
-                      }
-                      return null;
-                    })()}
-                    {isRepositioningPin && (
-                      <div className="pin-details-edit-reposition-hint-wrap">
-                        <p className="pin-details-edit-reposition-hint" role="status">
-                          Click on the map to drop the pin at the new location.
-                        </p>
-                        {onCancelReposition && (
-                          <button type="button" className="pin-details-edit-cancel-reposition" onClick={onCancelReposition}>
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  <div className="pin-details-edit-row">
-                    <div className="pin-details-edit-group">
-                      <label>Problem Type <span className="required">*</span></label>
-                      <select
-                        name="problemType"
-                        value={editForm.problemType}
-                        onChange={handleEditInputChange}
-                        className="pin-details-edit-input pin-details-edit-select"
-                      >
-                        {PROBLEM_TYPES.map(({ value, label }) => (
-                          <option key={value} value={value}>{label}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="pin-details-edit-group">
-                      <label>Severity (1–10) <span className="required">*</span></label>
-                      <div className="pin-details-edit-severity-wrap">
-                        <input
-                          type="range"
-                          name="severity"
-                          min="1"
-                          max="10"
-                          value={editForm.severity}
-                          onChange={handleEditInputChange}
-                          className="pin-details-edit-severity"
-                        />
-                        <span className="pin-details-edit-severity-value">{editForm.severity}/10</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pin-details-edit-group">
-                    <label>Problem Heading <span className="required">*</span></label>
-                    <input
-                      type="text"
-                      name="problemHeading"
-                      value={editForm.problemHeading}
-                      onChange={handleEditInputChange}
-                      placeholder="e.g. Garbage pile near the park"
-                      className="pin-details-edit-input"
-                      required
-                    />
-                  </div>
-                  <div className="pin-details-edit-group">
-                    <label>Description <span className="pin-details-edit-optional">(optional)</span></label>
-                    <textarea
-                      name="description"
-                      value={editForm.description}
-                      onChange={handleEditInputChange}
-                      placeholder="Describe the problem..."
-                      rows={3}
-                      className="pin-details-edit-input pin-details-edit-textarea"
-                    />
-                  </div>
-                  <div className="pin-details-edit-group">
-                    <label>Post as</label>
-                    <select
-                      value={editForm.anonymous !== false ? 'anonymous' : 'public'}
-                      onChange={(e) => setEditForm((prev) => ({ ...prev, anonymous: e.target.value === 'anonymous' }))}
-                      className="pin-details-edit-input"
-                      aria-label="Post as Anonymous or Public"
-                    >
-                      <option value="anonymous">Anonymous User</option>
-                      <option value="public">Post Publically</option>
-                    </select>
-                  </div>
-                  <div className="pin-details-edit-group">
-                    <label>Before images (before fix) <span className="required">*</span> (at least 1, max {MAX_IMAGES_PER_SECTION})</label>
-                    <div className="pin-details-edit-images">
-                      {editImages.map((url, index) => (
-                        <div key={`existing-${index}`} className="pin-details-edit-thumb-wrap">
-                          <img src={getEditImageUrl(url)} alt="" />
-                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeEditImage(index)} aria-label="Remove image">×</button>
-                        </div>
-                      ))}
-                      {newImagePreviews.map((src, index) => (
-                        <div key={`new-${index}`} className="pin-details-edit-thumb-wrap">
-                          <img src={src} alt="" />
-                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImage(index)} aria-label="Remove image">×</button>
-                        </div>
-                      ))}
-                      {editImages.length + newImageFiles.length < MAX_IMAGES_PER_SECTION && (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
-                          onClick={() => !compressingNewImages && editFileInputRef.current?.click()}
-                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileInputRef.current?.click()}
-                          aria-label="Add before image"
-                        >
-                          <span className="material-icons-round">add_photo_alternate</span>
-                          {compressingNewImages ? 'Compressing...' : 'Add'}
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      ref={editFileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleNewEditImages}
-                      className="pin-details-edit-file-hidden"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div className="pin-details-edit-group">
-                    <label>After images (after fixing) <span className="pin-details-edit-optional">(optional, max {MAX_IMAGES_PER_SECTION})</span></label>
-                    <div className="pin-details-edit-images">
-                      {editImagesAfter.map((url, index) => (
-                        <div key={`after-existing-${index}`} className="pin-details-edit-thumb-wrap">
-                          <img src={getEditImageUrl(url)} alt="" />
-                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeEditImageAfter(index)} aria-label="Remove image">×</button>
-                        </div>
-                      ))}
-                      {newImagePreviewsAfter.map((src, index) => (
-                        <div key={`after-new-${index}`} className="pin-details-edit-thumb-wrap">
-                          <img src={src} alt="" />
-                          <button type="button" className="pin-details-edit-thumb-remove" onClick={() => removeNewEditImageAfter(index)} aria-label="Remove image">×</button>
-                        </div>
-                      ))}
-                      {editImagesAfter.length + newImageFilesAfter.length < MAX_IMAGES_PER_SECTION && (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className={`pin-details-edit-add-thumb ${compressingNewImages ? 'disabled' : ''}`}
-                          onClick={() => !compressingNewImages && editFileAfterInputRef.current?.click()}
-                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && editFileAfterInputRef.current?.click()}
-                          aria-label="Add after image"
-                        >
-                          <span className="material-icons-round">add_photo_alternate</span>
-                          {compressingNewImages ? 'Compressing...' : 'Add'}
-                        </div>
-                      )}
-                    </div>
-                    <input
-                      ref={editFileAfterInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleNewEditImagesAfter}
-                      className="pin-details-edit-file-hidden"
-                      aria-hidden="true"
-                    />
-                  </div>
-                  <div className="pin-details-edit-actions">
-                    <button type="button" className="pin-details-btn pin-details-btn-secondary" onClick={cancelEditing} disabled={savingEdit}>
-                      Cancel
-                    </button>
-                    <button type="submit" className="pin-details-btn pin-details-btn-primary" disabled={savingEdit}>
-                      {savingEdit ? 'Saving…' : 'Save changes'}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  {/* 1. Problem Heading */}
-                  {pin.problemHeading && (
-                    <section className="pin-details-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">title</span>
-                        Problem Heading
-                      </h3>
-                      <div className="pin-details-problem-heading">
-                        <p>{pin.problemHeading}</p>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* 2. Description */}
-                  {pin.description && (
-                    <section className="pin-details-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">subject</span>
-                        Description
-                      </h3>
-                      <div className="pin-details-description">
-                        <p>{pin.description}</p>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* 3. Before images (before fix) */}
-                  <section className="pin-details-section pin-details-section-before">
-                    <div className="pin-details-section-header">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">report</span>
-                        Before (before fix)
-                      </h3>
-                      <span className="pin-details-attachment-badge">{beforeCount} ATTACHMENTS</span>
-                    </div>
-                    <div className="pin-details-images-grid">
-                      {imagesBefore.map((url, index) => (
-                        <div
-                          key={`before-${index}`}
-                          className="pin-details-image-wrap"
-                          onClick={() => openImageModal(index)}
-                        >
-                          <img src={url} alt={`Before ${index + 1}`} />
-                        </div>
-                      ))}
-                      {user && beforeCount < MAX_IMAGES_PER_SECTION && (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className={`pin-details-add-image-thumb ${addingImageType === 'before' ? 'disabled' : ''}`}
-                          onClick={() => !addingImageType && handleAddPinImageClick('before')}
-                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !addingImageType && handleAddPinImageClick('before')}
-                          aria-label="Add before image"
-                        >
-                          <span className="material-icons-round">add_photo_alternate</span>
-                          {addingImageType === 'before' ? 'Uploading…' : 'Add image'}
-                        </div>
-                      )}
-                    </div>
-                    {beforeCount >= MAX_IMAGES_PER_SECTION && user && (
-                      <p className="pin-details-max-hint">Max {MAX_IMAGES_PER_SECTION} images.</p>
-                    )}
-                    <input
-                      ref={addBeforeInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="pin-details-edit-file-hidden"
-                      aria-hidden="true"
-                      onChange={(e) => handleAddPinImageFile(e, 'before')}
-                    />
-                  </section>
-
-                  {/* 4. After images (after fixing) */}
-                  <section className="pin-details-section pin-details-section-after">
-                    <div className="pin-details-section-header">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">check_circle</span>
-                        After (after fixing)
-                      </h3>
-                      <span className="pin-details-attachment-badge">{afterCount} ATTACHMENTS</span>
-                    </div>
-                    <div className="pin-details-images-grid">
-                      {imagesAfter.map((url, index) => (
-                        <div
-                          key={`after-${index}`}
-                          className="pin-details-image-wrap"
-                          onClick={() => openImageModal(beforeCount + index)}
-                        >
-                          <img src={url} alt={`After ${index + 1}`} />
-                        </div>
-                      ))}
-                      {user && afterCount < MAX_IMAGES_PER_SECTION && (
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          className={`pin-details-add-image-thumb ${addingImageType === 'after' ? 'disabled' : ''}`}
-                          onClick={() => !addingImageType && handleAddPinImageClick('after')}
-                          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && !addingImageType && handleAddPinImageClick('after')}
-                          aria-label="Add after image"
-                        >
-                          <span className="material-icons-round">add_photo_alternate</span>
-                          {addingImageType === 'after' ? 'Uploading…' : 'Add image'}
-                        </div>
-                      )}
-                    </div>
-                    {afterCount >= MAX_IMAGES_PER_SECTION && user && (
-                      <p className="pin-details-max-hint">Max {MAX_IMAGES_PER_SECTION} images.</p>
-                    )}
-                    <input
-                      ref={addAfterInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="pin-details-edit-file-hidden"
-                      aria-hidden="true"
-                      onChange={(e) => handleAddPinImageFile(e, 'after')}
-                    />
-                  </section>
-
-                  {/* 4. Stats grid + 5. Verification card */}
-                  <div className="pin-details-stats">
-                    <div className="pin-details-stats-grid">
-                      <div className="pin-details-stat-card">
-                        <p className="pin-details-stat-label">Severity Score</p>
-                        <div className="pin-details-stat-value">
-                          <span className={`severity-score severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>{pin.severity}/10</span>
-                          <span className={`severity-label severity-${getSeverityLabel(pin.severity).toLowerCase()}`}>
-                            {getSeverityLabel(pin.severity)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="pin-details-stat-card pin-details-stat-votes">
-                        <p className="pin-details-stat-label">Community Response</p>
-                        <div className="pin-details-votes">
-                          <button
-                            type="button"
-                            className={`vote-inline upvote ${voteStatus.voteType === 'upvote' ? 'active' : ''}`}
-                            onClick={() => handleVote('upvote')}
-                          >
-                            <span className="material-icons-round">thumb_up</span>
-                            {voteStatus.upvotes}
-                          </button>
-                          <button
-                            type="button"
-                            className={`vote-inline downvote ${voteStatus.voteType === 'downvote' ? 'active' : ''}`}
-                            onClick={() => handleVote('downvote')}
-                          >
-                            <span className="material-icons-round">thumb_down</span>
-                            {voteStatus.downvotes}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="pin-details-stat-card">
-                        <p className="pin-details-stat-label">Reported By</p>
-                        <div className="pin-details-stat-reported">
-                          <img alt={`${reporterName} Avatar`} className="reporter-avatar" src={reporterAvatar} />
-                          <span className="reporter-name">{reporterName}</span>
-                        </div>
-                      </div>
-                      <div className="pin-details-stat-card">
-                        <p className="pin-details-stat-label">Published</p>
-                        <div className="pin-details-stat-value pin-details-stat-date">
-                          <Calendar className="pin-details-date-icon" size={18} strokeWidth={2} aria-hidden />
-                          {formatDate(pin.createdAt)}
-                        </div>
-                      </div>
-                    </div>
-                    {(() => {
-                      const verifications = pin.pinVerification || [];
-                      const vScore = getVerificationScore(verifications);
-                      const vStatus = getVerificationStatus(vScore);
-                      const roleCounts = getVerificationRoleCounts(verifications);
-                      const hasVerified = verifications.some((v) => String(v.userId) === String(userId));
-                      const maxScore = 180; // reasonable max for progress display
-                      const progressPct = Math.min((vScore / maxScore) * 100, 100);
-                      return (
-                        <div className="pin-details-stat-card pin-details-stat-verify pin-details-verification-card">
-                          <p className="pin-details-stat-label pin-details-stat-label-with-info">
-                            Verification Status
-                            <span className="pin-verification-info-wrap">
-                              <span className="material-icons-round pin-verification-info-icon" aria-hidden="true">info</span>
-                              <span className="pin-verification-info-tooltip" role="tooltip">
-                                <span className="pin-verification-info-line">🔵 Highly Verified (Score ≥ 121)</span>
-                                <span className="pin-verification-info-line">🟢 Verified (Score 81 – 120)</span>
-                                <span className="pin-verification-info-line">🟡 Partially Verified (Score 41–80)</span>
-                                <span className="pin-verification-info-line">🔴 Unverified (Score ≤ 40)</span>
-                              </span>
-                            </span>
-                          </p>
-                          <div className="pin-verification-status-row">
-                            <span className="pin-verification-emoji">{vStatus.emoji}</span>
-                            <span className="pin-verification-status-label" style={{ color: vStatus.color }}>{vStatus.label}</span>
-                            <span className="pin-verification-score">Score: {vScore}</span>
-                          </div>
-                          <div className="pin-verification-progress-wrap">
-                            <div className="pin-verification-progress-bar">
-                              <div
-                                className="pin-verification-progress-fill"
-                                style={{ width: `${progressPct}%`, background: vStatus.color }}
-                              />
-                            </div>
-                          </div>
-                          <div className="pin-verification-card-actions">
-                            {user && (
-                              <button
-                                type="button"
-                                className={`pin-details-verify-btn ${hasVerified ? 'verified' : ''}`}
-                                onClick={handleVerify}
-                                disabled={verifying}
-                                title={hasVerified ? 'Remove your verification' : 'Verify this pin'}
-                              >
-                                <span className="material-icons-round">
-                                  {hasVerified ? 'verified' : 'verified_user'}
-                                </span>
-                                {verifying ? '...' : hasVerified ? 'Verified ✓' : 'Verify'}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="pin-verification-breakdown-toggle"
-                              onClick={() => setVerificationBreakdownExpanded((v) => !v)}
-                              aria-expanded={verificationBreakdownExpanded}
-                            >
-                              <span className="material-icons-round">
-                                {verificationBreakdownExpanded ? 'expand_less' : 'expand_more'}
-                              </span>
-                              {verificationBreakdownExpanded ? 'Hide' : 'Breakdown'}
-                            </button>
-                          </div>
-                          {verificationBreakdownExpanded && (
-                            <>
-                              <div className="pin-verification-breakdown">
-                                {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
-                                  <div key={role} className="pin-verification-role-item">
-                                    <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
-                                    <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
-                                    <span className="pin-verification-role-count">{roleCounts[role]}</span>
-                                    <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="pin-verification-total">
-                                Total verifiers: {verifications.length}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* ── Fix Status Timeline ── */}
-                  <section className="pin-details-section">
-                    <h3 className="pin-details-section-title">
-                      <span className="material-icons-round">timeline</span>
-                      Fix Status
-                    </h3>
-                    {(() => {
-                      const vScore = getVerificationScore(pin.pinVerification);
-                      const isVerified = vScore > 80;
-                      const isScheduled = scheduledEvents.length > 0;
-
-                      // Resolve state for timeline steps only
-                      const resolves = pin.resolveVerification || [];
-                      const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
-                      const isResolved = resolveScore > 80;
-
-                      const fmtDate = (d) => {
-                        if (!d) return '';
-                        const dt = new Date(d);
-                        return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
-                          + ' - ' + dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                      };
-
-                      // Earliest scheduled event date
-                      const nextEventDate = scheduledEvents.length > 0
-                        ? scheduledEvents.reduce((earliest, ev) => {
-                          const d = new Date(ev.date);
-                          return d < earliest ? d : earliest;
-                        }, new Date(scheduledEvents[0].date))
-                        : null;
-
-                      const steps = [
-                        {
-                          key: 'reported',
-                          label: 'Reported',
-                          icon: 'flag',
-                          active: true,
-                          date: fmtDate(pin.createdAt)
-                        },
-                        {
-                          key: 'verified',
-                          label: 'Verified',
-                          icon: 'verified',
-                          active: isVerified,
-                          date: isVerified && pin.fixStatus?.verifiedAt ? fmtDate(pin.fixStatus.verifiedAt) : (isVerified ? 'Score > 80' : 'Score ≤ 80')
-                        },
-                        {
-                          key: 'awaiting',
-                          label: 'Awaiting Action',
-                          icon: 'hourglass_top',
-                          active: isVerified, // highlighted when verified (current state) or when resolved (completed step)
-                          date: '' // Don't show date for Awaiting Action
-                        },
-                        {
-                          key: 'scheduled',
-                          label: 'Scheduled',
-                          icon: 'event',
-                          active: isScheduled,
-                          date: nextEventDate
-                            ? `Estimated: ${nextEventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`
-                            : ''
-                        },
-                        {
-                          key: 'resolved',
-                          label: 'Resolved',
-                          icon: 'check_circle',
-                          active: isResolved,
-                          date: isResolved && pin.fixStatus?.resolvedAt ? fmtDate(pin.fixStatus.resolvedAt) : (resolveScore > 0 ? `Score: ${resolveScore}/81` : '')
-                        }
-                      ];
-
-                      return (
-                        <div className="fix-status-timeline">
-                          {steps.map((step, i) => (
-                            <div
-                              key={step.key}
-                              className={`fix-status-step ${step.active ? 'active' : 'inactive'}`}
-                            >
-                              {/* Connector line above (skip first) */}
-                              {i > 0 && (
-                                <div className={`fix-status-connector ${steps[i - 1].active && step.active ? 'active' : ''}`} />
-                              )}
-                              <div className="fix-status-dot">
-                                <span className="material-icons-round">{step.icon}</span>
-                              </div>
-                              <div className="fix-status-content">
-                                <span className="fix-status-label">{step.label}</span>
-                                {step.date && <span className="fix-status-date">{step.date}</span>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      );
-                    })()}
-                  </section>
-
-                  {/* ── Mark as Resolved (same UI as Verification Status) ── */}
-                  <section className="pin-details-section pin-details-resolve-section">
-                    <h3 className="pin-details-section-title">
-                      <span className="material-icons-round">check_circle</span>
-                      Mark as Resolved
-                    </h3>
-                    {(() => {
-                      const resolves = pin.resolveVerification || [];
-                      const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
-                      const isResolved = resolveScore > 80;
-                      const hasVotedResolve = resolves.some((v) => String(v.userId) === String(userId));
-                      const resolveRoleCounts = { user: 0, reviewer: 0, ngo: 0, admin: 0 };
-                      resolves.forEach((v) => { resolveRoleCounts[v.role] = (resolveRoleCounts[v.role] || 0) + 1; });
-                      const maxScore = 180;
-                      const progressPct = Math.min((resolveScore / maxScore) * 100, 100);
-                      const resolveStatus = isResolved
-                        ? { label: 'Resolved', emoji: '✅', color: '#10b981' }
-                        : { label: 'Not resolved', emoji: '⏳', color: '#94a3b8' };
-                      return (
-                        <div className="pin-details-stat-card pin-details-stat-verify pin-details-verification-card">
-                          <p className="pin-details-stat-label pin-details-stat-label-with-info">
-                            Resolve Status
-                            <span className="pin-verification-info-wrap">
-                              <span className="material-icons-round pin-verification-info-icon" aria-hidden="true">info</span>
-                              <span className="pin-verification-info-tooltip" role="tooltip">
-                                <span className="pin-verification-info-line">✅ Resolved (Score &gt; 80)</span>
-                                <span className="pin-verification-info-line">⏳ Not resolved (Score ≤ 80)</span>
-                              </span>
-                            </span>
-                          </p>
-                          <div className="pin-verification-status-row">
-                            <span className="pin-verification-emoji">{resolveStatus.emoji}</span>
-                            <span className="pin-verification-status-label" style={{ color: resolveStatus.color }}>
-                              {resolveStatus.label}
-                            </span>
-                            <span className="pin-verification-score">Score: {resolveScore}</span>
-                          </div>
-                          <div className="pin-verification-progress-wrap">
-                            <div className="pin-verification-progress-bar">
-                              <div
-                                className="pin-verification-progress-fill"
-                                style={{ width: `${progressPct}%`, background: resolveStatus.color }}
-                              />
-                            </div>
-                          </div>
-                          <div className="pin-verification-card-actions">
-                            {user && (
-                              <button
-                                type="button"
-                                className={`pin-details-verify-btn ${hasVotedResolve ? 'verified' : ''}`}
-                                onClick={handleResolve}
-                                disabled={resolving}
-                                title={hasVotedResolve ? 'Remove your resolve vote' : 'Vote this pin as resolved'}
-                              >
-                                <span className="material-icons-round">
-                                  {hasVotedResolve ? 'undo' : 'check_circle'}
-                                </span>
-                                {resolving ? '...' : hasVotedResolve ? 'Voted ✓' : 'Vote Resolved'}
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="pin-verification-breakdown-toggle"
-                              onClick={() => setResolveBreakdownExpanded((v) => !v)}
-                              aria-expanded={resolveBreakdownExpanded}
-                            >
-                              <span className="material-icons-round">
-                                {resolveBreakdownExpanded ? 'expand_less' : 'expand_more'}
-                              </span>
-                              {resolveBreakdownExpanded ? 'Hide' : 'Breakdown'}
-                            </button>
-                          </div>
-                          {resolveBreakdownExpanded && (
-                            <>
-                              <div className="pin-verification-breakdown">
-                                {['user', 'reviewer', 'ngo', 'admin'].map((role) => (
-                                  <div key={role} className="pin-verification-role-item">
-                                    <span className="material-icons-round pin-verification-role-icon">{VERIFICATION_ROLE_ICONS[role]}</span>
-                                    <span className="pin-verification-role-label">{VERIFICATION_ROLE_LABELS[role]}</span>
-                                    <span className="pin-verification-role-count">{resolveRoleCounts[role]}</span>
-                                    <span className="pin-verification-role-pts">({VERIFICATION_ROLE_SCORES[role]}pts each)</span>
-                                  </div>
-                                ))}
-                              </div>
-                              <div className="pin-verification-total">
-                                Total resolvers: {resolves.length}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </section>
-
-                  {(pin.location?.address || (pin.location?.latitude != null && pin.location?.longitude != null)) && (
-                    <section className="pin-details-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">pin_drop</span>
-                        Precise Location
-                      </h3>
-                      <div className="pin-details-location">
-                        {pin.location?.address && (
-                          <div className="location-address-row">
-                            <p className="location-address">{pin.location.address}</p>
-                          </div>
-                        )}
-                        {pin.location?.latitude != null && pin.location?.longitude != null && (
-                          <div className="location-coords">
-                            <span>LAT: {pin.location.latitude.toFixed(5)}° N</span>
-                            <span>LONG: {pin.location.longitude.toFixed(5)}° E</span>
-                          </div>
-                        )}
-                        <div className="pin-details-location-actions">
-                          {pin.location?.address && (
-                            <button
-                              type="button"
-                              className="pin-details-copy-btn"
-                              onClick={() => {
-                                let text = `Location: ${pin.location.address || '—'}`;
-                                if (pin.location.latitude != null && pin.location.longitude != null) {
-                                  text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
-                                }
-                                copyLocationToClipboard(text, 'location');
-                              }}
-                              title="Copy address and coordinates"
-                              aria-label="Copy address and coordinates"
-                            >
-                              <span className="material-icons-round">{copiedLocation === 'location' ? 'check' : 'content_copy'}</span>
-                              {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
-                            </button>
-                          )}
-                          {onViewOnMap && (pin.location?.latitude != null && pin.location?.longitude != null) && (
-                            <button
-                              type="button"
-                              className="pin-details-view-on-map-btn"
-                              onClick={() => onViewOnMap(pin)}
-                              title="Focus this pin on the map and close this panel"
-                              aria-label="View on map"
-                            >
-                              <span className="material-icons-round">map</span>
-                              View on map
-                            </button>
-                          )}
-                          {pin.location?.latitude != null && pin.location?.longitude != null && (
-                            <a
-                              href={`https://www.google.com/maps?q=${pin.location.latitude},${pin.location.longitude}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="pin-details-view-on-map-btn pin-details-google-map-btn"
-                              title="Open this location in Google Maps"
-                              aria-label="View on Google Map"
-                            >
-                              <span className="material-icons-round">open_in_new</span>
-                              View on Google Map
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </section>
-                  )}
-
-                  {(user?.role === 'admin' || pin.contributor_id === user?.id || pin.reportedByMe) && (
-                    <div className="pin-details-bottom-actions">
-                      <button
-                        type="button"
-                        className="pin-details-btn pin-details-btn-edit"
-                        onClick={startEditing}
-                        disabled={savingEdit}
-                        title="Edit this Pin"
-                      >
-                        <span className="material-icons-round" aria-hidden>edit</span>
-                        <span className="pin-details-btn-label">{savingEdit ? 'Saving…' : 'Edit this Pin'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="pin-details-btn pin-details-btn-danger"
-                        onClick={handleDelete}
-                        disabled={deleting}
-                        title="Delete this Pin"
-                      >
-                        <span className="material-icons-round" aria-hidden>delete</span>
-                        <span className="pin-details-btn-label">{deleting ? 'Deleting…' : 'Delete this Pin'}</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {(eventsLoading || scheduledEvents.length > 0) && (
-                    <section className="pin-details-section pin-details-events-section">
-                      <h3 className="pin-details-section-title">
-                        <span className="material-icons-round">event</span>
-                        Event scheduled for this pin
-                      </h3>
-                      {eventsLoading ? (
-                        <p className="pin-details-events-loading">Loading events...</p>
-                      ) : (
-                        <div className="pin-details-events-list">
-                          {scheduledEvents.map((ev) => (
-                            <div key={ev._id} className="pin-details-event-card">
-                              <div className="pin-details-event-meta">
-                                <span className="pin-details-event-date">{formatEventDate(ev.date)}</span>
-                                {(ev.startTime || ev.endTime || ev.durationHours) && (
-                                  <span className="pin-details-event-time">
-                                    {formatEventTime(ev.startTime, ev.endTime, ev.durationHours)}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="pin-details-event-title">{ev.title}</p>
-                              <Link
-                                to={`/events/${ev._id}`}
-                                className="pin-details-event-link"
-                                onClick={() => onClose()}
-                              >
-                                View full event details
-                              </Link>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </section>
-                  )}
-
-                  <section className="yt-comments-section">
-                    <h3 className="yt-comments-title">
-                      <span className="material-icons-round">forum</span>
-                      {comments.length} Comments
-                    </h3>
-                    <div className="yt-comments-list">
-                      {comments.length === 0 ? (
-                        <p className="yt-no-comments">No comments yet. Be the first to comment!</p>
-                      ) : (
-                        commentTree.topLevel.map((comment) => {
-                          const replies = commentTree.repliesMap[comment._id] || [];
-                          const isReplyingThis = replyingTo === comment._id;
-                          const isLoading = commentActionLoading === comment._id;
-                          const isExpanded = expandedReplies.has(comment._id);
-                          const toggleReplies = () =>
-                            setExpandedReplies((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(comment._id)) next.delete(comment._id);
-                              else next.add(comment._id);
-                              return next;
-                            });
-
-                          return (
-                            <div key={comment._id} className="yt-comment-thread">
-                              {/* Top-level comment */}
-                              <div className="yt-comment">
-                                <img
-                                  alt=""
-                                  className="yt-avatar yt-avatar-lg"
-                                  src={comment.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.author)}&background=e2e8f0&color=64748b`}
-                                />
-                                <div className="yt-comment-content">
-                                  <div className="yt-comment-meta">
-                                    <span className="yt-comment-author">{comment.author}</span>
-                                    <span className="yt-comment-date">{formatDate(comment.createdAt)}</span>
-                                  </div>
-                                  <p className="yt-comment-text">{comment.text}</p>
-                                  <div className="yt-comment-actions">
-                                    <button
-                                      type="button"
-                                      className={`yt-action-btn ${comment.userLiked ? 'active' : ''}`}
-                                      onClick={() => handleCommentLike(comment._id)}
-                                      disabled={!userId || isLoading}
-                                      title="Like"
-                                    >
-                                      <span className="material-icons-round">thumb_up</span>
-                                      {comment.likes > 0 && <span className="yt-action-count">{comment.likes}</span>}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={`yt-action-btn ${comment.userDisliked ? 'active' : ''}`}
-                                      onClick={() => handleCommentDislike(comment._id)}
-                                      disabled={!userId || isLoading}
-                                      title="Dislike"
-                                    >
-                                      <span className="material-icons-round">thumb_down</span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="yt-reply-btn"
-                                      onClick={() => setReplyingTo(isReplyingThis ? null : comment._id)}
-                                      disabled={!userId}
-                                    >
-                                      Reply
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Reply form for top-level */}
-                              {isReplyingThis && (
-                                <div className="yt-reply-form-wrap">
-                                  <img
-                                    alt=""
-                                    className="yt-avatar yt-avatar-sm"
-                                    src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`}
-                                  />
-                                  <form className="yt-reply-form" onSubmit={handleReplySubmit}>
-                                    <textarea
-                                      placeholder={`Reply to ${comment.author}...`}
-                                      value={replyText}
-                                      onChange={(e) => setReplyText(e.target.value)}
-                                      rows={1}
-                                      className="yt-reply-textarea"
-                                      autoFocus
-                                    />
-                                    <div className="yt-reply-form-actions">
-                                      <button
-                                        type="button"
-                                        className="yt-form-cancel-btn"
-                                        onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                      >
-                                        Cancel
-                                      </button>
-                                      <button
-                                        type="submit"
-                                        disabled={commentActionLoading === comment._id || !replyText.trim()}
-                                        className="yt-form-submit-btn"
-                                      >
-                                        Reply
-                                      </button>
+                          <Card>
+                            <CardHeader className="pb-3">
+                              <div className="flex items-center justify-between">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                  <ShieldCheck className="size-4" />
+                                  Verification Status
+                                </CardTitle>
+                                <div className="group relative">
+                                  <Info className="size-4 text-muted-foreground cursor-help transition-colors group-hover:text-primary" />
+                                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-2 w-max max-w-[18rem] p-3 bg-popover text-popover-foreground border rounded-lg shadow-lg text-xs z-30">
+                                    <p className="font-semibold mb-1">Verification Levels</p>
+                                    <div className="space-y-0.5 text-muted-foreground">
+                                      <p>🔵 Highly Verified (Score ≥ 121)</p>
+                                      <p>🟢 Verified (Score 81 – 120)</p>
+                                      <p>🟡 Partially Verified (Score 41–80)</p>
+                                      <p>🔴 Unverified (Score ≤ 40)</p>
                                     </div>
-                                  </form>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-lg">{vStatus.emoji}</span>
+                                <span className="text-sm font-bold" style={{ color: vStatus.color }}>{vStatus.label}</span>
+                                <Badge variant="secondary" className="ml-auto text-[10px] tabular-nums">Score: {vScore}</Badge>
+                              </div>
+                              <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%`, background: vStatus.color }} />
+                              </div>
+                              <div className="flex items-center gap-2 flex-wrap pt-1">
+                                {user && (
+                                  <Button variant={hasVerified ? 'default' : 'outline'} size="sm" className={`gap-1.5 ${hasVerified ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`} onClick={handleVerify} disabled={verifying}>
+                                    <ShieldCheck className={`size-4 ${hasVerified ? 'fill-current' : ''}`} />
+                                    {verifying ? '...' : hasVerified ? 'Verified ✓' : 'Verify'}
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setVerificationBreakdownExpanded((v) => !v)} aria-expanded={verificationBreakdownExpanded}>
+                                  {verificationBreakdownExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                                  {verificationBreakdownExpanded ? 'Hide' : 'Breakdown'}
+                                </Button>
+                              </div>
+                              {verificationBreakdownExpanded && (
+                                <div className="space-y-2 pt-2 border-t">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {(['user', 'reviewer', 'ngo', 'admin'] as const).map((role) => (
+                                      <div key={role} className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/30 text-xs">
+                                        <span className="text-muted-foreground shrink-0">{VERIFICATION_ROLE_ICONS[role]}</span>
+                                        <span className="font-semibold flex-1">{VERIFICATION_ROLE_LABELS[role]}</span>
+                                        <span className="font-bold text-sm">{roleCounts[role]}</span>
+                                        <span className="text-[10px] text-muted-foreground">({VERIFICATION_ROLE_SCORES[role]}pts)</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <p className="text-xs font-semibold text-muted-foreground text-right">Total verifiers: {verifications.length}</p>
                                 </div>
                               )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })()}
 
-                              {/* Replies toggle + replies */}
-                              {replies.length > 0 && (
-                                <div className="yt-replies-section">
-                                  <button className="yt-toggle-replies-btn" onClick={toggleReplies}>
-                                    <span className="material-icons-round">
-                                      {isExpanded ? 'expand_less' : 'expand_more'}
-                                    </span>
-                                    {isExpanded ? 'Hide replies' : `View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`}
-                                  </button>
+                      {/* ── Fix Status Timeline ── */}
+                      <Card className="bg-slate-950 text-white border-slate-800">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                            <Clock className="size-4 text-blue-400" />
+                            Fix Status
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {(() => {
+                            const vScore = getVerificationScore(pin.pinVerification);
+                            const isVerified = vScore > 80;
+                            const isScheduled = scheduledEvents.length > 0;
+                            const resolves = pin.resolveVerification || [];
+                            const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
+                            const isResolved = resolveScore > 80;
+                            const fmtDate = (d) => {
+                              if (!d) return '';
+                              const dt = new Date(d);
+                              return dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) + ' - ' + dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                            };
+                            const nextEventDate = scheduledEvents.length > 0
+                              ? scheduledEvents.reduce((earliest, ev) => { const d = new Date(ev.date); return d < earliest ? d : earliest; }, new Date(scheduledEvents[0].date))
+                              : null;
+                            const steps = [
+                              { key: 'reported', label: 'Reported', icon: <Flag size={16} />, active: true, date: fmtDate(pin.createdAt) },
+                              { key: 'verified', label: 'Verified', icon: <ShieldCheck size={16} />, active: isVerified, date: isVerified && pin.fixStatus?.verifiedAt ? fmtDate(pin.fixStatus.verifiedAt) : (isVerified ? 'Score > 80' : 'Score ≤ 80') },
+                              { key: 'awaiting', label: 'Awaiting Action', icon: <Clock size={16} />, active: isVerified, date: '' },
+                              { key: 'scheduled', label: 'Scheduled', icon: <CalendarDays size={16} />, active: isScheduled, date: nextEventDate ? `Estimated: ${nextEventDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : '' },
+                              { key: 'resolved', label: 'Resolved', icon: <CheckCircle2 size={16} />, active: isResolved, date: isResolved && pin.fixStatus?.resolvedAt ? fmtDate(pin.fixStatus.resolvedAt) : (resolveScore > 0 ? `Score: ${resolveScore}/81` : '') }
+                            ];
+                            return (
+                              <div className="flex flex-col">
+                                {steps.map((step, i) => (
+                                  <div key={step.key} className="flex items-start gap-3 relative min-h-[3.25rem] last:min-h-0">
+                                    {i > 0 && (
+                                      <div className={`absolute left-[17px] -top-1 w-0.5 h-4 rounded-full ${steps[i - 1].active && step.active ? 'bg-blue-500' : 'bg-slate-700'}`} />
+                                    )}
+                                    <div className={`shrink-0 size-9 rounded-full flex items-center justify-center border-2 z-[1] transition-all ${step.active ? 'bg-blue-500/15 border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.35)]' : 'bg-slate-900 border-slate-700'}`}>
+                                      <span className={step.active ? 'text-blue-400' : 'text-slate-500'}>{step.icon}</span>
+                                    </div>
+                                    <div className="flex flex-col gap-0.5 pt-1.5">
+                                      <span className={`text-sm font-bold ${step.active ? 'text-slate-100' : 'text-slate-500'}`}>{step.label}</span>
+                                      {step.date && <span className={`text-xs ${step.active ? 'text-slate-400' : 'text-slate-600'}`}>{step.date}</span>}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
 
-                                  {isExpanded && (
-                                    <div className="yt-replies-list">
-                                      {replies.map((reply) => {
-                                        const replyIsReplying = replyingTo === reply._id;
-                                        const replyLoading = commentActionLoading === reply._id;
-                                        const replyReplies = commentTree.repliesMap[reply._id] || [];
+                      {/* ── Mark as Resolved ── */}
+                      <Card>
+                        <CardHeader className="pb-3">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <CheckCircle2 className="size-4 text-emerald-500" />
+                              Mark as Resolved
+                            </CardTitle>
+                            <div className="group relative">
+                              <Info className="size-4 text-muted-foreground cursor-help transition-colors group-hover:text-primary" />
+                              <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-2 w-max max-w-[16rem] p-3 bg-popover text-popover-foreground border rounded-lg shadow-lg text-xs z-30">
+                                <div className="space-y-0.5 text-muted-foreground">
+                                  <p>✅ Resolved (Score &gt; 80)</p>
+                                  <p>⏳ Not resolved (Score ≤ 80)</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          {(() => {
+                            const resolves = pin.resolveVerification || [];
+                            const resolveScore = resolves.reduce((s, v) => s + (VERIFICATION_ROLE_SCORES[v.role] || 10), 0);
+                            const isResolved = resolveScore > 80;
+                            const hasVotedResolve = resolves.some((v) => String(v.userId) === String(userId));
+                            const resolveRoleCounts = { user: 0, reviewer: 0, ngo: 0, admin: 0 };
+                            resolves.forEach((v) => { resolveRoleCounts[v.role] = (resolveRoleCounts[v.role] || 0) + 1; });
+                            const maxScore = 180;
+                            const progressPct = Math.min((resolveScore / maxScore) * 100, 100);
+                            const resolveStatus = isResolved ? { label: 'Resolved', emoji: '✅', color: '#10b981' } : { label: 'Not resolved', emoji: '⏳', color: '#94a3b8' };
+                            return (
+                              <>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-lg">{resolveStatus.emoji}</span>
+                                  <span className="text-sm font-bold" style={{ color: resolveStatus.color }}>{resolveStatus.label}</span>
+                                  <Badge variant="secondary" className="ml-auto text-[10px] tabular-nums">Score: {resolveScore}</Badge>
+                                </div>
+                                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                                  <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progressPct}%`, background: resolveStatus.color }} />
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap pt-1">
+                                  {user && (
+                                    <Button variant={hasVotedResolve ? 'default' : 'outline'} size="sm" className={`gap-1.5 ${hasVotedResolve ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : ''}`} onClick={handleResolve} disabled={resolving}>
+                                      {hasVotedResolve ? <Undo2 className="size-4" /> : <CheckCircle2 className="size-4" />}
+                                      {resolving ? '...' : hasVotedResolve ? 'Voted ✓' : 'Vote Resolved'}
+                                    </Button>
+                                  )}
+                                  <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground" onClick={() => setResolveBreakdownExpanded((v) => !v)} aria-expanded={resolveBreakdownExpanded}>
+                                    {resolveBreakdownExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                                    {resolveBreakdownExpanded ? 'Hide' : 'Breakdown'}
+                                  </Button>
+                                </div>
+                                {resolveBreakdownExpanded && (
+                                  <div className="space-y-2 pt-2 border-t">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      {(['user', 'reviewer', 'ngo', 'admin'] as const).map((role) => (
+                                        <div key={role} className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/30 text-xs">
+                                          <span className="text-muted-foreground shrink-0">{VERIFICATION_ROLE_ICONS[role]}</span>
+                                          <span className="font-semibold flex-1">{VERIFICATION_ROLE_LABELS[role]}</span>
+                                          <span className="font-bold text-sm">{resolveRoleCounts[role]}</span>
+                                          <span className="text-[10px] text-muted-foreground">({VERIFICATION_ROLE_SCORES[role]}pts)</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <p className="text-xs font-semibold text-muted-foreground text-right">Total resolvers: {resolves.length}</p>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </CardContent>
+                      </Card>
 
-                                        // Flatten level 3+ replies
-                                        const flatDeepReplies = replyReplies.flatMap((nr) =>
-                                          flattenDeepReplies(nr._id, nr.text, commentTree.repliesMap)
-                                        );
-                                        const replyingToDeep = replyingTo
-                                          ? flatDeepReplies.find((r) => r._id === replyingTo) || null
-                                          : null;
+                      {/* ── Precise Location ── */}
+                      {(pin.location?.address || (pin.location?.latitude != null && pin.location?.longitude != null)) && (
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <MapPin className="size-4 text-rose-500" />
+                              Precise Location
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3">
+                            {pin.location?.address && (
+                              <p className="text-sm font-medium">{pin.location.address}</p>
+                            )}
+                            {pin.location?.latitude != null && pin.location?.longitude != null && (
+                              <div className="flex gap-4 text-xs font-mono text-muted-foreground">
+                                <span>LAT: {pin.location.latitude.toFixed(5)}° N</span>
+                                <span>LONG: {pin.location.longitude.toFixed(5)}° E</span>
+                              </div>
+                            )}
+                            <div className="flex flex-wrap items-center gap-2 pt-1">
+                              {pin.location?.address && (
+                                <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => {
+                                  let text = `Location: ${pin.location.address || '—'}`;
+                                  if (pin.location.latitude != null && pin.location.longitude != null) {
+                                    text += `\nLatitude: ${pin.location.latitude.toFixed(5)} & Longitude: ${pin.location.longitude.toFixed(5)}`;
+                                  }
+                                  copyLocationToClipboard(text, 'location');
+                                }}>
+                                  {copiedLocation === 'location' ? <Check className="size-4" /> : <Copy className="size-4" />}
+                                  {copiedLocation === 'location' ? 'Copied!' : 'Copy'}
+                                </Button>
+                              )}
+                              {onViewOnMap && pin.location?.latitude != null && pin.location?.longitude != null && (
+                                <Button variant="outline" size="sm" className="gap-1.5 h-8" onClick={() => onViewOnMap(pin)}>
+                                  <Map className="size-4" />
+                                  View on map
+                                </Button>
+                              )}
+                              {pin.location?.latitude != null && pin.location?.longitude != null && (
+                                <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 text-blue-600 border-blue-200 hover:bg-blue-50">
+                                  <a href={`https://www.google.com/maps?q=${pin.location.latitude},${pin.location.longitude}`} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="size-4" />
+                                    Google Maps
+                                  </a>
+                                </Button>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
 
-                                        return (
-                                          <div key={reply._id} className="yt-reply-thread">
-                                            {/* Level 1 reply */}
-                                            <div className="yt-comment yt-reply">
-                                              <img
-                                                alt=""
-                                                className="yt-avatar yt-avatar-sm"
-                                                src={reply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(reply.author)}&background=e2e8f0&color=64748b`}
-                                              />
-                                              <div className="yt-comment-content">
-                                                <div className="yt-comment-meta">
-                                                  <span className="yt-comment-author">{reply.author}</span>
-                                                  <span className="yt-comment-date">{formatDate(reply.createdAt)}</span>
-                                                </div>
-                                                <p className="yt-comment-text">{reply.text}</p>
-                                                <div className="yt-comment-actions">
-                                                  <button
-                                                    type="button"
-                                                    className={`yt-action-btn ${reply.userLiked ? 'active' : ''}`}
-                                                    onClick={() => handleCommentLike(reply._id)}
-                                                    disabled={!userId || replyLoading}
-                                                    title="Like"
-                                                  >
-                                                    <span className="material-icons-round">thumb_up</span>
-                                                    {reply.likes > 0 && <span className="yt-action-count">{reply.likes}</span>}
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    className={`yt-action-btn ${reply.userDisliked ? 'active' : ''}`}
-                                                    onClick={() => handleCommentDislike(reply._id)}
-                                                    disabled={!userId || replyLoading}
-                                                    title="Dislike"
-                                                  >
-                                                    <span className="material-icons-round">thumb_down</span>
-                                                  </button>
-                                                  <button
-                                                    type="button"
-                                                    className="yt-reply-btn"
-                                                    onClick={() => setReplyingTo(replyIsReplying ? null : reply._id)}
-                                                    disabled={!userId}
-                                                  >
-                                                    Reply
-                                                  </button>
-                                                </div>
-                                              </div>
-                                            </div>
+                      {/* ── Edit / Delete Buttons ── */}
+                      {(user?.role === 'admin' || pin.contributor_id === user?.id || pin.reportedByMe) && (
+                        <div className="flex gap-3">
+                          <Button variant="outline" className="flex-1 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Edit3 className="size-4" />
+                            <span className="hidden sm:inline">Edit this Pin</span>
+                          </Button>
+                          <Button variant="destructive" className="flex-1 gap-1.5" onClick={handleDelete} disabled={deleting}>
+                            <Trash2 className="size-4" />
+                            <span className="hidden sm:inline">{deleting ? 'Deleting…' : 'Delete this Pin'}</span>
+                          </Button>
+                        </div>
+                      )}
 
-                                            {/* Reply form for level 1 */}
-                                            {replyIsReplying && (
-                                              <div className="yt-reply-form-wrap yt-reply-form-wrap-nested">
-                                                <img
-                                                  alt=""
-                                                  className="yt-avatar yt-avatar-sm"
-                                                  src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`}
-                                                />
-                                                <form className="yt-reply-form" onSubmit={handleReplySubmit}>
-                                                  <textarea
-                                                    placeholder={`Reply to ${reply.author}...`}
-                                                    value={replyText}
-                                                    onChange={(e) => setReplyText(e.target.value)}
-                                                    rows={1}
-                                                    className="yt-reply-textarea"
-                                                    autoFocus
-                                                  />
-                                                  <div className="yt-reply-form-actions">
-                                                    <button
-                                                      type="button"
-                                                      className="yt-form-cancel-btn"
-                                                      onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                                    >
-                                                      Cancel
-                                                    </button>
-                                                    <button
-                                                      type="submit"
-                                                      disabled={commentActionLoading === reply._id || !replyText.trim()}
-                                                      className="yt-form-submit-btn"
-                                                    >
-                                                      Reply
-                                                    </button>
-                                                  </div>
-                                                </form>
-                                              </div>
-                                            )}
+                      {/* ── Scheduled Events ── */}
+                      {(eventsLoading || scheduledEvents.length > 0) && (
+                        <Card className="border-l-4 border-l-indigo-500">
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                              <CalendarDays className="size-4 text-indigo-500" />
+                              Scheduled Events
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            {eventsLoading ? (
+                              <p className="text-sm text-muted-foreground">Loading events...</p>
+                            ) : (
+                              <div className="space-y-3">
+                                {scheduledEvents.map((ev) => (
+                                  <div key={ev._id} className="pb-3 border-b last:border-0 last:pb-0">
+                                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                                      <span className="text-xs font-semibold">{formatEventDate(ev.date)}</span>
+                                      {(ev.startTime || ev.endTime || ev.durationHours) && (
+                                        <span className="text-xs text-muted-foreground">{formatEventTime(ev.startTime, ev.endTime, ev.durationHours)}</span>
+                                      )}
+                                    </div>
+                                    <p className="text-sm font-semibold mb-1.5">{ev.title}</p>
+                                    <Link to={`/events/${ev._id}`} className="text-xs font-medium text-indigo-600 hover:underline" onClick={() => onClose()}>
+                                      View full event details
+                                    </Link>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
 
-                                            {/* Level 2+ replies (nested, all flattened at same indent) */}
-                                            {(replyReplies.length > 0 || flatDeepReplies.length > 0) && (
-                                              <div className="yt-deep-replies-list">
-                                                {replyReplies.map((nestedReply) => {
-                                                  const nestedLoading = commentActionLoading === nestedReply._id;
-                                                  return (
-                                                    <div key={nestedReply._id} className="yt-comment yt-reply">
-                                                      <img
-                                                        alt=""
-                                                        className="yt-avatar yt-avatar-sm"
-                                                        src={nestedReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(nestedReply.author)}&background=e2e8f0&color=64748b`}
-                                                      />
-                                                      <div className="yt-comment-content">
-                                                        <div className="yt-comment-meta">
-                                                          <span className="yt-comment-author">{nestedReply.author}</span>
-                                                          <span className="yt-comment-date">{formatDate(nestedReply.createdAt)}</span>
-                                                        </div>
-                                                        <p className="yt-comment-text">{nestedReply.text}</p>
-                                                        <div className="yt-comment-actions">
-                                                          <button
-                                                            type="button"
-                                                            className={`yt-action-btn ${nestedReply.userLiked ? 'active' : ''}`}
-                                                            onClick={() => handleCommentLike(nestedReply._id)}
-                                                            disabled={!userId || nestedLoading}
-                                                            title="Like"
-                                                          >
-                                                            <span className="material-icons-round">thumb_up</span>
-                                                            {nestedReply.likes > 0 && <span className="yt-action-count">{nestedReply.likes}</span>}
-                                                          </button>
-                                                          <button
-                                                            type="button"
-                                                            className={`yt-action-btn ${nestedReply.userDisliked ? 'active' : ''}`}
-                                                            onClick={() => handleCommentDislike(nestedReply._id)}
-                                                            disabled={!userId || nestedLoading}
-                                                            title="Dislike"
-                                                          >
-                                                            <span className="material-icons-round">thumb_down</span>
-                                                          </button>
-                                                          <button
-                                                            type="button"
-                                                            className="yt-reply-btn"
-                                                            onClick={() => setReplyingTo(replyingTo === nestedReply._id ? null : nestedReply._id)}
-                                                            disabled={!userId}
-                                                          >
-                                                            Reply
-                                                          </button>
-                                                        </div>
-                                                      </div>
-                                                    </div>
-                                                  );
-                                                })}
+                      {/* ── Comments ── */}
+                      <div className="pt-2">
+                        <Separator className="mb-5" />
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
+                          <MessageSquare className="size-4" />
+                          {comments.length} Comments
+                        </h3>
 
-                                                {/* Level 4+ deep replies */}
-                                                {flatDeepReplies.map((deepReply) => {
-                                                  const deepLoading = commentActionLoading === deepReply._id;
-                                                  return (
-                                                    <div key={deepReply._id} className="yt-comment yt-reply">
-                                                      <img
-                                                        alt=""
-                                                        className="yt-avatar yt-avatar-sm"
-                                                        src={deepReply.authorImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(deepReply.author)}&background=e2e8f0&color=64748b`}
-                                                      />
-                                                      <div className="yt-comment-content">
-                                                        <div className="yt-comment-meta">
-                                                          <span className="yt-comment-author">{deepReply.author}</span>
-                                                          <span className="yt-comment-date">{formatDate(deepReply.createdAt)}</span>
-                                                        </div>
-                                                        <p className="yt-comment-text">{deepReply.text}</p>
-                                                        <div className="yt-comment-actions">
-                                                          <button
-                                                            type="button"
-                                                            className={`yt-action-btn ${deepReply.userLiked ? 'active' : ''}`}
-                                                            onClick={() => handleCommentLike(deepReply._id)}
-                                                            disabled={!userId || deepLoading}
-                                                            title="Like"
-                                                          >
-                                                            <span className="material-icons-round">thumb_up</span>
-                                                            {deepReply.likes > 0 && <span className="yt-action-count">{deepReply.likes}</span>}
-                                                          </button>
-                                                          <button
-                                                            type="button"
-                                                            className={`yt-action-btn ${deepReply.userDisliked ? 'active' : ''}`}
-                                                            onClick={() => handleCommentDislike(deepReply._id)}
-                                                            disabled={!userId || deepLoading}
-                                                            title="Dislike"
-                                                          >
-                                                            <span className="material-icons-round">thumb_down</span>
-                                                          </button>
-                                                          <button
-                                                            type="button"
-                                                            className="yt-reply-btn"
-                                                            onClick={() => setReplyingTo(replyingTo === deepReply._id ? null : deepReply._id)}
-                                                            disabled={!userId}
-                                                          >
-                                                            Reply
-                                                          </button>
-                                                        </div>
-                                                      </div>
-                                                    </div>
-                                                  );
-                                                })}
+                        <div className="space-y-5">
+                          {comments.length === 0 ? (
+                            <Card className="bg-muted/50 border-dashed">
+                              <CardContent className="py-6 text-center">
+                                <p className="text-sm text-muted-foreground italic">No comments yet. Be the first to comment!</p>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            commentTree.topLevel.map((comment) => {
+                              const replies = commentTree.repliesMap[comment._id] || [];
+                              const isExpanded = expandedReplies.has(comment._id);
+                              const toggleReplies = () =>
+                                setExpandedReplies((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(comment._id)) next.delete(comment._id);
+                                  else next.add(comment._id);
+                                  return next;
+                                });
 
-                                                {/* Unified reply form for level 2+ */}
-                                                {replyingTo && (replyReplies.some((r) => r._id === replyingTo) || replyingToDeep) && (
-                                                  <div className="yt-reply-form-wrap yt-reply-form-wrap-nested">
-                                                    <img
-                                                      alt=""
-                                                      className="yt-avatar yt-avatar-sm"
-                                                      src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=ec4899&color=fff`}
-                                                    />
-                                                    <form className="yt-reply-form" onSubmit={handleReplySubmit}>
-                                                      {replyingToDeep && (
-                                                        <div className="yt-reply-context">
-                                                          <span className="material-icons-round">reply</span>
-                                                          Replying to "{truncateReplyText(replyingToDeep.text)}"
-                                                        </div>
-                                                      )}
-                                                      <textarea
-                                                        placeholder="Write a reply..."
-                                                        value={replyText}
-                                                        onChange={(e) => setReplyText(e.target.value)}
-                                                        rows={1}
-                                                        className="yt-reply-textarea"
-                                                        autoFocus
-                                                      />
-                                                      <div className="yt-reply-form-actions">
-                                                        <button
-                                                          type="button"
-                                                          className="yt-form-cancel-btn"
-                                                          onClick={() => { setReplyingTo(null); setReplyText(''); }}
-                                                        >
-                                                          Cancel
-                                                        </button>
-                                                        <button
-                                                          type="submit"
-                                                          disabled={!replyText.trim()}
-                                                          className="yt-form-submit-btn"
-                                                        >
-                                                          Reply
-                                                        </button>
-                                                      </div>
-                                                    </form>
+                              return (
+                                <div key={comment._id} className="space-y-0">
+                                  {renderComment(comment)}
+
+                                  {replies.length > 0 && (
+                                    <div className="ml-12 mt-1 pl-4 border-l-2 border-border/50 hover:border-primary/30 transition-colors">
+                                      <Button variant="ghost" size="sm" className="gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 h-7 px-2 mb-1" onClick={toggleReplies}>
+                                        {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                                        {isExpanded ? 'Hide replies' : `View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`}
+                                      </Button>
+
+                                      {isExpanded && (
+                                        <div className="space-y-3 pt-1">
+                                          {replies.map((reply) => {
+                                            const replyReplies = commentTree.repliesMap[reply._id] || [];
+                                            const flatDeepReplies = replyReplies.flatMap((nr) =>
+                                              flattenDeepReplies(nr._id, nr.text, commentTree.repliesMap)
+                                            );
+
+                                            return (
+                                              <div key={reply._id} className="space-y-0">
+                                                {renderComment(reply, true)}
+
+                                                {(replyReplies.length > 0 || flatDeepReplies.length > 0) && (
+                                                  <div className="ml-8 mt-2 pl-3 border-l-2 border-border/30 hover:border-muted-foreground/30 transition-colors space-y-3">
+                                                    {replyReplies.map((nestedReply) => (
+                                                      <div key={nestedReply._id}>{renderComment(nestedReply, true)}</div>
+                                                    ))}
+                                                    {flatDeepReplies.map((deepReply) => (
+                                                      <div key={deepReply._id}>{renderComment(deepReply, true, deepReply.replyingToText ? truncateReplyText(deepReply.replyingToText, 40) : undefined)}</div>
+                                                    ))}
                                                   </div>
                                                 )}
                                               </div>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
+                                            );
+                                          })}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
-                    </div>
-                  </section>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
 
-                  <footer className="pin-details-footer">
-                    <p className="pin-details-footer-label">
-                      Posting as <span className="primary-text">{displayName}</span>
-                    </p>
-                    <form onSubmit={handleCommentSubmit} className="pin-details-comment-form">
-                      <textarea
-                        placeholder="Add a comment..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        rows={2}
-                        className="pin-details-textarea"
-                      />
-                      <button
-                        type="submit"
-                        disabled={loading || !newComment.trim()}
-                        className="pin-details-post-btn"
-                      >
-                        Post Note
-                      </button>
-                    </form>
-                  </footer>
-                </>
+                      {/* ── Comment Form Footer ── */}
+                      <div className="pt-4 border-t">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">
+                          Posting as <span className="text-primary">{displayName}</span>
+                        </p>
+                        <form onSubmit={handleCommentSubmit} className="space-y-3 pb-2">
+                          <Textarea
+                            placeholder="Add a comment..."
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            rows={2}
+                            className="resize-none"
+                          />
+                          <div className="flex justify-end">
+                            <Button type="submit" disabled={loading || !newComment.trim()} className="gap-1.5">
+                              <Send className="size-4" />
+                              Post Note
+                            </Button>
+                          </div>
+                        </form>
+                      </div>
+                    </>
+                  )}
+                </main>
+              </div>
+
+              {nextPin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="hidden md:flex rounded-full h-11 w-11 shrink-0 shadow-md"
+                  onClick={handleNext}
+                  aria-label="Next pin"
+                >
+                  <ChevronRight className="size-5" />
+                </Button>
               )}
-            </main>
-          </div>
-          {nextPin && (
-            <button
-              type="button"
-              className="pin-details-nav pin-details-nav-next"
-              onClick={handleNext}
-              aria-label="Next pin"
-              title="Next pin"
-            >
-              <span className="material-icons-round">chevron_right</span>
-            </button>
-          )}
-          </>
+
+              {nextPin && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="md:hidden absolute right-2 top-1/2 -translate-y-1/2 z-50 rounded-full h-10 w-10 shadow-lg bg-background"
+                  onClick={handleNext}
+                  aria-label="Next pin"
+                >
+                  <ChevronRight className="size-5" />
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      {/* Image Modal */}
+      {/* ── Image Modal ── */}
       <div
         ref={imageModalRef}
-        className={`image-modal ${selectedImageIndex != null ? 'active' : ''}`}
+        className={`fixed inset-0 z-[2000] items-center justify-center p-6 bg-black/90 ${selectedImageIndex != null ? 'flex' : 'hidden'}`}
+        style={{ animation: 'pinFadeIn 0.2s' }}
         onClick={closeImageModal}
         onKeyDown={(e) => {
           if (selectedImageIndex == null) return;
@@ -2114,43 +1292,36 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
         role="dialog"
         aria-label="Image viewer"
       >
-        <button className="image-modal-close" onClick={closeImageModal}>
-          <span className="material-icons-round">close</span>
+        <button className="absolute top-6 right-6 bg-white/20 backdrop-blur-sm text-white p-2 rounded-full hover:bg-white/30 transition-colors" onClick={closeImageModal}>
+          <X className="size-6" />
         </button>
         {images.length > 1 && (
           <>
-            <button
-              type="button"
-              className="image-modal-nav image-modal-prev"
-              onClick={goToPrevImage}
-              aria-label="Previous image"
-            >
-              <span className="material-icons-round">chevron_left</span>
+            <button type="button" className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors z-10" onClick={goToPrevImage} aria-label="Previous image">
+              <ChevronLeft className="size-8" />
             </button>
-            <button
-              type="button"
-              className="image-modal-nav image-modal-next"
-              onClick={goToNextImage}
-              aria-label="Next image"
-            >
-              <span className="material-icons-round">chevron_right</span>
+            <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors z-10" onClick={goToNextImage} aria-label="Next image">
+              <ChevronRight className="size-8" />
             </button>
           </>
         )}
-        {selectedImageIndex != null && images[selectedImageIndex] && (
-          <>
+        <div onClick={(e) => e.stopPropagation()}>
+          {images.map((img, idx) => (
             <img
-              src={images[selectedImageIndex]}
-              alt={selectedImageIndex < beforeCount ? `Before ${selectedImageIndex + 1} of ${beforeCount}` : `After ${selectedImageIndex - beforeCount + 1} of ${afterCount}`}
-              onClick={(e) => e.stopPropagation()}
+              key={`modal-${idx}`}
+              className={`max-w-[90%] max-h-[90vh] rounded-xl shadow-2xl ${idx === selectedImageIndex ? 'block' : 'hidden'}`}
+              src={img}
+              alt={`Full view ${idx + 1}`}
             />
-            <span className="image-modal-counter">
-              {selectedImageIndex < beforeCount
-                ? `Before ${selectedImageIndex + 1} / ${beforeCount}`
-                : `After ${selectedImageIndex - beforeCount + 1} / ${afterCount}`}
-            </span>
-          </>
-        )}
+          ))}
+        </div>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+          {selectedImageIndex != null && (
+            selectedImageIndex < beforeCount
+              ? `Before ${selectedImageIndex + 1} / ${beforeCount}`
+              : `After ${selectedImageIndex - beforeCount + 1} / ${afterCount}`
+          )}
+        </div>
       </div>
     </>
   );

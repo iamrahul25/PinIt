@@ -14,8 +14,8 @@ export const checkGraphicsAcceleration = () => {
       const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
       const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
       
-      console.log('Renderer:', renderer);
-      console.log('Vendor:', vendor);
+      // console.log('Renderer:', renderer);
+      // console.log('Vendor:', vendor);
       
       // Enhanced detection for software rendering
       const softwareIndicators = [
@@ -36,10 +36,10 @@ export const checkGraphicsAcceleration = () => {
       );
       
       if (isSoftwareRenderer) {
-        console.log('Software rendering detected - Graphics acceleration is OFF');
+        // console.log('Software rendering detected - Graphics acceleration is OFF');
         return false;
       } else {
-        console.log('Hardware rendering detected - Graphics acceleration is ON');
+        // console.log('Hardware rendering detected - Graphics acceleration is ON');
         return true;
       }
     } else {

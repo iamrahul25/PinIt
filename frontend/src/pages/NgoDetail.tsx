@@ -35,22 +35,11 @@ export default function NgoDetail() {
   const location = useLocation();
   const ngoId = (location.pathname.match(/^\/ngo\/([^/]+)$/) || [])[1] || null;
   const navigate = useNavigate();
-  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+  const { loading: authLoading, isSignedIn, user, getToken, authFetch } = useAuth();
   const [ngo, setNgo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [voting, setVoting] = useState(false);
-
-  const getAuthHeaders = useCallback(async (headers = {}) => {
-    const token = await getToken();
-    if (!token) throw new Error('Unable to acquire auth token');
-    return { ...headers, Authorization: `Bearer ${token}` };
-  }, [getToken]);
-
-  const authFetch = useCallback(async (url, options = {}) => {
-    const headers = await getAuthHeaders(options.headers || {});
-    return fetch(url, { ...options, headers });
-  }, [getAuthHeaders]);
 
   useEffect(() => {
     if (authLoading) return;

@@ -49,7 +49,7 @@ function formatTimeAgo(dateStr) {
 export default function NGOs() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+  const { loading: authLoading, isSignedIn, user, getToken, getAuthHeaders, authFetch } = useAuth();
   const [view, setView] = useState('board');
   const [levelFilter, setLevelFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
@@ -119,17 +119,6 @@ export default function NGOs() {
       return next;
     });
   };
-
-  const getAuthHeaders = useCallback(async (headers = {}) => {
-    const token = await getToken();
-    if (!token) throw new Error('Unable to acquire auth token');
-    return { ...headers, Authorization: `Bearer ${token}` };
-  }, [getToken]);
-
-  const authFetch = useCallback(async (url, options = {}) => {
-    const headers = await getAuthHeaders(options.headers || {});
-    return fetch(url, { ...options, headers });
-  }, [getAuthHeaders]);
 
   const fetchMyNgos = useCallback(async () => {
     const res = await authFetch(`${API_BASE_URL}/api/ngos/my/submissions`);

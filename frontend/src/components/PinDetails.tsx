@@ -572,12 +572,12 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     <>
       {/* Overlay */}
       <div
-        className={`fixed inset-0 z-[1100] flex p-4 ${isRepositioningPin ? 'items-end justify-center bg-transparent pointer-events-none pb-6' : 'items-center justify-center bg-black/60 backdrop-blur-sm'}`}
+        className={`fixed inset-0 z-[1100] flex p-1 md:p-4 ${isRepositioningPin ? 'items-end justify-center bg-transparent pointer-events-none pb-6' : 'items-center justify-center bg-black/60 backdrop-blur-sm'}`}
         style={{ animation: 'pinFadeIn 0.3s ease-out' }}
         onClick={isRepositioningPin ? undefined : onClose}
       >
         <div
-          className={`relative flex w-full ${isRepositioningPin ? 'items-end justify-center max-w-[36rem] pointer-events-auto' : 'items-center justify-center md:flex-row gap-3 max-w-[54rem]'}`}
+          className={`relative flex w-full ${isRepositioningPin ? 'items-end justify-center max-w-[36rem] pointer-events-auto' : 'items-center justify-center md:flex-row gap-0 md:gap-3 max-w-[54rem]'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {isRepositioningPin ? (
@@ -787,7 +787,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                       </Card>
 
                       {/* ── Stats Grid ── */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
                         <Card>
                           <CardContent className="pt-4 pb-4">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Severity Score</p>

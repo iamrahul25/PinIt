@@ -268,7 +268,7 @@ function matchesCategory(s, categoryFilter) {
 export default function Suggestions() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+  const { loading: authLoading, isSignedIn, user, getToken, getAuthHeaders, authFetch } = useAuth();
 
   // ── Board / filter state ─────────────────────────────────────────
   const [sort, setSort] = useState('top');
@@ -326,18 +326,6 @@ export default function Suggestions() {
     mq.addEventListener('change', handleChange);
     return () => mq.removeEventListener('change', handleChange);
   }, []);
-
-  // ── Auth helpers ─────────────────────────────────────────────────
-  const getAuthHeaders = useCallback(async (headers = {}) => {
-    const token = await getToken();
-    if (!token) throw new Error('Unable to acquire auth token');
-    return { ...headers, Authorization: `Bearer ${token}` };
-  }, [getToken]);
-
-  const authFetch = useCallback(async (url, options = {}) => {
-    const headers = await getAuthHeaders(options.headers || {});
-    return fetch(url, { ...options, headers });
-  }, [getAuthHeaders]);
 
   // ── React-Query fetchers ─────────────────────────────────────────
   const fetchMySuggestions = useCallback(async () => {

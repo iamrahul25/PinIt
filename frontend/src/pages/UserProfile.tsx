@@ -53,7 +53,7 @@ const ACTIVITY_TABS = [
 
 export default function UserProfile() {
   const navigate = useNavigate();
-  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+  const { loading: authLoading, isSignedIn, user, authFetch } = useAuth();
   const [activityTab, setActivityTab] = useState('pins');
   const tabsContainerRef = useRef(null);
   const tabButtonRefs = useRef({});
@@ -65,27 +65,15 @@ export default function UserProfile() {
     setToast((prev) => ({ ...prev, visible: false }));
   }, []);
 
-  const getAuthHeaders = useCallback(async (headers = {}) => {
-    const token = await getToken();
-    if (!token) {
-      throw new Error('Unable to acquire auth token');
-    }
-    return {
-      ...headers,
-      Authorization: `Bearer ${token}`
-    };
-  }, [getToken]);
-
   const fetchProfileData = useCallback(async () => {
-    const headers = await getAuthHeaders();
     const [statsResponse, pinsResponse, savedPinsResponse, commentsResponse, ngosResponse, eventsResponse, suggestionsResponse] = await Promise.all([
-      fetch(`${API_BASE_URL}/api/users/stats`, { headers }),
-      fetch(`${API_BASE_URL}/api/users/me/pins`, { headers }),
-      fetch(`${API_BASE_URL}/api/users/me/saved-pins`, { headers }),
-      fetch(`${API_BASE_URL}/api/users/me/comments`, { headers }),
-      fetch(`${API_BASE_URL}/api/ngos/my/submissions`, { headers }),
-      fetch(`${API_BASE_URL}/api/events/my/submissions`, { headers }),
-      fetch(`${API_BASE_URL}/api/suggestions/my/submissions`, { headers }),
+      authFetch(`${API_BASE_URL}/api/users/stats`),
+      authFetch(`${API_BASE_URL}/api/users/me/pins`),
+      authFetch(`${API_BASE_URL}/api/users/me/saved-pins`),
+      authFetch(`${API_BASE_URL}/api/users/me/comments`),
+      authFetch(`${API_BASE_URL}/api/ngos/my/submissions`),
+      authFetch(`${API_BASE_URL}/api/events/my/submissions`),
+      authFetch(`${API_BASE_URL}/api/suggestions/my/submissions`),
     ]);
 
     if (!statsResponse.ok) throw new Error('Failed to fetch profile stats');
@@ -115,7 +103,7 @@ export default function UserProfile() {
       suggestions: suggestionsData,
     };
     return { stats, activityData };
-  }, [getAuthHeaders]);
+  }, [authFetch]);
 
   const profileQuery = useQuery({
     queryKey: USER_PROFILE_QUERY_KEY,

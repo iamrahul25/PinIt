@@ -74,7 +74,7 @@ function formatEventTime(start, durationHours) {
 export default function Events() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+  const { loading: authLoading, isSignedIn, user, getToken, getAuthHeaders, authFetch } = useAuth();
   const [view, setView] = useState('board');
   const [dateInput, setDateInput] = useState('');
   const [cityInput, setCityInput] = useState('');
@@ -143,17 +143,6 @@ export default function Events() {
       return next;
     });
   };
-
-  const getAuthHeaders = useCallback(async (headers = {}) => {
-    const token = await getToken();
-    if (!token) throw new Error('Unable to acquire auth token');
-    return { ...headers, Authorization: `Bearer ${token}` };
-  }, [getToken]);
-
-  const authFetch = useCallback(async (url, options = {}) => {
-    const headers = await getAuthHeaders(options.headers || {});
-    return fetch(url, { ...options, headers });
-  }, [getAuthHeaders]);
 
   const fetchMyEvents = useCallback(async () => {
     const res = await authFetch(`${API_BASE_URL}/api/events/my/submissions`);

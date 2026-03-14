@@ -22,7 +22,7 @@ import { API_BASE_URL, DISCORD_INVITE_URL } from './config';
 import './App.css';
 
 function App() {
-  const { loading: authLoading, isSignedIn, user, getToken, logout } = useAuth();
+  const { loading: authLoading, isSignedIn, user, getToken, logout, authFetch, registerSessionExpiredHandler } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const urlPinId = (location.pathname.match(/^\/pin\/([^/]+)$/) || [])[1];
@@ -74,21 +74,12 @@ function App() {
   };
   const hideToast = () => setToast((t) => ({ ...t, visible: false }));
 
-  const getAuthHeaders = useCallback(async (headers = {}) => {
-    const token = await getToken();
-    if (!token) {
-      throw new Error('Unable to acquire auth token');
-    }
-    return {
-      ...headers,
-      Authorization: `Bearer ${token}`
-    };
-  }, [getToken]);
-
-  const authFetch = useCallback(async (url, options = {}) => {
-    const headers = await getAuthHeaders(options.headers || {});
-    return fetch(url, { ...options, headers });
-  }, [getAuthHeaders]);
+  useEffect(() => {
+    registerSessionExpiredHandler(() => {
+      showToast('Session expired. Please sign in again.', 'info');
+      navigate('/login', { replace: true });
+    });
+  }, [registerSessionExpiredHandler, navigate, showToast]);
 
   const fetchPins = useCallback(async () => {
     try {
@@ -142,8 +133,8 @@ function App() {
   useEffect(() => {
     if (authLoading) return;
     if (!isSignedIn) {
-      // Allow unauthenticated users on / and /about; redirect everything else
-      if (location.pathname !== '/' && location.pathname !== '/about') {
+      // Allow unauthenticated users on /, /about, and /login; redirect everything else
+      if (location.pathname !== '/' && location.pathname !== '/about' && location.pathname !== '/login') {
         navigate('/', { replace: true });
       }
     }

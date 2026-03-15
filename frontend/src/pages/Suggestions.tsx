@@ -270,6 +270,20 @@ export default function Suggestions() {
   const queryClient = useQueryClient();
   const { loading: authLoading, isSignedIn, user, getToken, getAuthHeaders, authFetch } = useAuth();
 
+  // ── Theme (syncs with About page via 'about-theme' localStorage + custom event) ─
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('about-theme');
+    return saved !== null ? saved === 'dark' : true; // default dark
+  });
+
+  useEffect(() => {
+    const onThemeChange = (e: Event) => {
+      setDarkMode((e as CustomEvent<string>).detail === 'dark');
+    };
+    window.addEventListener('theme-change', onThemeChange);
+    return () => window.removeEventListener('theme-change', onThemeChange);
+  }, []);
+
   // ── Board / filter state ─────────────────────────────────────────
   const [sort, setSort] = useState('top');
   const [stateFilter, setStateFilter] = useState('');
@@ -736,13 +750,13 @@ export default function Suggestions() {
 
   // ── Guards ────────────────────────────────────────────────────────
   if (authLoading) {
-    return <div className="suggestions-page"><p>Loading...</p></div>;
+    return <div className={`suggestions-page${darkMode ? ' dark' : ''}`}><p>Loading...</p></div>;
   }
   if (!isSignedIn) return null;
 
   // ─────────────────────────────────────────────────────────────────
   return (
-    <div className="suggestions-page">
+    <div className={`suggestions-page${darkMode ? ' dark' : ''}`}>
       <main className="suggestions-main">
         <div className="suggestions-layout">
 

@@ -1386,3 +1386,602 @@
 .suggestions-edit-save-btn .material-icons-round {
   font-size: 1rem;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK THEME  –  syncs with About page via 'about-theme' localStorage
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.suggestions-page.dark {
+  background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+/* ── Page background & main wrapper ── */
+.suggestions-page.dark .suggestions-main {
+  background: transparent;
+}
+
+/* ── Layout ── */
+.suggestions-page.dark .suggestions-layout {
+  gap: 2rem;
+}
+
+/* ── Sidebar form card ── */
+.suggestions-page.dark .suggestions-form-card {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+.suggestions-page.dark .suggestions-form-title {
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-form-desc {
+  color: #8b949e;
+}
+
+/* ── Mobile close button ── */
+.suggestions-page.dark .suggestions-form-close-mobile {
+  background: #21262d;
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-form-close-mobile:hover {
+  background: #30363d;
+  color: #c9d1d9;
+}
+
+/* ── Form inputs ── */
+.suggestions-page.dark .suggestions-label {
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-word-count {
+  color: #6e7681;
+}
+
+.suggestions-page.dark .suggestions-word-count.over-limit {
+  color: #f87171;
+}
+
+.suggestions-page.dark .suggestions-input {
+  background: #0d1117;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-input:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
+}
+
+.suggestions-page.dark .suggestions-input::placeholder {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-input option {
+  background: #161b22;
+  color: #e6edf3;
+}
+
+/* ── Upload area ── */
+.suggestions-page.dark .suggestions-upload-area {
+  background: #0d1117;
+  border-color: #30363d;
+}
+
+.suggestions-page.dark .suggestions-upload-area:hover:not(.disabled) {
+  border-color: #818cf8;
+  background: rgba(129, 140, 248, 0.06);
+}
+
+.suggestions-page.dark .suggestions-upload-icon {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-upload-area:hover:not(.disabled) .suggestions-upload-icon {
+  color: #818cf8;
+}
+
+.suggestions-page.dark .suggestions-upload-text {
+  color: #6e7681;
+}
+
+/* ── Image preview ── */
+.suggestions-page.dark .suggestions-image-preview {
+  border-color: #30363d;
+}
+
+.suggestions-page.dark .suggestions-card-image-link {
+  border-color: #30363d;
+}
+
+/* ── Mobile submit button ── */
+.suggestions-page.dark .suggestions-mobile-submit-btn {
+  background: linear-gradient(135deg, #6366f1, #818cf8);
+}
+
+.suggestions-page.dark .suggestions-mobile-submit-btn:hover {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+}
+
+/* ── Submit / CTA buttons ── */
+.suggestions-page.dark .suggestions-submit-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
+}
+
+.suggestions-page.dark .suggestions-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+}
+
+/* ── Board header ── */
+.suggestions-page.dark .suggestions-board-title {
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-board-count {
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+/* ── Refresh button ── */
+.suggestions-page.dark .suggestions-refresh-btn {
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+.suggestions-page.dark .suggestions-refresh-btn:hover:not(:disabled) {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-refresh-label {
+  color: inherit;
+}
+
+/* ── Filters bar ── */
+.suggestions-page.dark .suggestions-filters-bar {
+  background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);
+  border-color: #30363d;
+}
+
+.suggestions-page.dark .suggestions-filter-label {
+  color: #6e7681;
+}
+
+.suggestions-page.dark .suggestions-filter-select {
+  background: #0d1117;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+.suggestions-page.dark .suggestions-filter-select:hover {
+  border-color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-filter-select:focus {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+.suggestions-page.dark .suggestions-filter-select option {
+  background: #161b22;
+  color: #e6edf3;
+}
+
+/* ── State dropdown (admin) ── */
+.suggestions-page.dark .suggestions-state-dropdown {
+  background: #21262d;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+.suggestions-page.dark .suggestions-state-dropdown:focus {
+  border-color: #818cf8;
+}
+
+.suggestions-page.dark .suggestions-state-dropdown option {
+  background: #161b22;
+  color: #e6edf3;
+}
+
+/* ── Loading ── */
+.suggestions-page.dark .suggestions-loading {
+  color: #484f58;
+}
+
+/* ── Suggestion cards ── */
+.suggestions-page.dark .suggestions-card {
+  background: #161b22;
+  border-color: #21262d;
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.suggestions-page.dark .suggestions-card:hover {
+  border-color: rgba(129, 140, 248, 0.4);
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(129, 140, 248, 0.15);
+  transform: translateY(-1px);
+}
+
+.suggestions-page.dark .suggestions-card-completed {
+  opacity: 0.6;
+}
+
+.suggestions-page.dark .suggestions-card-completed:hover {
+  border-color: #21262d;
+  transform: none;
+}
+
+/* ── Card title ── */
+.suggestions-page.dark .suggestions-card-title {
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-card:hover .suggestions-card-title {
+  color: #a5b4fc;
+}
+
+.suggestions-page.dark .suggestions-card-completed .suggestions-card-title {
+  color: #6e7681;
+}
+
+/* ── Card description ── */
+.suggestions-page.dark .suggestions-card-desc {
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-show-more-btn {
+  color: #818cf8;
+}
+
+/* ── Card meta ── */
+.suggestions-page.dark .suggestions-card-meta {
+  color: #6e7681;
+}
+
+/* ── Category pills – keep vivid color but darken bg ── */
+.suggestions-page.dark .suggestions-category-pill {
+  filter: brightness(0.7) saturate(1.3);
+}
+
+/* ── Comments count button ── */
+.suggestions-page.dark .suggestions-comments-count:hover {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.1);
+}
+
+.suggestions-page.dark .suggestions-comments-count.expanded {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.12);
+}
+
+/* ── Avatar placeholder ── */
+.suggestions-page.dark .suggestions-avatar {
+  border-color: #30363d;
+}
+
+.suggestions-page.dark .suggestions-avatar-placeholder,
+.suggestions-page.dark .suggestions-first-comment-avatar-placeholder,
+.suggestions-page.dark .suggestions-comment-avatar-placeholder {
+  background: #21262d;
+  color: #8b949e;
+}
+
+/* ── Status badges ── */
+.suggestions-page.dark .suggestions-status-status-new {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.suggestions-page.dark .suggestions-status-status-todo {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.suggestions-page.dark .suggestions-status-status-progress {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+
+.suggestions-page.dark .suggestions-status-status-hold {
+  background: rgba(167, 139, 250, 0.15);
+  color: #c4b5fd;
+}
+
+.suggestions-page.dark .suggestions-status-status-review {
+  background: rgba(251, 113, 133, 0.15);
+  color: #fb7185;
+}
+
+.suggestions-page.dark .suggestions-status-status-done {
+  background: rgba(52, 211, 153, 0.15);
+  color: #34d399;
+}
+
+.suggestions-page.dark .suggestions-status-status-cancelled {
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+}
+
+/* ── Edit / delete icon buttons ── */
+.suggestions-page.dark .suggestions-edit-btn {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-edit-btn:hover {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.12);
+}
+
+.suggestions-page.dark .suggestions-delete-btn {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-delete-btn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* ── Vote button ── */
+.suggestions-page.dark .suggestions-vote-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+
+.suggestions-page.dark .suggestions-vote-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+}
+
+.suggestions-page.dark .suggestions-vote-btn.voted {
+  background: linear-gradient(135deg, #059669 0%, #34d399 100%);
+  box-shadow: 0 2px 10px rgba(52, 211, 153, 0.3);
+}
+
+.suggestions-page.dark .suggestions-vote-btn.voted:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+}
+
+.suggestions-page.dark .suggestions-vote-btn.completed {
+  background: #21262d;
+  color: #484f58;
+  box-shadow: none;
+}
+
+/* ── First comment preview ── */
+.suggestions-page.dark .suggestions-first-comment-preview {
+  background: #0d1117;
+  border-color: #21262d;
+}
+
+.suggestions-page.dark .suggestions-first-comment-preview:hover {
+  background: #161b22;
+  border-color: #30363d;
+}
+
+.suggestions-page.dark .suggestions-first-comment-author {
+  color: #c9d1d9;
+}
+
+.suggestions-page.dark .suggestions-first-comment-time {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-first-comment-text {
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-expand-comments-label {
+  color: #818cf8;
+  border-top-color: #21262d;
+}
+
+/* ── Expanded comments section ── */
+.suggestions-page.dark .suggestions-card-comments {
+  border-top-color: #21262d;
+}
+
+.suggestions-page.dark .suggestions-comments-collapse-btn {
+  color: #6e7681;
+}
+
+.suggestions-page.dark .suggestions-comments-collapse-btn:hover {
+  color: #818cf8;
+  background: rgba(129, 140, 248, 0.08);
+}
+
+/* ── Comment list styling ── */
+.suggestions-page.dark .suggestions-comments-list {
+  scrollbar-width: thin;
+  scrollbar-color: #30363d transparent;
+}
+
+.suggestions-page.dark .suggestions-comment-author {
+  color: #c9d1d9;
+}
+
+.suggestions-page.dark .suggestions-comment-time {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-comment-text {
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-comments-empty {
+  color: #484f58;
+}
+
+/* ── Add comment row ── */
+.suggestions-page.dark .suggestions-comment-submit-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.suggestions-page.dark .suggestions-comment-submit-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.45);
+}
+
+.suggestions-page.dark .suggestions-comment-submit-btn:disabled {
+  opacity: 0.4;
+}
+
+/* ── Messages ── */
+.suggestions-page.dark .suggestions-msg-error {
+  color: #f87171;
+}
+
+.suggestions-page.dark .suggestions-msg-success {
+  color: #34d399;
+}
+
+/* ── Load more button ── */
+.suggestions-page.dark .suggestions-load-more-btn {
+  background: #161b22;
+  border-color: #30363d;
+  color: #8b949e;
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
+}
+
+.suggestions-page.dark .suggestions-load-more-btn:hover:not(:disabled) {
+  background: #1c2128;
+  border-color: #484f58;
+  color: #c9d1d9;
+}
+
+/* ── Edit suggestion modal ── */
+.suggestions-page.dark .suggestions-edit-overlay {
+  background: rgba(1, 4, 9, 0.75);
+}
+
+.suggestions-page.dark .suggestions-edit-modal {
+  background: #161b22;
+  border: 1px solid #30363d;
+  box-shadow: 0 32px 64px -16px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(129, 140, 248, 0.1);
+}
+
+.suggestions-page.dark .suggestions-edit-modal-title {
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-edit-modal-title .material-icons-round {
+  color: #818cf8;
+}
+
+.suggestions-page.dark .suggestions-edit-modal-close {
+  background: #21262d;
+  color: #6e7681;
+  border: 1px solid #30363d;
+}
+
+.suggestions-page.dark .suggestions-edit-modal-close:hover {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+.suggestions-page.dark .suggestions-edit-modal-note {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-edit-modal-note .material-icons-round {
+  color: #818cf8;
+}
+
+.suggestions-page.dark .suggestions-edit-cancel-btn {
+  background: #21262d;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+.suggestions-page.dark .suggestions-edit-cancel-btn:hover:not(:disabled) {
+  background: #30363d;
+  border-color: #484f58;
+  color: #c9d1d9;
+}
+
+.suggestions-page.dark .suggestions-edit-save-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.4);
+}
+
+.suggestions-page.dark .suggestions-edit-save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.55);
+}
+
+/* ── Sort tabs ── */
+.suggestions-page.dark .suggestions-sort-tabs {
+  background: rgba(33, 38, 45, 0.8);
+}
+
+.suggestions-page.dark .suggestions-sort-tab {
+  color: #6e7681;
+}
+
+.suggestions-page.dark .suggestions-sort-tab:hover {
+  color: #c9d1d9;
+}
+
+.suggestions-page.dark .suggestions-sort-tab.active {
+  background: #30363d;
+  color: #e6edf3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Quick links ── */
+.suggestions-page.dark .suggestions-quick-links {
+  border-top-color: #21262d;
+}
+
+.suggestions-page.dark .suggestions-quick-links-title {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-quick-link {
+  color: #6e7681;
+}
+
+.suggestions-page.dark .suggestions-quick-link:hover,
+.suggestions-page.dark .suggestions-quick-link.active {
+  color: #818cf8;
+}
+
+.suggestions-page.dark .suggestions-quick-link .material-icons-round {
+  color: #484f58;
+}
+
+.suggestions-page.dark .suggestions-quick-link:hover .material-icons-round,
+.suggestions-page.dark .suggestions-quick-link.active .material-icons-round {
+  color: #818cf8;
+}
+
+/* ── Scrollbars (webkit) ── */
+.suggestions-page.dark .suggestions-comments-list::-webkit-scrollbar {
+  width: 4px;
+}
+.suggestions-page.dark .suggestions-comments-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.suggestions-page.dark .suggestions-comments-list::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 4px;
+}
+.suggestions-page.dark .suggestions-edit-modal::-webkit-scrollbar {
+  width: 5px;
+}
+.suggestions-page.dark .suggestions-edit-modal::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+.suggestions-page.dark .suggestions-edit-modal::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 5px;
+}

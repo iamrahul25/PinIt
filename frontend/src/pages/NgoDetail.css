@@ -342,3 +342,156 @@
 .ngo-detail-time {
   font-weight: 400;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK THEME  –  syncs with About page via 'about-theme' localStorage
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ngo-detail-page.dark {
+  background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+.ngo-detail-page.dark .ngo-detail-loading {
+  color: #6e7681;
+}
+
+.ngo-detail-page.dark .ngo-detail-error {
+  color: #f87171;
+}
+
+.ngo-detail-page.dark .ngo-detail-back-btn {
+  color: #818cf8;
+}
+
+.ngo-detail-page.dark .ngo-detail-back-btn:hover {
+  color: #a5b4fc;
+}
+
+.ngo-detail-page.dark .ngo-detail-card {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+.ngo-detail-page.dark .ngo-detail-header {
+  border-bottom-color: #21262d;
+}
+
+.ngo-detail-page.dark .ngo-detail-edit-btn {
+  background: rgba(129, 140, 248, 0.15);
+  color: #a5b4fc;
+}
+
+.ngo-detail-page.dark .ngo-detail-edit-btn:hover {
+  background: rgba(129, 140, 248, 0.25);
+  color: #c4b5fd;
+}
+
+.ngo-detail-page.dark .ngo-detail-delete-btn {
+  color: #6e7681;
+}
+
+.ngo-detail-page.dark .ngo-detail-delete-btn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.ngo-detail-page.dark .ngo-detail-hero {
+  border-bottom-color: #21262d;
+}
+
+.ngo-detail-page.dark .ngo-detail-logo {
+  border-color: #30363d;
+}
+
+.ngo-detail-page.dark .ngo-detail-logo-placeholder {
+  background: #21262d;
+  color: #6e7681;
+}
+
+.ngo-detail-page.dark .ngo-detail-title {
+  color: #e6edf3;
+}
+
+.ngo-detail-page.dark .ngo-detail-level-pill {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.ngo-detail-page.dark .ngo-detail-vote-btn {
+  background: #21262d;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+.ngo-detail-page.dark .ngo-detail-vote-btn:hover:not(:disabled) {
+  border-color: #818cf8;
+  color: #a5b4fc;
+  background: rgba(129, 140, 248, 0.1);
+}
+
+.ngo-detail-page.dark .ngo-detail-vote-btn.voted {
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #fb7185;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.ngo-detail-page.dark .ngo-detail-vote-btn.voted:hover:not(:disabled) {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.2);
+}
+
+.ngo-detail-page.dark .ngo-detail-section-title {
+  color: #6e7681;
+}
+
+.ngo-detail-page.dark .ngo-detail-meta-item {
+  color: #8b949e;
+}
+
+.ngo-detail-page.dark .ngo-detail-description {
+  color: #c9d1d9;
+}
+
+.ngo-detail-page.dark .ngo-detail-tag {
+  background: #21262d;
+  color: #8b949e;
+  border: 1px solid #30363d;
+}
+
+.ngo-detail-page.dark .ngo-detail-founder {
+  color: #c9d1d9;
+}
+
+.ngo-detail-page.dark .ngo-detail-email {
+  color: #a5b4fc;
+}
+
+.ngo-detail-page.dark .ngo-detail-email:hover {
+  color: #818cf8;
+}
+
+.ngo-detail-page.dark .ngo-detail-link {
+  background: #21262d;
+  border-color: #30363d;
+  color: #c9d1d9;
+}
+
+.ngo-detail-page.dark .ngo-detail-link:hover {
+  background: #30363d;
+  border-color: #484f58;
+}
+
+.ngo-detail-page.dark .ngo-detail-link-website:hover {
+  color: #a5b4fc;
+}
+
+.ngo-detail-page.dark .ngo-detail-followers {
+  color: #6e7681;
+}
+
+.ngo-detail-page.dark .ngo-detail-author {
+  color: #6e7681;
+  border-top-color: #21262d;
+}

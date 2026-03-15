@@ -36,6 +36,21 @@ export default function NgoDetail() {
   const ngoId = (location.pathname.match(/^\/ngo\/([^/]+)$/) || [])[1] || null;
   const navigate = useNavigate();
   const { loading: authLoading, isSignedIn, user, getToken, authFetch } = useAuth();
+
+  // ── Theme (syncs with About page via 'about-theme' localStorage + custom event) ─
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('about-theme');
+    return saved !== null ? saved === 'dark' : true; // default dark
+  });
+
+  useEffect(() => {
+    const onThemeChange = (e: Event) => {
+      setDarkMode((e as CustomEvent<string>).detail === 'dark');
+    };
+    window.addEventListener('theme-change', onThemeChange);
+    return () => window.removeEventListener('theme-change', onThemeChange);
+  }, []);
+
   const [ngo, setNgo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -102,7 +117,7 @@ export default function NgoDetail() {
 
   if (authLoading || loading) {
     return (
-      <div className="ngo-detail-page">
+      <div className={`ngo-detail-page${darkMode ? ' dark' : ''}`}>
         <p className="ngo-detail-loading">Loading NGO...</p>
       </div>
     );
@@ -110,7 +125,7 @@ export default function NgoDetail() {
 
   if (error && !ngo) {
     return (
-      <div className="ngo-detail-page">
+      <div className={`ngo-detail-page${darkMode ? ' dark' : ''}`}>
         <p className="ngo-detail-error">{error}</p>
         <button type="button" className="ngo-detail-back-btn" onClick={() => navigate('/ngos')}>
           Back to NGOs
@@ -126,7 +141,7 @@ export default function NgoDetail() {
   const canEdit = user?.role === 'admin' || ngo.authorId === user?.id;
 
   return (
-    <div className="ngo-detail-page">
+    <div className={`ngo-detail-page${darkMode ? ' dark' : ''}`}>
       <div className="ngo-detail-card">
         <div className="ngo-detail-header">
           <button

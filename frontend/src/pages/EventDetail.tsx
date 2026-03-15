@@ -39,6 +39,21 @@ export default function EventDetail() {
   const eventId = (location.pathname.match(/^\/events\/([^/]+)$/) || [])[1] || null;
   const navigate = useNavigate();
   const { loading: authLoading, isSignedIn, user, getToken } = useAuth();
+
+  // ── Theme (syncs with About page via 'about-theme' localStorage + custom event) ─
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('about-theme');
+    return saved !== null ? saved === 'dark' : true; // default dark
+  });
+
+  useEffect(() => {
+    const onThemeChange = (e: Event) => {
+      setDarkMode((e as CustomEvent<string>).detail === 'dark');
+    };
+    window.addEventListener('theme-change', onThemeChange);
+    return () => window.removeEventListener('theme-change', onThemeChange);
+  }, []);
+
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -114,7 +129,7 @@ export default function EventDetail() {
 
   if (authLoading || loading) {
     return (
-      <div className="event-detail-page">
+      <div className={`event-detail-page${darkMode ? ' dark' : ''}`}>
         <p className="event-detail-loading">Loading event...</p>
       </div>
     );
@@ -122,7 +137,7 @@ export default function EventDetail() {
 
   if (error && !event) {
     return (
-      <div className="event-detail-page">
+      <div className={`event-detail-page${darkMode ? ' dark' : ''}`}>
         <p className="event-detail-error">{error}</p>
         <button type="button" className="event-detail-back-btn" onClick={() => navigate('/events')}>
           Back to Events
@@ -137,7 +152,7 @@ export default function EventDetail() {
   const isPast = isEventPast(event);
 
   return (
-    <div className="event-detail-page">
+    <div className={`event-detail-page${darkMode ? ' dark' : ''}`}>
       <div className="event-detail-card">
         <div className="event-detail-header">
           <button

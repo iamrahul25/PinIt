@@ -13,3 +13,69 @@
     opacity: 1;
   }
 }
+
+/* ─── Fix Status Timeline Card ─ Light Mode ─── */
+.fix-status-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+.fix-status-card .fix-status-title {
+  color: #94a3b8;
+}
+
+/* Light mode overrides */
+:root:not(.dark) .fix-status-card {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  color: #1e293b;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+:root:not(.dark) .fix-status-card .fix-status-title {
+  color: #64748b;
+}
+
+:root:not(.dark) .fix-status-step-active-icon {
+  color: #3b82f6 !important;
+}
+
+:root:not(.dark) .fix-status-step-inactive-icon {
+  color: #94a3b8 !important;
+}
+
+:root:not(.dark) .fix-status-step-label-active {
+  color: #1e293b !important;
+}
+
+:root:not(.dark) .fix-status-step-label-inactive {
+  color: #94a3b8 !important;
+}
+
+:root:not(.dark) .fix-status-step-date-active {
+  color: #64748b !important;
+}
+
+:root:not(.dark) .fix-status-step-date-inactive {
+  color: #cbd5e1 !important;
+}
+
+:root:not(.dark) .fix-status-circle-active {
+  background: rgba(59,130,246,0.12) !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 12px rgba(59,130,246,0.25) !important;
+}
+
+:root:not(.dark) .fix-status-circle-inactive {
+  background: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+:root:not(.dark) .fix-status-connector-active {
+  background: #3b82f6 !important;
+}
+
+:root:not(.dark) .fix-status-connector-inactive {
+  background: #e2e8f0 !important;
+}

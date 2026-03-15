@@ -50,6 +50,21 @@ export default function NGOs() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { loading: authLoading, isSignedIn, user, getToken, getAuthHeaders, authFetch } = useAuth();
+
+  // ── Theme (syncs with About page via 'about-theme' localStorage + custom event) ─
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('about-theme');
+    return saved !== null ? saved === 'dark' : true; // default dark
+  });
+
+  useEffect(() => {
+    const onThemeChange = (e: Event) => {
+      setDarkMode((e as CustomEvent<string>).detail === 'dark');
+    };
+    window.addEventListener('theme-change', onThemeChange);
+    return () => window.removeEventListener('theme-change', onThemeChange);
+  }, []);
+
   const [view, setView] = useState('board');
   const [levelFilter, setLevelFilter] = useState('');
   const [cityFilter, setCityFilter] = useState('');
@@ -588,7 +603,7 @@ export default function NGOs() {
 
   if (authLoading) {
     return (
-      <div className="ngos-page">
+      <div className={`ngos-page${darkMode ? ' dark' : ''}`}>
         <p>Loading...</p>
       </div>
     );
@@ -596,7 +611,7 @@ export default function NGOs() {
   if (!isSignedIn) return null;
 
   return (
-    <div className="ngos-page">
+    <div className={`ngos-page${darkMode ? ' dark' : ''}`}>
       <main className="ngos-main">
         <div className="ngos-layout">
           <aside className="ngos-aside">

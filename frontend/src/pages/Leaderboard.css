@@ -26,7 +26,6 @@
     inset: 0;
     background:
         radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, .45) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(245, 158, 11, .25) 0%, transparent 70%),
         #0c0e14;
     z-index: 0;
 }
@@ -727,4 +726,227 @@
 
 .lb-list .lb-row:nth-child(10) {
     animation-delay: .33s;
+}
+
+/* =========================================================
+   LIGHT MODE — .lb-page.light
+   ========================================================= */
+
+/* Page shell */
+.lb-page.light {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+
+/* Hero */
+.lb-page.light .lb-hero-bg {
+    background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99, 102, 241, 0.18) 0%, transparent 70%),
+        #f1f5f9;
+}
+
+.lb-page.light .lb-hero-bg::after {
+    background: repeating-linear-gradient(-55deg,
+            transparent,
+            transparent 60px,
+            rgba(0, 0, 0, 0.015) 60px,
+            rgba(0, 0, 0, 0.015) 61px);
+}
+
+.lb-page.light .lb-hero-title {
+    color: #0f172a;
+    text-shadow: 0 2px 20px rgba(99, 102, 241, 0.2);
+}
+
+.lb-page.light .lb-hero-subtitle {
+    color: rgba(30, 41, 59, 0.6);
+}
+
+.lb-page.light .lb-hero-week {
+    color: #6366f1;
+}
+
+/* Period tabs */
+.lb-page.light .lb-period-tabs {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.lb-page.light .lb-period-tab {
+    color: rgba(30, 41, 59, 0.55);
+}
+
+.lb-page.light .lb-period-tab:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.06);
+    color: rgba(30, 41, 59, 0.9);
+}
+
+/* Legend */
+.lb-page.light .lb-legend {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(8px);
+}
+
+.lb-page.light .lb-legend-title {
+    color: rgba(30, 41, 59, 0.45);
+}
+
+.lb-page.light .lb-legend-label {
+    color: rgba(30, 41, 59, 0.8);
+}
+
+/* Board heading & refresh */
+.lb-page.light .lb-board-heading {
+    color: #0f172a;
+}
+
+.lb-page.light .lb-refresh-btn {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+    color: rgba(30, 41, 59, 0.6);
+}
+
+.lb-page.light .lb-refresh-btn:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.09);
+    color: #0f172a;
+}
+
+/* State views */
+.lb-page.light .lb-state {
+    color: rgba(30, 41, 59, 0.5);
+}
+
+.lb-page.light .lb-state-sub {
+    color: rgba(30, 41, 59, 0.35);
+}
+
+.lb-page.light .lb-loader {
+    border-color: rgba(0, 0, 0, 0.1);
+    border-top-color: #6366f1;
+}
+
+.lb-page.light .lb-retry-btn {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+}
+
+.lb-page.light .lb-retry-btn:hover {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+/* Leaderboard rows */
+.lb-page.light .lb-row {
+    background: rgba(255, 255, 255, 0.72);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.lb-page.light .lb-row:hover {
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.lb-page.light .lb-row-top {
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 4px 24px var(--medal-glow, transparent);
+}
+
+.lb-page.light .lb-row-open {
+    border-color: rgba(99, 102, 241, 0.45);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12), 0 8px 32px rgba(99, 102, 241, 0.1);
+}
+
+.lb-page.light .lb-row-main:hover {
+    background: rgba(0, 0, 0, 0.025);
+}
+
+.lb-page.light .lb-rank {
+    color: rgba(30, 41, 59, 0.4);
+}
+
+.lb-page.light .lb-username {
+    color: #0f172a;
+}
+
+.lb-page.light .lb-contributions-summary {
+    color: rgba(30, 41, 59, 0.45);
+}
+
+.lb-page.light .lb-score {
+    color: #6366f1;
+}
+
+/* Keep gold/silver/bronze for top 3 in light mode too */
+.lb-page.light .lb-list > .lb-row:nth-child(1) .lb-score {
+    color: #d97706;
+}
+
+.lb-page.light .lb-list > .lb-row:nth-child(2) .lb-score {
+    color: #9ca3af;
+}
+
+.lb-page.light .lb-list > .lb-row:nth-child(3) .lb-score {
+    color: #a16207;
+}
+
+.lb-page.light .lb-score-label {
+    color: rgba(30, 41, 59, 0.35);
+}
+
+.lb-page.light .lb-chevron {
+    color: rgba(30, 41, 59, 0.3);
+}
+
+.lb-page.light .lb-row-main:hover .lb-chevron,
+.lb-page.light .lb-row-open .lb-chevron {
+    color: rgba(30, 41, 59, 0.65);
+}
+
+/* Score breakdown */
+.lb-page.light .lb-breakdown-inner {
+    border-top-color: rgba(0, 0, 0, 0.07);
+}
+
+.lb-page.light .lb-breakdown-empty {
+    color: rgba(30, 41, 59, 0.45);
+}
+
+.lb-page.light .lb-breakdown-label {
+    color: rgba(30, 41, 59, 0.7);
+}
+
+.lb-page.light .lb-breakdown-count {
+    color: rgba(30, 41, 59, 0.4);
+}
+
+.lb-page.light .lb-breakdown-total {
+    border-top-color: rgba(0, 0, 0, 0.07);
+    color: #6366f1;
+}
+
+/* Stats section */
+.lb-page.light .lb-stats {
+    background: rgba(255, 255, 255, 0.7);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.lb-page.light .lb-stats-title {
+    color: rgba(30, 41, 59, 0.45);
+}
+
+.lb-page.light .lb-stats-loading {
+    color: rgba(30, 41, 59, 0.6);
+}
+
+.lb-page.light .lb-stat-card {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.07);
+}
+
+.lb-page.light .lb-stat-value {
+    color: #0f172a;
+}
+
+.lb-page.light .lb-stat-label {
+    color: rgba(30, 41, 59, 0.55);
 }

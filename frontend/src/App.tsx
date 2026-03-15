@@ -52,6 +52,39 @@ function App() {
   const [notifications, setNotifications] = useState([]);
   const [installPrompt, setInstallPrompt] = useState(null);
 
+  // Theme: sync with localStorage "about-theme" (used by About + Leaderboard)
+  const [themeDark, setThemeDark] = useState<boolean>(() => {
+    const saved = localStorage.getItem('about-theme');
+    return saved !== null ? saved === 'dark' : true;
+  });
+  const toggleTheme = useCallback(() => {
+    setThemeDark((prev) => {
+      const next = !prev;
+      localStorage.setItem('about-theme', next ? 'dark' : 'light');
+      window.dispatchEvent(new CustomEvent('theme-change', { detail: next ? 'dark' : 'light' }));
+      return next;
+    });
+  }, []);
+
+  // Sync header theme when About/Leaderboard toggle theme (they dispatch theme-change too)
+  useEffect(() => {
+    const onThemeChange = (e: CustomEvent<string>) => {
+      setThemeDark(e.detail === 'dark');
+    };
+    window.addEventListener('theme-change', onThemeChange as EventListener);
+    return () => window.removeEventListener('theme-change', onThemeChange as EventListener);
+  }, []);
+
+  // Apply theme to document for Tailwind dark: and semantic CSS variables (PinDetails, EditPinDetails, PinForm, etc.)
+  useEffect(() => {
+    const root = document.documentElement;
+    if (themeDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [themeDark]);
+
   const addNotification = useCallback((type, message) => {
     const id = Date.now();
     setNotifications(prev => {
@@ -488,6 +521,25 @@ function App() {
           >
             ℹ️ About
           </button>
+          <button
+            type="button"
+            className={`header-nav-btn header-theme-toggle-btn ${themeDark ? 'theme-icon-dark' : 'theme-icon-light'}`}
+            onClick={toggleTheme}
+            aria-label={themeDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={themeDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            <span className="header-theme-toggle-icon" aria-hidden="true">
+              {themeDark ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37-1.06-1.06a.996.996 0 0 0-1.41 0c-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.38.39-1.02 0-1.41zm1.06-10.96a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" />
+                </svg>
+              )}
+            </span>
+          </button>
           <button type="button" className="logout-btn" onClick={handleSignOut}>
             <span className="logout-btn-icon" aria-hidden="true">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -567,6 +619,22 @@ function App() {
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/about')}>
           ℹ️ About
+        </button>
+        <button
+          type="button"
+          className={`header-mobile-nav-btn header-theme-toggle-btn ${themeDark ? 'theme-icon-dark' : 'theme-icon-light'}`}
+          onClick={() => { toggleTheme(); closeMobileMenu(); }}
+          aria-label={themeDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={themeDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span className="header-theme-toggle-icon" aria-hidden="true">
+            {themeDark ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z" /></svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 0 0-1.41 0 .996.996 0 0 0 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37-1.06-1.06a.996.996 0 0 0-1.41 0c-.39.39-.39 1.03 0 1.41l1.06 1.06c.39.39 1.03.39 1.41 0 .39-.38.39-1.02 0-1.41zm1.06-10.96a.996.996 0 0 0 0-1.41c-.39-.39-1.03-.39-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06zM7.05 18.36a.996.996 0 0 0 0-1.41.996.996 0 0 0-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06z" /></svg>
+            )}
+          </span>
+          <span className="header-theme-toggle-label">{themeDark ? 'Light' : 'Dark'}</span>
         </button>
         <a
           href={DISCORD_INVITE_URL}

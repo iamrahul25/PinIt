@@ -9,6 +9,22 @@ function About({ showAuthButton = false }) {
     const animRefs = useRef([]);
     const [toast, setToast] = useState({ visible: false, message: '' });
 
+    // ─── Theme ───────────────────────────────────────────────────────────────
+    const [darkMode, setDarkMode] = useState<boolean>(() => {
+        const saved = localStorage.getItem('about-theme');
+        // Default to dark if nothing saved
+        return saved !== null ? saved === 'dark' : true;
+    });
+
+    const toggleTheme = () => {
+        setDarkMode(prev => {
+            const next = !prev;
+            localStorage.setItem('about-theme', next ? 'dark' : 'light');
+            window.dispatchEvent(new CustomEvent('theme-change', { detail: next ? 'dark' : 'light' }));
+            return next;
+        });
+    };
+
     const hideToast = () => setToast(t => ({ ...t, visible: false }));
 
     // For unauthenticated users, show info toast instead of navigating
@@ -19,6 +35,15 @@ function About({ showAuthButton = false }) {
             navigate(path);
         }
     };
+
+    // Sync theme when header toggle is used (custom event from App)
+    useEffect(() => {
+        const onThemeChange = (e: CustomEvent<string>) => {
+            setDarkMode(e.detail === 'dark');
+        };
+        window.addEventListener('theme-change', onThemeChange as EventListener);
+        return () => window.removeEventListener('theme-change', onThemeChange as EventListener);
+    }, []);
 
     useEffect(() => {
         const observer = new IntersectionObserver(
@@ -44,7 +69,7 @@ function About({ showAuthButton = false }) {
     };
 
     return (
-        <div className="about-page">
+        <div className={`about-page${darkMode ? '' : ' light'}`}>
 
             {/* ===== AUTH TOP BAR (only for unauthenticated visitors) ===== */}
             {showAuthButton && (
@@ -54,12 +79,40 @@ function About({ showAuthButton = false }) {
                             <span className="material-icons-round" style={{ fontSize: '1.5rem', color: '#2dd4a8' }}>push_pin</span>
                             <span className="about-auth-brand-text">Pin-It</span>
                         </div>
-                        <button className="about-auth-login-btn" onClick={() => navigate('/login')}>
-                            <span className="material-icons-round">login</span>
-                            Login / Sign Up
-                        </button>
+                        <div className="about-topbar-actions">
+                            {/* ─── Theme Toggle ─────────────────────── */}
+                            <button
+                                className="about-theme-toggle"
+                                onClick={toggleTheme}
+                                aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                                title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                            >
+                                <span className="about-theme-toggle-track">
+                                    <span className="about-theme-toggle-thumb">
+                                        <span className="material-icons-round">{darkMode ? 'dark_mode' : 'light_mode'}</span>
+                                    </span>
+                                </span>
+                                <span className="about-theme-toggle-label">{darkMode ? 'Dark' : 'Light'}</span>
+                            </button>
+                            <button className="about-auth-login-btn" onClick={() => navigate('/login')}>
+                                <span className="material-icons-round">login</span>
+                                Login / Sign Up
+                            </button>
+                        </div>
                     </div>
                 </div>
+            )}
+
+            {/* ===== FLOATING THEME TOGGLE (for authenticated users, no topbar) ===== */}
+            {!showAuthButton && (
+                <button
+                    className="about-theme-toggle-float"
+                    onClick={toggleTheme}
+                    aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                    title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                    <span className="material-icons-round">{darkMode ? 'dark_mode' : 'light_mode'}</span>
+                </button>
             )}
 
             {/* ===== HERO ===== */}

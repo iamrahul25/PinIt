@@ -35,3 +35,259 @@
     opacity: 1;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK THEME  –  syncs with About page via 'about-theme' localStorage
+   Stylish dark map: CartoDB dark tiles (OSM) + Google dark styles + UI
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.map-view-wrapper.dark {
+  position: relative;
+}
+
+/* Subtle vignette overlay so map feels more immersive in dark mode */
+.map-view-wrapper.dark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 50%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.15) 100%
+  );
+  opacity: 0.6;
+}
+
+/* ── Search ── */
+.map-view-wrapper.dark .map-search-input {
+  background: #161b22 !important;
+  color: #e6edf3 !important;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.map-view-wrapper.dark .map-search-input::placeholder {
+  color: #6e7681;
+}
+
+.map-view-wrapper.dark .map-search-input:focus {
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.35) !important;
+  border-color: #818cf8 !important;
+}
+
+.map-view-wrapper.dark .map-search-clear-btn {
+  color: #8b949e !important;
+}
+
+.map-view-wrapper.dark .map-search-clear-btn:hover {
+  color: #e6edf3 !important;
+}
+
+/* Suggestions dropdown (including dynamically created items) */
+.map-view-wrapper.dark .map-suggestions-list,
+.map-view-wrapper.dark #location-suggestions {
+  background: #161b22 !important;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.map-view-wrapper.dark #location-suggestions > * {
+  color: #c9d1d9 !important;
+  background: transparent !important;
+  border-bottom: 1px solid #21262d !important;
+}
+
+.map-view-wrapper.dark #location-suggestions > *:hover {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+
+/* ── Control buttons (location, layers, cluster, zoom out) ── */
+.map-view-wrapper.dark .map-ctrl-btn {
+  background: #161b22 !important;
+  color: #8b949e !important;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Bright green icon color for all map control buttons in dark mode */
+.map-view-wrapper.dark .map-buttons-row .map-ctrl-btn .material-icons-round {
+  color: #34d399 !important;
+}
+
+.map-view-wrapper.dark .map-buttons-row .map-ctrl-btn:hover:not(:disabled) .material-icons-round {
+  color: #6ee7b7 !important;
+}
+
+/* Location button uses img – tint to same bright green */
+.map-view-wrapper.dark .map-location-btn img {
+  filter: brightness(0) saturate(100%) invert(76%) sepia(42%) saturate(1023%) hue-rotate(111deg);
+}
+
+.map-view-wrapper.dark .map-location-btn:hover:not(:disabled) img {
+  filter: brightness(0) saturate(100%) invert(85%) sepia(35%) saturate(1200%) hue-rotate(111deg);
+}
+
+.map-view-wrapper.dark .map-ctrl-btn:hover:not(:disabled) {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+  border-color: #484f58 !important;
+}
+
+/* Cluster/dark-toggle "on" state: white icon on green background for contrast */
+.map-view-wrapper.dark .map-cluster-btn.map-cluster-btn--on .material-icons-round,
+.map-view-wrapper.dark .map-dark-toggle-btn.map-dark-toggle-btn--on .material-icons-round {
+  color: #fff !important;
+}
+
+.map-view-wrapper.dark .map-cluster-btn.map-cluster-btn--on:hover .material-icons-round,
+.map-view-wrapper.dark .map-dark-toggle-btn.map-dark-toggle-btn--on:hover .material-icons-round {
+  color: #d1fae5 !important;
+}
+
+/* Selected state: green accent to match dark theme icons (replaces blue) */
+.map-view-wrapper.dark .map-cluster-btn.map-cluster-btn--on {
+  background: linear-gradient(135deg, #059669, #34d399) !important;
+  color: #fff !important;
+  border-color: rgba(52, 211, 153, 0.4) !important;
+  box-shadow: 0 2px 12px rgba(5, 150, 105, 0.4) !important;
+}
+
+.map-view-wrapper.dark .map-cluster-btn.map-cluster-btn--on:hover {
+  background: linear-gradient(135deg, #047857, #10b981) !important;
+  box-shadow: 0 2px 14px rgba(5, 150, 105, 0.5) !important;
+}
+
+/* Map dark mode toggle button – "on" state: same green accent */
+.map-view-wrapper.dark .map-dark-toggle-btn.map-dark-toggle-btn--on {
+  background: linear-gradient(135deg, #059669, #34d399) !important;
+  color: #fff !important;
+  border-color: rgba(52, 211, 153, 0.4) !important;
+  box-shadow: 0 2px 12px rgba(5, 150, 105, 0.4) !important;
+}
+
+.map-view-wrapper.dark .map-dark-toggle-btn.map-dark-toggle-btn--on:hover {
+  background: linear-gradient(135deg, #047857, #10b981) !important;
+  box-shadow: 0 2px 14px rgba(5, 150, 105, 0.5) !important;
+}
+
+/* Layers dropdown */
+.map-view-wrapper.dark .map-layers-dropdown {
+  background: #161b22 !important;
+  border: 1px solid #30363d !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.map-view-wrapper.dark .map-layers-dropdown .map-layer-option {
+  background: transparent !important;
+  color: #c9d1d9 !important;
+}
+
+.map-view-wrapper.dark .map-layers-dropdown .map-layer-option:hover {
+  background: #21262d !important;
+}
+
+.map-view-wrapper.dark .map-layers-dropdown .map-layer-option--selected {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+
+.map-view-wrapper.dark .map-layers-dropdown .map-layer-option--selected .map-layer-option-dot {
+  background: rgba(129, 140, 248, 0.4) !important;
+  border-color: #818cf8 !important;
+}
+
+/* Tooltips – already dark; slight tweak for consistency */
+.map-view-wrapper.dark .map-control-tooltip {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Add-pin bars ── */
+.map-view-wrapper.dark .map-add-pin-bar-mobile {
+  background: #161b22 !important;
+  border-color: #30363d !important;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+.map-view-wrapper.dark .map-add-pin-bar-mobile span {
+  color: #e6edf3 !important;
+}
+
+.map-view-wrapper.dark .map-add-pin-bar-mobile button {
+  background: #21262d !important;
+  border-color: #30363d !important;
+  color: #c9d1d9 !important;
+}
+
+.map-view-wrapper.dark .map-add-pin-bar-mobile button:hover {
+  background: #30363d !important;
+  color: #e6edf3 !important;
+}
+
+.map-view-wrapper.dark .map-add-pin-bar-center {
+  background: rgba(30, 27, 75, 0.9) !important;
+  border-color: rgba(129, 140, 248, 0.35) !important;
+  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3) !important;
+}
+
+.map-view-wrapper.dark .map-add-pin-bar-center button:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+/* ── Pin cursor (placement) ── */
+.map-view-wrapper.dark .map-view-pin-cursor svg path {
+  fill: #a5b4fc;
+  stroke: #1e293b;
+}
+
+.map-view-wrapper.dark .map-view-pin-cursor svg circle {
+  fill: #1e293b;
+}
+
+/* ── Leaflet zoom control ── */
+.map-view-wrapper.dark .leaflet-control-zoom {
+  border: 1px solid #30363d !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.map-view-wrapper.dark .leaflet-control-zoom a {
+  background: #161b22 !important;
+  color: #8b949e !important;
+  border-bottom: 1px solid #21262d !important;
+}
+
+.map-view-wrapper.dark .leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.map-view-wrapper.dark .leaflet-control-zoom a:hover {
+  background: #21262d !important;
+  color: #e6edf3 !important;
+}
+
+/* Attribution text in dark mode (Leaflet) */
+.map-view-wrapper.dark .leaflet-control-attribution {
+  background: rgba(13, 17, 23, 0.85) !important;
+  color: #6e7681 !important;
+}
+
+.map-view-wrapper.dark .leaflet-control-attribution a {
+  color: #818cf8 !important;
+}
+
+/* Google API key not configured placeholder */
+.map-view-wrapper.dark .map-google-placeholder {
+  background: #0d1117 !important;
+  color: #8b949e !important;
+}
+
+/* My Location spinner in dark mode */
+.map-view-wrapper.dark .map-location-spinner {
+  border-color: #30363d !important;
+  border-top-color: #818cf8 !important;
+}

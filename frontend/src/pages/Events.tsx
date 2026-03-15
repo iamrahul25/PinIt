@@ -75,6 +75,21 @@ export default function Events() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { loading: authLoading, isSignedIn, user, getToken, getAuthHeaders, authFetch } = useAuth();
+
+  // ── Theme (syncs with About page via 'about-theme' localStorage + custom event) ─
+  const [darkMode, setDarkMode] = useState<boolean>(() => {
+    const saved = localStorage.getItem('about-theme');
+    return saved !== null ? saved === 'dark' : true; // default dark
+  });
+
+  useEffect(() => {
+    const onThemeChange = (e: Event) => {
+      setDarkMode((e as CustomEvent<string>).detail === 'dark');
+    };
+    window.addEventListener('theme-change', onThemeChange);
+    return () => window.removeEventListener('theme-change', onThemeChange);
+  }, []);
+
   const [view, setView] = useState('board');
   const [dateInput, setDateInput] = useState('');
   const [cityInput, setCityInput] = useState('');
@@ -557,7 +572,7 @@ export default function Events() {
 
   if (authLoading) {
     return (
-      <div className="events-page">
+      <div className={`events-page${darkMode ? ' dark' : ''}`}>
         <p>Loading...</p>
       </div>
     );
@@ -565,7 +580,7 @@ export default function Events() {
   if (!isSignedIn) return null;
 
   return (
-    <div className="events-page">
+    <div className={`events-page${darkMode ? ' dark' : ''}`}>
       <main className={`events-main ${view === 'board' && showEventsList ? 'events-main--table-view' : ''}`}>
         <div className="events-layout">
           <aside className="events-aside">

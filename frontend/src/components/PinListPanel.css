@@ -942,3 +942,429 @@
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════ */
+/*  DARK MODE  ·  Soft, eye-friendly slate-blue palette               */
+/*  Synced with localStorage("about-theme") = "dark"                  */
+/*  App.tsx sets .dark on <html> when dark mode is active             */
+/*                                                                     */
+/*  Design palette:                                                    */
+/*    bg-base:    #16181f  — warm midnight, not harsh black            */
+/*    bg-panel:   #1c1e2a  — gentle blue-tinted dark                  */
+/*    bg-card:    #212436  — soft slate-navy card surface              */
+/*    bg-hover:   #272a3f  — subtle lift on interactive elements       */
+/*    bg-input:   #1e2030  — slightly deeper tint for inputs           */
+/*    border:     #2e3148  — very low-contrast dividers                */
+/*    text:       #dde1f0  — warm off-white (easy on eyes)             */
+/*    text-muted: #8890aa  — comfortable medium tone                   */
+/*    text-dim:   #5a6080  — timestamps, placeholders                  */
+/*    accent:     #7c7ef7  — soft periwinkle indigo                    */
+/*    accent-glow:rgba(124,126,247,0.18) — gentle hover tints          */
+/* ═══════════════════════════════════════════════════════════════════ */
+
+/* ── CSS variable overrides for all token-using elements ── */
+.dark .pins-sidebar,
+.dark .pins-sidebar-toggle,
+.dark .pin-card-featured,
+.dark .pin-card-compact {
+  --pins-bg: #1c1e2a;
+  --pins-card-bg: #212436;
+  --pins-border: #2e3148;
+  --pins-header-border: #272a3f;
+  --pins-text: #dde1f0;
+  --pins-text-muted: #8890aa;
+  --pins-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.45);
+  --pins-primary: #7c7ef7;
+}
+
+/* Propagate variables to all sidebar children */
+.dark .pins-sidebar * {
+  --pins-bg: #1c1e2a;
+  --pins-card-bg: #212436;
+  --pins-border: #2e3148;
+  --pins-header-border: #272a3f;
+  --pins-text: #dde1f0;
+  --pins-text-muted: #8890aa;
+  --pins-primary: #7c7ef7;
+}
+
+/* ── Sidebar panel ── */
+.dark .pins-sidebar {
+  background: #1c1e2a;
+  border-left: 1px solid #272a3f;
+  box-shadow: -8px 0 40px rgba(0, 0, 0, 0.35);
+}
+
+/* ── Header ── */
+.dark .pins-sidebar-header {
+  background: #1c1e2a;
+  border-bottom: 1px solid #272a3f;
+}
+
+.dark .pins-sidebar-title {
+  color: #dde1f0;
+  letter-spacing: -0.01em;
+}
+
+.dark .pins-sidebar-count {
+  background: rgba(124, 126, 247, 0.15);
+  color: #a0a3fb;
+}
+
+/* ── Toggle button ── */
+.dark .pins-sidebar-toggle {
+  background: #7c7ef7;
+  box-shadow: 0 8px 20px -4px rgba(124, 126, 247, 0.4);
+}
+
+.dark .pins-sidebar-toggle:hover {
+  box-shadow: 0 12px 28px -4px rgba(124, 126, 247, 0.5);
+  transform: translateY(-50%) translateY(-2px);
+}
+
+/* ── View toggle buttons ── */
+.dark .pins-view-toggle {
+  background: #212436;
+  border: 1px solid #2e3148;
+}
+
+.dark .pins-view-toggle-btn {
+  color: #8890aa;
+}
+
+.dark .pins-view-toggle-btn:hover {
+  background: #272a3f;
+  color: #dde1f0;
+}
+
+.dark .pins-view-toggle-btn.active {
+  background: #7c7ef7;
+  color: #fff;
+}
+
+/* ── Close button ── */
+.dark .pins-sidebar-close {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f47c7c;
+}
+
+.dark .pins-sidebar-close:hover {
+  background: rgba(248, 113, 113, 0.18);
+  color: #ffa8a8;
+}
+
+/* ── Section headings ── */
+.dark .pins-section-heading {
+  color: #5a6080;
+  letter-spacing: 0.06em;
+}
+
+/* ── Filter checkboxes ── */
+.dark .pins-filter-check {
+  color: #c4cbde;
+}
+
+.dark .pins-filter-check input {
+  background: #1e2030;
+  border-color: #2e3148;
+  accent-color: #7c7ef7;
+}
+
+.dark .pins-filter-icon-saved {
+  color: #f5c842;
+}
+
+.dark .pins-filter-icon-user {
+  color: #7c7ef7;
+}
+
+/* ── Verification status select ── */
+.dark .pins-filter-select {
+  background: #1e2030;
+  border: 1px solid #2e3148;
+  color: #c4cbde;
+  border-radius: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.dark .pins-filter-select:hover {
+  border-color: #7c7ef7;
+}
+
+.dark .pins-filter-select:focus {
+  border-color: #7c7ef7;
+  box-shadow: 0 0 0 3px rgba(124, 126, 247, 0.18);
+  outline: none;
+}
+
+/* ── Problem type pills ── */
+.dark .pins-pill {
+  background: #1e2030;
+  border: 1px solid #2e3148;
+  color: #b0b8ce;
+  transition: all 0.18s ease;
+}
+
+.dark .pins-pill:hover {
+  background: #272a3f;
+  border-color: #7c7ef7;
+  color: #dde1f0;
+}
+
+.dark .pins-pill-all.active {
+  background: #7c7ef7;
+  border-color: #7c7ef7;
+  color: #fff;
+}
+
+/* type pills keep their own color when active — override text only */
+.dark .pins-pill-type.active {
+  color: #fff;
+}
+
+/* ── Sort buttons ── */
+.dark .pins-sort-btn {
+  background: #1e2030;
+  border: 1px solid #2e3148;
+  color: #8890aa;
+  transition: all 0.18s ease;
+}
+
+.dark .pins-sort-btn:hover {
+  background: #272a3f;
+  border-color: #7c7ef7;
+  color: #dde1f0;
+}
+
+.dark .pins-sort-btn.active {
+  background: rgba(124, 126, 247, 0.18);
+  border-color: #7c7ef7;
+  color: #a0a3fb;
+}
+
+/* ── Empty state ── */
+.dark .pins-empty {
+  color: #8890aa;
+}
+
+.dark .pins-empty-sub {
+  color: #5a6080;
+}
+
+/* ══════════════════════════════════════════════ */
+/*  FEATURED (large) pin card                     */
+/* ══════════════════════════════════════════════ */
+.dark .pin-card-featured {
+  background: #212436;
+  border: 1px solid #272a3f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: box-shadow 0.22s ease, transform 0.18s ease;
+}
+
+.dark .pin-card-featured:hover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.dark .pin-card.focused {
+  box-shadow: 0 0 0 2px #7c7ef7, 0 4px 16px rgba(124, 126, 247, 0.2);
+}
+
+/* Image grid placeholder background */
+.dark .pin-card-featured .pin-card-media-grid {
+  background: #272a3f;
+}
+
+.dark .pin-card-featured .pin-card-media-grid-item {
+  background: #2a2d42;
+}
+
+/* Body text */
+.dark .pin-card-featured .pin-card-title {
+  color: #dde1f0;
+  font-weight: 700;
+}
+
+.dark .pin-card-featured .pin-card-desc {
+  color: #8890aa;
+  line-height: 1.55;
+}
+
+.dark .pin-card-featured .pin-card-location {
+  color: #8890aa;
+}
+
+.dark .pin-card-featured .pin-card-location-icon {
+  color: #7c7ef7;
+}
+
+/* Meta row */
+.dark .pin-card-featured .pin-card-meta {
+  border-top: 1px solid #272a3f;
+}
+
+.dark .pin-card-featured .pin-card-meta-btn {
+  color: #8890aa;
+}
+
+.dark .pin-card-featured .pin-card-meta-btn:hover {
+  color: #a0a3fb;
+}
+
+.dark .pin-card-featured .pin-card-time {
+  color: #5a6080;
+}
+
+/* Action buttons */
+.dark .pin-card-featured .pin-card-btn {
+  background: #272a3f;
+  border: 1px solid #2e3148;
+  color: #b0b8ce;
+  transition: all 0.18s ease;
+}
+
+.dark .pin-card-featured .pin-card-btn-outline:hover {
+  background: #2e3148;
+  border-color: #7c7ef7;
+  color: #dde1f0;
+}
+
+.dark .pin-card-featured .pin-card-btn-primary {
+  background: #7c7ef7;
+  border-color: #7c7ef7;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(124, 126, 247, 0.3);
+}
+
+.dark .pin-card-featured .pin-card-btn-primary:hover {
+  background: #6a6dea;
+  border-color: #6a6dea;
+  box-shadow: 0 6px 16px rgba(124, 126, 247, 0.4);
+  opacity: 1;
+}
+
+/* Bookmark overlay */
+.dark .pin-card-featured .pin-card-bookmark {
+  background: rgba(33, 36, 54, 0.88);
+  color: #f5cb45;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dark .pin-card-featured .pin-card-bookmark:hover {
+  background: rgba(33, 36, 54, 0.98);
+  color: #ffd866;
+}
+
+/* ── Severity badges — featured card ── */
+.dark .pin-card-featured .pin-card-severity.severity-low {
+  background: rgba(52, 199, 89, 0.12);
+  color: #6fd48b;
+  border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+.dark .pin-card-featured .pin-card-severity.severity-medium {
+  background: rgba(255, 190, 11, 0.12);
+  color: #e8c94a;
+  border: 1px solid rgba(255, 190, 11, 0.2);
+}
+
+.dark .pin-card-featured .pin-card-severity.severity-high {
+  background: rgba(255, 100, 90, 0.12);
+  color: #f28080;
+  border: 1px solid rgba(255, 100, 90, 0.2);
+}
+
+/* ══════════════════════════════════════════════ */
+/*  COMPACT (small) pin card                      */
+/* ══════════════════════════════════════════════ */
+.dark .pin-card-compact {
+  background: #212436;
+  border: 1px solid #272a3f;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: box-shadow 0.22s ease, opacity 0.18s ease;
+}
+
+.dark .pin-card-compact:hover {
+  opacity: 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+  border-color: #2e3148;
+}
+
+.dark .pin-card-compact-thumb {
+  background: #2a2d42;
+}
+
+.dark .pin-card-compact-title {
+  color: #dde1f0;
+  font-weight: 700;
+}
+
+.dark .pin-card-compact-desc {
+  color: #8890aa;
+}
+
+.dark .pin-card-compact-location {
+  color: #5a6080;
+}
+
+.dark .pin-card-compact-stats {
+  color: #5a6080;
+}
+
+.dark .pin-card-compact-full-details {
+  color: #a0a3fb;
+  font-weight: 600;
+}
+
+.dark .pin-card-compact-full-details:hover {
+  color: #c4c6fd;
+  text-decoration: underline;
+}
+
+/* ── Severity badges — compact card ── */
+.dark .pin-card-compact .pin-card-severity.severity-low {
+  background: rgba(52, 199, 89, 0.12);
+  color: #6fd48b;
+  border: 1px solid rgba(52, 199, 89, 0.2);
+}
+
+.dark .pin-card-compact .pin-card-severity.severity-medium {
+  background: rgba(255, 190, 11, 0.12);
+  color: #e8c94a;
+  border: 1px solid rgba(255, 190, 11, 0.2);
+}
+
+.dark .pin-card-compact .pin-card-severity.severity-high {
+  background: rgba(255, 100, 90, 0.12);
+  color: #f28080;
+  border: 1px solid rgba(255, 100, 90, 0.2);
+}
+
+/* ── Verification status badges ── */
+.dark .pin-card-verified-badge {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f08c8c;
+  border: none;
+}
+
+.dark .pin-card-verified-badge.highly-verified {
+  background: rgba(96, 165, 250, 0.12);
+  color: #85b8f8;
+}
+
+.dark .pin-card-verified-badge.verified {
+  background: rgba(52, 211, 153, 0.12);
+  color: #5dd4a4;
+}
+
+.dark .pin-card-verified-badge.partially-verified {
+  background: rgba(251, 191, 36, 0.12);
+  color: #e8c94a;
+}
+
+.dark .pin-card-verified-badge.unverified {
+  background: rgba(248, 113, 113, 0.1);
+  color: #f08c8c;
+}
+

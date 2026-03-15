@@ -90,3 +90,166 @@ input[type="range"].severity-range::-webkit-slider-thumb:hover {
 input[type="range"].severity-range::-moz-range-thumb:hover {
   box-shadow: 0 2px 12px rgba(139, 92, 246, 0.5);
 }
+
+.dark input[type="range"].severity-range::-webkit-slider-thumb {
+  background: hsl(var(--background));
+  border-color: hsl(var(--primary));
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+
+.dark input[type="range"].severity-range::-moz-range-thumb {
+  background: hsl(var(--background));
+  border-color: hsl(var(--primary));
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.4);
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/* Dark mode overrides for legacy PinForm CSS classes          */
+/* These override the light-only hardcoded values in PinForm.css */
+/* ─────────────────────────────────────────────────────────── */
+.dark .pin-form-container {
+  background: hsl(var(--card));
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}
+
+.dark .pin-form-title {
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form-subtitle {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .pin-form-overlay .close-btn {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .pin-form-overlay .close-btn:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form-location-source-field {
+  background: hsl(var(--muted) / 0.5);
+  border-color: hsl(var(--border));
+}
+
+.dark .pin-form-location-source-select {
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form .form-input,
+.dark .pin-form .form-select,
+.dark .pin-form .form-textarea {
+  background: hsl(var(--muted) / 0.5);
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form .form-input::placeholder,
+.dark .pin-form .form-textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .pin-form .form-select-wrap {
+  background: hsl(var(--card));
+}
+
+.dark .pin-form .form-select-wrap .form-select {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form-type-trigger {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form-type-trigger:hover {
+  border-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+.dark .pin-form-type-dropdown {
+  background: hsl(var(--popover));
+  border-color: hsl(var(--border));
+}
+
+.dark .pin-form-type-option {
+  color: hsl(var(--foreground));
+  border-bottom-color: hsl(var(--border));
+}
+
+.dark .pin-form-type-option:hover {
+  background: hsl(var(--accent));
+}
+
+.dark .pin-form .address-input {
+  background: hsl(var(--muted) / 0.3);
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .pin-form .upload-area {
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted) / 0.2);
+}
+
+.dark .pin-form .upload-area:hover {
+  border-color: rgba(124, 58, 237, 0.6);
+}
+
+.dark .pin-form .upload-area-text {
+  color: hsl(var(--foreground));
+}
+
+.dark .pin-form .image-preview {
+  border-color: hsl(var(--border));
+}
+
+.dark .pin-form .form-actions {
+  border-top-color: hsl(var(--border));
+}
+
+.dark .pin-form .btn-cancel {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .pin-form .btn-cancel:hover {
+  background: hsl(var(--accent));
+}
+
+.dark .pin-form .error-message {
+  background: hsl(var(--destructive) / 0.15);
+  color: hsl(0 85% 75%);
+  border-color: hsl(var(--destructive) / 0.3);
+}
+
+.dark .pin-form-coords {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .pin-form .form-icon {
+  color: hsl(var(--muted-foreground));
+}
+
+.dark .pin-form .severity-badge.severity-low {
+  background: rgba(21, 128, 61, 0.2);
+  color: #86efac;
+}
+
+.dark .pin-form .severity-badge.severity-medium {
+  background: rgba(202, 138, 4, 0.2);
+  color: #fde68a;
+}
+
+.dark .pin-form .severity-badge.severity-high {
+  background: rgba(220, 38, 38, 0.2);
+  color: #fca5a5;
+}
+
+.dark .pin-form .severity-badge.severity-critical {
+  background: rgba(185, 28, 28, 0.2);
+  color: #f87171;
+}

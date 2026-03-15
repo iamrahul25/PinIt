@@ -284,3 +284,142 @@
   color: #94a3b8;
   margin: 1rem 0 0 0;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   DARK THEME  –  syncs with About page via 'about-theme' localStorage
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.event-detail-page.dark {
+  background-color: #0d1117;
+  color: #c9d1d9;
+}
+
+.event-detail-page.dark .event-detail-loading {
+  color: #6e7681;
+}
+
+.event-detail-page.dark .event-detail-error {
+  color: #f87171;
+}
+
+.event-detail-page.dark .event-detail-back-btn {
+  color: #818cf8;
+}
+
+.event-detail-page.dark .event-detail-back-btn:hover {
+  color: #a5b4fc;
+}
+
+.event-detail-page.dark .event-detail-card {
+  background: #161b22;
+  border-color: #30363d;
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.5);
+}
+
+.event-detail-page.dark .event-detail-header {
+  border-bottom-color: #21262d;
+}
+
+.event-detail-page.dark .event-detail-delete-btn {
+  color: #6e7681;
+}
+
+.event-detail-page.dark .event-detail-delete-btn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.event-detail-page.dark .event-detail-banner-wrap {
+  background: #0d1117;
+}
+
+.event-detail-page.dark .event-detail-ended-banner {
+  background: #21262d;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+.event-detail-page.dark .event-detail-title {
+  color: #e6edf3;
+}
+
+.event-detail-page.dark .event-detail-date-pill {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+}
+
+.event-detail-page.dark .event-detail-time {
+  color: #8b949e;
+}
+
+.event-detail-page.dark .event-detail-foundation-name {
+  color: #8b949e;
+}
+
+.event-detail-page.dark .event-detail-section-title {
+  color: #6e7681;
+}
+
+.event-detail-page.dark .event-detail-description,
+.event-detail-page.dark .event-detail-location {
+  color: #c9d1d9;
+}
+
+.event-detail-page.dark .event-detail-map-link {
+  color: #a5b4fc;
+}
+
+.event-detail-page.dark .event-detail-map-link:hover {
+  color: #818cf8;
+}
+
+.event-detail-page.dark .event-detail-pin-url-label {
+  color: #6e7681;
+}
+
+.event-detail-page.dark .event-detail-pin-link {
+  color: #a5b4fc;
+}
+
+.event-detail-page.dark .event-detail-pin-link:hover {
+  color: #818cf8;
+}
+
+.event-detail-page.dark .event-detail-pin-hint {
+  color: #6e7681;
+}
+
+.event-detail-page.dark .event-detail-actions {
+  border-top-color: #21262d;
+}
+
+.event-detail-page.dark .event-detail-attend-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.3);
+}
+
+.event-detail-page.dark .event-detail-attend-btn:hover {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+}
+
+.event-detail-page.dark .event-detail-attend-btn.attending {
+  background: linear-gradient(135deg, #059669 0%, #34d399 100%);
+}
+
+.event-detail-page.dark .event-detail-attend-btn.attending:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+}
+
+.event-detail-page.dark .event-detail-attend-ended {
+  background: #21262d;
+  border-color: #30363d;
+  color: #8b949e;
+}
+
+.event-detail-page.dark .event-detail-volunteer-count {
+  color: #6e7681;
+}
+
+.event-detail-page.dark .event-detail-author {
+  color: #6e7681;
+}

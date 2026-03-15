@@ -235,10 +235,46 @@ const MAP_LAYERS = [
   { id: 'google', label: 'Google Map' },
 ];
 
+// Google Maps dark/night style (applied when dark mode and roadmap/terrain)
+const GOOGLE_MAPS_DARK_STYLES = [
+  { elementType: 'geometry', stylers: [{ color: '#1a1d24' }] },
+  { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1d24' }] },
+  { elementType: 'labels.text.fill', stylers: [{ color: '#6b7280' }] },
+  { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#2d3748' }] },
+  { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#9ca3af' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#9ca3af' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
+  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#21262d' }] },
+  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#161b22' }] },
+  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#30363d' }] },
+  { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#21262d' }] },
+  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d1117' }] },
+  { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#6b7280' }] },
+];
+
 // Zoom level / Reset zoom out (broad regional view)
 const STATE_LEVEL_ZOOM = 8;
 
+const MAP_THEME_KEY = 'map-theme';
+
 const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId, flyToPinId, isAddPinMode, isRepositionPinMode, repositionPinId, tempPinLocation, onCancelAddPin }) => {
+  // ── Map-only dark mode (independent of website theme; persisted in localStorage) ─
+  const [mapDarkMode, setMapDarkMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const saved = localStorage.getItem(MAP_THEME_KEY);
+    return saved === 'dark';
+  });
+
+  const toggleMapDarkMode = () => {
+    setMapDarkMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(MAP_THEME_KEY, next ? 'dark' : 'light');
+      } catch (_) {}
+      return next;
+    });
+  };
+
   const [center, setCenter] = useState([20.5937, 78.9629]); // Default to India center
   const [zoom, setZoom] = useState(5);
   const [mapType, setMapType] = useState('osm'); // 'osm' or 'google'
@@ -298,6 +334,15 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       googleMapInstance.setMapTypeId(mapTypeId);
     }
   }, [mapType, mapLayer, googleMapInstance]);
+
+  // Apply or clear dark styles when map dark mode or map layer changes (Google Maps)
+  useEffect(() => {
+    if (mapType !== 'google' || !googleMapInstance || !window.google) return;
+    const useDarkStyle = mapDarkMode && mapLayer !== 'satellite';
+    googleMapInstance.setOptions({
+      styles: useDarkStyle ? GOOGLE_MAPS_DARK_STYLES : [],
+    });
+  }, [mapType, googleMapInstance, mapDarkMode, mapLayer]);
 
   // Handle map movement from Leaflet
   const handleLeafletMapMove = (newCenter, newZoom) => {
@@ -615,10 +660,27 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
 
   const showPinCursor = isAddPinMode || isRepositionPinMode;
 
+  // OSM: use dark tiles when map dark mode is on and standard layer
+  const useDarkTiles = mapDarkMode && mapType === 'osm' && mapLayer === 'standard';
+  const osmTileUrl = useDarkTiles
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+    : mapLayer === 'standard'
+      ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+      : mapLayer === 'satellite'
+        ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+        : 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+  const osmAttribution = useDarkTiles
+    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    : mapLayer === 'standard'
+      ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      : mapLayer === 'satellite'
+        ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+        : '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors';
+
   return (
     <div
       ref={mapWrapperRef}
-      className="map-view-wrapper"
+      className={`map-view-wrapper${mapDarkMode ? ' dark' : ''}`}
       style={{ position: 'relative', height: '100%', width: '100%' }}
       onMouseMove={showPinCursor ? handlePointerMove : undefined}
       onMouseLeave={showPinCursor ? handlePointerLeave : undefined}
@@ -636,10 +698,11 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         gap: '8px',
       }}>
         {/* Search Box */}
-        <div className="map-control-tooltip-wrap" style={{ position: 'relative', maxWidth: '400px', width: '100%' }}>
+        <div className="map-control-tooltip-wrap map-search-wrap" style={{ position: 'relative', maxWidth: '400px', width: '100%' }}>
           <input
             ref={searchInputRef}
             type="text"
+            className="map-search-input"
             placeholder="Search location..."
             aria-label="Search Location"
             style={{
@@ -659,6 +722,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <button
             ref={clearButtonRef}
             type="button"
+            className="map-search-clear-btn"
             style={{
               position: 'absolute',
               right: '8px',
@@ -687,6 +751,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <div
             ref={suggestionsListRef}
             id="location-suggestions"
+            className="map-suggestions-list"
             style={{
               position: 'absolute',
               top: '100%',
@@ -706,12 +771,12 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
         </div>
 
         {/* Buttons Row */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div className="map-buttons-row" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* My Location Button */}
           <div className="map-control-tooltip-wrap">
             <button
               type="button"
-              className="map-location-btn"
+              className="map-location-btn map-ctrl-btn"
               aria-label={isMyLocationLoading ? 'Finding location...' : 'GPS (My Location)'}
               onClick={handleMyLocationClick}
               disabled={isMyLocationLoading}
@@ -762,6 +827,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <div ref={layersDropdownRef} style={{ position: 'relative' }} className="map-control-tooltip-wrap">
             <button
               type="button"
+              className="map-ctrl-btn"
               onClick={() => setLayersDropdownOpen((prev) => !prev)}
               aria-label="Map Types"
               style={{
@@ -788,6 +854,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
             <span className="map-control-tooltip" role="tooltip">Map Types</span>
             {layersDropdownOpen && (
               <div
+                className="map-layers-dropdown"
                 style={{
                   position: 'absolute',
                   top: '42px',
@@ -804,6 +871,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                   <button
                     key={layer.id}
                     type="button"
+                    className={selectedLayerId === layer.id ? 'map-layer-option map-layer-option--selected' : 'map-layer-option'}
                     onClick={() => handleSelectLayer(layer)}
                     style={{
                       width: '100%',
@@ -826,7 +894,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
                       if (selectedLayerId !== layer.id) e.currentTarget.style.background = 'white';
                     }}
                   >
-                    <span style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: selectedLayerId === layer.id ? '#6366f1' : '#f9fafb' }} />
+                    <span className="map-layer-option-dot" style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #e5e7eb', background: selectedLayerId === layer.id ? '#6366f1' : '#f9fafb' }} />
                     {layer.label}
                   </button>
                 ))}
@@ -838,6 +906,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <div className="map-control-tooltip-wrap">
             <button
               type="button"
+              className={`map-ctrl-btn map-cluster-btn${clusteringEnabled ? ' map-cluster-btn--on' : ''}`}
               onClick={() => setClusteringEnabled((prev) => !prev)}
               aria-label="Enable/Disable Clustering"
               style={{
@@ -868,7 +937,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           <div className="map-control-tooltip-wrap">
             <button
               type="button"
-              className="map-zoom-out-btn"
+              className="map-zoom-out-btn map-ctrl-btn"
               aria-label="Zoom Out"
               onClick={handleZoomOutClick}
               style={{
@@ -893,6 +962,42 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               <span className="material-icons-round" style={{ fontSize: '20px' }}>fullscreen_exit</span>
             </button>
             <span className="map-control-tooltip" role="tooltip">Zoom Out</span>
+          </div>
+
+          {/* Map dark mode toggle (map-only; independent of website theme) */}
+          <div className="map-control-tooltip-wrap">
+            <button
+              type="button"
+              className={`map-ctrl-btn map-dark-toggle-btn${mapDarkMode ? ' map-dark-toggle-btn--on' : ''}`}
+              onClick={toggleMapDarkMode}
+              aria-label={mapDarkMode ? 'Switch map to light' : 'Switch map to dark'}
+              title={mapDarkMode ? 'Map light mode' : 'Map dark mode'}
+              style={{
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                border: 'none',
+                borderRadius: '6px',
+                background: mapDarkMode ? '#6366f1' : 'white',
+                color: mapDarkMode ? 'white' : '#374151',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.15)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.1s, background 0.2s, color 0.2s',
+              }}
+              onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span className="material-icons-round" style={{ fontSize: '20px' }}>
+                {mapDarkMode ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
+            <span className="map-control-tooltip" role="tooltip">
+              {mapDarkMode ? 'Map light mode' : 'Map dark mode'}
+            </span>
           </div>
         </div>
       </div>
@@ -927,26 +1032,29 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
       {isAddPinMode && (
         <>
           {isTouchOrNarrow ? (
-            <div style={{
-              position: 'absolute',
-              bottom: 0,
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '100%',
-              maxWidth: '36rem',
-              zIndex: 1002,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '0.75rem',
-              background: 'white',
-              margin: '0 auto',
-              padding: '0.75rem 1rem 1.25rem',
-              boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
-              border: '1px solid rgba(0,0,0,0.08)',
-              borderBottom: 'none',
-              borderRadius: '12px 12px 0 0'
-            }}>
+            <div
+              className="map-add-pin-bar map-add-pin-bar-mobile"
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '100%',
+                maxWidth: '36rem',
+                zIndex: 1002,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.75rem',
+                background: 'white',
+                margin: '0 auto',
+                padding: '0.75rem 1rem 1.25rem',
+                boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+                border: '1px solid rgba(0,0,0,0.08)',
+                borderBottom: 'none',
+                borderRadius: '12px 12px 0 0'
+              }}
+            >
               <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151' }}>
                 Tap on the map to place a pin
               </span>
@@ -971,26 +1079,29 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               )}
             </div>
           ) : (
-            <div style={{
-              position: 'absolute',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              zIndex: 1000,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '11px',
-              background: 'rgba(99, 102, 241, 0.75)',
-              color: 'white',
-              padding: '8px 14px 8px 17px',
-              borderRadius: '6px',
-              fontSize: '10px',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
-              whiteSpace: 'nowrap',
-              border: '1px solid rgba(255,255,255,0.25)',
-              backdropFilter: 'blur(6px)'
-            }}>
+            <div
+              className="map-add-pin-bar map-add-pin-bar-center"
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 1000,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '11px',
+                background: 'rgba(99, 102, 241, 0.75)',
+                color: 'white',
+                padding: '8px 14px 8px 17px',
+                borderRadius: '6px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                boxShadow: '0 4px 12px rgba(99, 102, 241, 0.25)',
+                whiteSpace: 'nowrap',
+                border: '1px solid rgba(255,255,255,0.25)',
+                backdropFilter: 'blur(6px)'
+              }}
+            >
               <span style={{ pointerEvents: 'none' }}>Click on the map to place a pin</span>
               {onCancelAddPin && (
                 <button
@@ -1043,21 +1154,9 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           }}
         >
           <TileLayer
-            key={mapLayer}
-            attribution={
-              mapLayer === 'standard'
-                ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                : mapLayer === 'satellite'
-                  ? '&copy; <a href="https://www.esri.com/">Esri</a>'
-                  : '&copy; <a href="https://opentopomap.org">OpenTopoMap</a> contributors'
-            }
-            url={
-              mapLayer === 'standard'
-                ? 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-                : mapLayer === 'satellite'
-                  ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                  : 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
-            }
+            key={`${mapLayer}-${useDarkTiles}`}
+            attribution={osmAttribution}
+            url={osmTileUrl}
           />
           <ZoomControl position="bottomright" />
           <LeafletMapCapture />
@@ -1160,6 +1259,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
               options={{
                 mapId: DEFAULT_MAP_ID,
                 mapTypeId: mapLayer === 'satellite' ? 'satellite' : mapLayer === 'terrain' ? 'terrain' : 'roadmap',
+                styles: mapDarkMode && mapLayer !== 'satellite' ? GOOGLE_MAPS_DARK_STYLES : [],
                 disableDefaultUI: false,
                 zoomControl: true,
                 zoomControlOptions: { position: 9 },
@@ -1224,21 +1324,24 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
           </LoadScript>
         </div>
       ) : (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          display: mapType === 'google' ? 'flex' : 'none',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#f5f5f5',
-          color: '#666',
-          flexDirection: 'column',
-          gap: '10px',
-          zIndex: mapType === 'google' ? 1 : 0
-        }}>
+        <div
+          className="map-google-placeholder"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            display: mapType === 'google' ? 'flex' : 'none',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f5f5f5',
+            color: '#666',
+            flexDirection: 'column',
+            gap: '10px',
+            zIndex: mapType === 'google' ? 1 : 0
+          }}
+        >
           <div>Google Maps API key not configured</div>
           <div style={{ fontSize: '12px' }}>
             Please set VITE_GOOGLE_MAPS_API_KEY in your .env file

@@ -323,6 +323,67 @@ body.mobile-menu-open {
   color: #fff;
 }
 
+/* Theme toggle: icon-only, same height as other header nav buttons (e.g. About) */
+.header-theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.5rem;
+  border-radius: 10px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.header-theme-toggle-btn:hover {
+  transform: scale(1.08);
+}
+.header-theme-toggle-btn:active {
+  transform: scale(0.96);
+}
+.header-theme-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.2s ease;
+}
+.header-theme-toggle-icon svg {
+  display: block;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+/* Moon icon: indigo/violet gradient feel */
+.header-theme-toggle-btn.theme-icon-dark .header-theme-toggle-icon {
+  color: #a78bfa;
+}
+.header-theme-toggle-btn.theme-icon-dark:hover .header-theme-toggle-icon {
+  color: #c4b5fd;
+  filter: drop-shadow(0 0 8px rgba(167, 139, 250, 0.5));
+}
+/* Sun icon: warm amber/gold */
+.header-theme-toggle-btn.theme-icon-light .header-theme-toggle-icon {
+  color: #fbbf24;
+}
+.header-theme-toggle-btn.theme-icon-light:hover .header-theme-toggle-icon {
+  color: #fcd34d;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
+}
+/* Mobile: same colors, start-aligned like other nav items (e.g. About) */
+.header-mobile-menu .header-theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+}
+.header-mobile-menu .header-theme-toggle-btn .header-theme-toggle-label {
+  font-size: inherit;
+  font-weight: 500;
+}
+.header-mobile-menu .header-theme-toggle-btn.theme-icon-dark .header-theme-toggle-icon {
+  color: #a78bfa;
+}
+.header-mobile-menu .header-theme-toggle-btn.theme-icon-light .header-theme-toggle-icon {
+  color: #fbbf24;
+}
+
 .header-discord-btn {
   display: inline-flex;
   align-items: center;

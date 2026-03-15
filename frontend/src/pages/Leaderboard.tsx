@@ -77,6 +77,30 @@ export default function Leaderboard() {
     const [period, setPeriod] = useState('yearly');
     const [expanded, setExpanded] = useState(null); // userId of expanded row
     const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
+
+    // ─── Theme ────────────────────────────────────────────────────────────────
+    const [darkMode, setDarkMode] = useState<boolean>(() => {
+        const saved = localStorage.getItem('about-theme');
+        return saved !== null ? saved === 'dark' : true;
+    });
+    const toggleTheme = () => {
+        setDarkMode(prev => {
+            const next = !prev;
+            localStorage.setItem('about-theme', next ? 'dark' : 'light');
+            window.dispatchEvent(new CustomEvent('theme-change', { detail: next ? 'dark' : 'light' }));
+            return next;
+        });
+    };
+
+    // Sync theme when header toggle is used (custom event from App)
+    useEffect(() => {
+        const onThemeChange = (e: CustomEvent<string>) => {
+            setDarkMode(e.detail === 'dark');
+        };
+        window.addEventListener('theme-change', onThemeChange as EventListener);
+        return () => window.removeEventListener('theme-change', onThemeChange as EventListener);
+    }, []);
+
     const showToast = useCallback((message, type = 'info') => {
         setToast({ visible: true, message, type });
     }, []);
@@ -140,7 +164,7 @@ export default function Leaderboard() {
     const activePeriodLabel = PERIODS.find((p) => p.key === period)?.label ?? 'Weekly';
 
     return (
-        <div className="lb-page">
+        <div className={`lb-page${darkMode ? '' : ' light'}`}>
             {/* ── Hero ──────────────────────────────────────────────────── */}
             <div className="lb-hero">
                 <div className="lb-hero-bg" aria-hidden="true" />
@@ -254,7 +278,7 @@ export default function Leaderboard() {
                                     <li
                                         key={leader.userId}
                                         className={`lb-row${isTop3 ? ' lb-row-top' : ''}${isOpen ? ' lb-row-open' : ''}`}
-                                        style={isTop3 ? { '--medal-glow': MEDAL_GLOW[leader.rank - 1] } : undefined}
+                                        style={isTop3 ? { '--medal-glow': MEDAL_GLOW[leader.rank - 1] } as React.CSSProperties : undefined}
                                     >
                                         {/* Main clickable row */}
                                         <button

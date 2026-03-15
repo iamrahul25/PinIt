@@ -75,6 +75,16 @@ function App() {
     return () => window.removeEventListener('theme-change', onThemeChange as EventListener);
   }, []);
 
+  // Apply theme to document for Tailwind dark: and semantic CSS variables (PinDetails, EditPinDetails, PinForm, etc.)
+  useEffect(() => {
+    const root = document.documentElement;
+    if (themeDark) {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [themeDark]);
+
   const addNotification = useCallback((type, message) => {
     const id = Date.now();
     setNotifications(prev => {

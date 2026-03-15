@@ -793,9 +793,9 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">Severity Score</p>
                             <div className="flex items-end gap-2">
                               <span className={`text-3xl font-black tabular-nums leading-none ${
-                                getSeverityLabel(pin.severity) === 'CRITICAL' || getSeverityLabel(pin.severity) === 'HIGH' ? 'text-red-600' :
-                                getSeverityLabel(pin.severity) === 'MEDIUM' ? 'text-amber-500' :
-                                getSeverityLabel(pin.severity) === 'LOW' ? 'text-slate-600' : 'text-emerald-600'
+                                getSeverityLabel(pin.severity) === 'CRITICAL' || getSeverityLabel(pin.severity) === 'HIGH' ? 'text-red-600 dark:text-red-400' :
+                                getSeverityLabel(pin.severity) === 'MEDIUM' ? 'text-amber-500 dark:text-amber-400' :
+                                getSeverityLabel(pin.severity) === 'LOW' ? 'text-slate-600 dark:text-slate-400' : 'text-emerald-600 dark:text-emerald-400'
                               }`}>{pin.severity}/10</span>
                               <Badge variant={getSeverityLabel(pin.severity) === 'CRITICAL' || getSeverityLabel(pin.severity) === 'HIGH' ? 'destructive' : 'secondary'} className="mb-0.5 text-[10px]">
                                 {getSeverityLabel(pin.severity)}
@@ -924,10 +924,10 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                       })()}
 
                       {/* ── Fix Status Timeline ── */}
-                      <Card className="bg-slate-950 text-white border-slate-800">
+                      <Card className="fix-status-card border">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                            <Clock className="size-4 text-blue-400" />
+                          <CardTitle className="fix-status-title text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                            <Clock className="size-4 text-blue-400 dark:text-blue-300" />
                             Fix Status
                           </CardTitle>
                         </CardHeader>
@@ -959,14 +959,14 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                                 {steps.map((step, i) => (
                                   <div key={step.key} className="flex items-start gap-3 relative min-h-[3.25rem] last:min-h-0">
                                     {i > 0 && (
-                                      <div className={`absolute left-[17px] -top-1 w-0.5 h-4 rounded-full ${steps[i - 1].active && step.active ? 'bg-blue-500' : 'bg-slate-700'}`} />
+                                      <div className={`absolute left-[17px] -top-1 w-0.5 h-4 rounded-full transition-colors ${steps[i - 1].active && step.active ? 'fix-status-connector-active bg-blue-500 dark:bg-blue-400' : 'fix-status-connector-inactive bg-slate-200 dark:bg-slate-700'}`} />
                                     )}
-                                    <div className={`shrink-0 size-9 rounded-full flex items-center justify-center border-2 z-[1] transition-all ${step.active ? 'bg-blue-500/15 border-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.35)]' : 'bg-slate-900 border-slate-700'}`}>
-                                      <span className={step.active ? 'text-blue-400' : 'text-slate-500'}>{step.icon}</span>
+                                    <div className={`shrink-0 size-9 rounded-full flex items-center justify-center border-2 z-[1] transition-all ${step.active ? 'fix-status-circle-active bg-blue-500/15 dark:bg-blue-400/20 border-blue-500 dark:border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.35)]' : 'fix-status-circle-inactive bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700'}`}>
+                                      <span className={step.active ? 'fix-status-step-active-icon text-blue-500 dark:text-blue-400' : 'fix-status-step-inactive-icon text-slate-400 dark:text-slate-500'}>{step.icon}</span>
                                     </div>
                                     <div className="flex flex-col gap-0.5 pt-1.5">
-                                      <span className={`text-sm font-bold ${step.active ? 'text-slate-100' : 'text-slate-500'}`}>{step.label}</span>
-                                      {step.date && <span className={`text-xs ${step.active ? 'text-slate-400' : 'text-slate-600'}`}>{step.date}</span>}
+                                      <span className={`text-sm font-bold transition-colors ${step.active ? 'fix-status-step-label-active text-slate-800 dark:text-slate-100' : 'fix-status-step-label-inactive text-slate-400 dark:text-slate-500'}`}>{step.label}</span>
+                                      {step.date && <span className={`text-xs transition-colors ${step.active ? 'fix-status-step-date-active text-slate-500 dark:text-slate-400' : 'fix-status-step-date-inactive text-slate-300 dark:text-slate-600'}`}>{step.date}</span>}
                                     </div>
                                   </div>
                                 ))}
@@ -1088,7 +1088,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                                 </Button>
                               )}
                               {pin.location?.latitude != null && pin.location?.longitude != null && (
-                                <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 text-blue-600 border-blue-200 hover:bg-blue-50">
+                                <Button asChild variant="outline" size="sm" className="gap-1.5 h-8 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-600 dark:hover:bg-blue-500/20">
                                   <a href={`https://www.google.com/maps?q=${pin.location.latitude},${pin.location.longitude}`} target="_blank" rel="noopener noreferrer">
                                     <ExternalLink className="size-4" />
                                     Google Maps
@@ -1137,7 +1137,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                                       )}
                                     </div>
                                     <p className="text-sm font-semibold mb-1.5">{ev.title}</p>
-                                    <Link to={`/events/${ev._id}`} className="text-xs font-medium text-indigo-600 hover:underline" onClick={() => onClose()}>
+                                    <Link to={`/events/${ev._id}`} className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onClose()}>
                                       View full event details
                                     </Link>
                                   </div>
@@ -1181,7 +1181,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
 
                                   {replies.length > 0 && (
                                     <div className="ml-12 mt-1 pl-4 border-l-2 border-border/50 hover:border-primary/30 transition-colors">
-                                      <Button variant="ghost" size="sm" className="gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-700 h-7 px-2 mb-1" onClick={toggleReplies}>
+                                      <Button variant="ghost" size="sm" className="gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 h-7 px-2 mb-1" onClick={toggleReplies}>
                                         {isExpanded ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                                         {isExpanded ? 'Hide replies' : `View ${replies.length} ${replies.length === 1 ? 'reply' : 'replies'}`}
                                       </Button>

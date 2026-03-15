@@ -56,11 +56,11 @@ const MAX_IMAGES_PER_SECTION = 10;
 
 const getSeverityLabel = (value) => {
   const v = parseInt(value, 10);
-  if (v <= 2) return { text: 'Low', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
-  if (v <= 4) return { text: 'Moderate', color: 'bg-amber-100 text-amber-700 border-amber-200' };
-  if (v <= 6) return { text: 'Medium', color: 'bg-orange-100 text-orange-700 border-orange-200' };
-  if (v <= 8) return { text: 'High', color: 'bg-red-100 text-red-700 border-red-200' };
-  return { text: 'Critical', color: 'bg-red-200 text-red-800 border-red-300' };
+  if (v <= 2) return { text: 'Low', color: 'bg-emerald-100 text-emerald-700 border-emerald-200', darkColor: 'dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700' };
+  if (v <= 4) return { text: 'Moderate', color: 'bg-amber-100 text-amber-700 border-amber-200', darkColor: 'dark:bg-amber-900/40 dark:text-amber-300 dark:border-amber-700' };
+  if (v <= 6) return { text: 'Medium', color: 'bg-orange-100 text-orange-700 border-orange-200', darkColor: 'dark:bg-orange-900/40 dark:text-orange-300 dark:border-orange-700' };
+  if (v <= 8) return { text: 'High', color: 'bg-red-100 text-red-700 border-red-200', darkColor: 'dark:bg-red-900/40 dark:text-red-300 dark:border-red-700' };
+  return { text: 'Critical', color: 'bg-red-200 text-red-800 border-red-300', darkColor: 'dark:bg-red-900/50 dark:text-red-200 dark:border-red-600' };
 };
 
 const getSliderGradient = (value) => {
@@ -500,27 +500,27 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg max-h-[92vh] bg-white rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-gray-100"
+        className="relative w-full max-w-lg max-h-[92vh] bg-background dark:bg-card rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 fade-in duration-200 border border-border"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Gradient accent bar */}
-        <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
+        <div className="h-1 w-full bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 dark:from-violet-600 dark:via-purple-600 dark:to-indigo-600" />
 
         {/* Header */}
         <div className="px-4 sm:px-6 pt-4 sm:pt-5 pb-3 flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-200">
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 dark:from-violet-600 dark:to-purple-700 text-white shadow-lg shadow-violet-200 dark:shadow-violet-900/50">
               <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
+              <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
                 Report a Problem
               </h1>
-              <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
                 Help improve your neighborhood
               </p>
             </div>
@@ -529,7 +529,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             variant="ghost"
             size="icon-sm"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full -mt-1 -mr-1"
+            className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-full -mt-1 -mr-1"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -552,15 +552,15 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
           {/* ── Location Section ── */}
           <div className="space-y-3">
-            <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-violet-500" />
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-violet-500 dark:text-violet-400" />
               Location Source
             </Label>
             <div className="flex items-center gap-2 flex-wrap">
               <div className="relative flex-1 min-w-[180px]">
-                <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none z-10" />
+                <Navigation className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
                 <select
-                  className="w-full h-9 pl-9 pr-8 rounded-lg border border-gray-200 bg-gray-50/50 text-sm text-gray-700 focus:border-violet-400 focus:ring-2 focus:ring-violet-100 outline-none appearance-none cursor-pointer transition-all font-medium"
+                  className="w-full h-9 pl-9 pr-8 rounded-lg border border-input bg-muted/50 dark:bg-muted/30 text-sm text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none appearance-none cursor-pointer transition-all font-medium"
                   value={locationSource}
                   onChange={handleLocationSourceChange}
                   disabled={imageLocationLoading || gpsLocationLoading}
@@ -578,7 +578,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 </select>
               </div>
               {(imageLocationLoading || gpsLocationLoading) && (
-                <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Loader2 className="w-3 h-3 animate-spin" />
                   {imageLocationLoading ? 'Reading GPS…' : 'Locating…'}
                 </span>
@@ -587,10 +587,10 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
             {/* Address display */}
             <div className="relative">
-              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-400 pointer-events-none" />
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-violet-400 dark:text-violet-500 pointer-events-none" />
               <Input
                 type="text"
-                className="pl-9 h-9 bg-gray-50/80 text-sm text-gray-600 cursor-default border-gray-200"
+                className="pl-9 h-9 bg-muted/50 dark:bg-muted/30 text-sm text-muted-foreground cursor-default border-input"
                 value={displayAddress}
                 readOnly
                 aria-readonly="true"
@@ -598,18 +598,18 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             </div>
 
             {locationSource === LOCATION_SOURCE_GPS && gpsLocation && !gpsLocationLoading && (
-              <p className="text-xs text-emerald-600 flex items-center gap-1">
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <Navigation className="w-3 h-3" />
                 Using your current GPS location
               </p>
             )}
 
             {coordLat != null && coordLng != null && (
-              <div className="flex flex-wrap gap-3 text-xs text-gray-400 font-mono">
-                <span className="bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground font-mono">
+                <span className="bg-muted/50 dark:bg-muted/30 px-2 py-1 rounded-md border border-border">
                   LAT: {Number(coordLat).toFixed(5)}° {Number(coordLat) >= 0 ? 'N' : 'S'}
                 </span>
-                <span className="bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                <span className="bg-muted/50 dark:bg-muted/30 px-2 py-1 rounded-md border border-border">
                   LNG: {Number(coordLng).toFixed(5)}° {Number(coordLng) >= 0 ? 'E' : 'W'}
                 </span>
               </div>
@@ -620,15 +620,15 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Problem Type */}
             <div className="space-y-2" ref={typeDropdownRef}>
-              <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Problem Type <span className="text-red-400">*</span>
+              <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Problem Type <span className="text-destructive">*</span>
               </Label>
               <div className="relative">
                 <button
                   type="button"
-                  className={`w-full flex items-center gap-2.5 h-10 px-3 rounded-lg border text-sm font-medium text-gray-800 transition-all text-left ${typeDropdownOpen
-                    ? 'border-violet-400 ring-2 ring-violet-100 bg-white shadow-sm'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                  className={`w-full flex items-center gap-2.5 h-10 px-3 rounded-lg border text-sm font-medium text-foreground transition-all text-left ${typeDropdownOpen
+                    ? 'border-primary ring-2 ring-primary/20 dark:ring-primary/30 bg-background shadow-sm'
+                    : 'border-input bg-background hover:border-muted-foreground/50 dark:hover:border-muted-foreground/30 hover:shadow-sm'
                     }`}
                   onClick={() => setTypeDropdownOpen((o) => !o)}
                   aria-label="Choose problem type"
@@ -644,12 +644,12 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                     {PROBLEM_TYPES.find((t) => t.value === formData.problemType)?.label || formData.problemType}
                   </span>
                   <ChevronDown
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${typeDropdownOpen ? 'rotate-180' : ''
+                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${typeDropdownOpen ? 'rotate-180' : ''
                       }`}
                   />
                 </button>
                 {typeDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden animate-in slide-in-from-top-1 fade-in duration-150">
+                  <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover dark:bg-card border border-border rounded-lg shadow-lg overflow-hidden animate-in slide-in-from-top-1 fade-in duration-150">
                     {PROBLEM_TYPES.map(({ value, label }) => (
                       <button
                         key={value}
@@ -657,8 +657,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                         role="option"
                         aria-selected={formData.problemType === value}
                         className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium transition-colors text-left ${formData.problemType === value
-                          ? 'bg-violet-50 text-violet-700'
-                          : 'text-gray-700 hover:bg-gray-50'
+                          ? 'bg-primary/10 dark:bg-primary/20 text-primary'
+                          : 'text-foreground hover:bg-muted'
                           }`}
                         style={{ borderLeft: `3px solid ${PROBLEM_TYPE_COLORS[value] || PROBLEM_TYPE_COLORS['Other']}` }}
                         onClick={() => {
@@ -673,7 +673,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                         />
                         <span className="flex-1">{label}</span>
                         {formData.problemType === value && (
-                          <Check className="w-4 h-4 text-violet-500" />
+                          <Check className="w-4 h-4 text-primary" />
                         )}
                       </button>
                     ))}
@@ -685,11 +685,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             {/* Severity */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Severity <span className="text-red-400">*</span>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Severity <span className="text-destructive">*</span>
                 </Label>
                 <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${severityInfo.color}`}
+                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${severityInfo.color} ${severityInfo.darkColor || ''}`}
                 >
                   {formData.severity}/10 · {severityInfo.text}
                 </span>
@@ -711,7 +711,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                     }}
                   />
                 </div>
-                <div className="flex justify-between mt-1.5 text-[10px] text-gray-400 font-medium">
+                <div className="flex justify-between mt-1.5 text-[10px] text-muted-foreground font-medium">
                   <span>LOW</span>
                   <span>MED</span>
                   <span>HIGH</span>
@@ -722,8 +722,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
           {/* ── Problem Heading ── */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Problem Heading <span className="text-red-400">*</span>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Problem Heading <span className="text-destructive">*</span>
             </Label>
             <Input
               type="text"
@@ -731,15 +731,15 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               value={formData.problemHeading}
               onChange={handleInputChange}
               placeholder="e.g. Garbage pile near the park"
-              className="h-10 text-sm border-gray-200 focus:border-violet-400 focus:ring-violet-100"
+              className="h-10 text-sm border-input focus:border-primary focus:ring-primary/20"
               required
             />
           </div>
 
           {/* ── Description ── */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Description <span className="text-gray-300 normal-case text-[10px]">(optional)</span>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Description <span className="text-muted-foreground normal-case text-[10px]">(optional)</span>
             </Label>
             <Textarea
               name="description"
@@ -747,14 +747,14 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               onChange={handleInputChange}
               placeholder="Describe the problem in detail..."
               rows={3}
-              className="text-sm border-gray-200 focus:border-violet-400 focus:ring-violet-100 resize-y min-h-[80px]"
+              className="text-sm border-input focus:border-primary focus:ring-primary/20 resize-y min-h-[80px]"
             />
           </div>
 
           {/* ── Post as ── */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-              {postAsAnonymous ? <EyeOff className="w-3.5 h-3.5 text-gray-400" /> : <Eye className="w-3.5 h-3.5 text-violet-500" />}
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              {postAsAnonymous ? <EyeOff className="w-3.5 h-3.5 text-muted-foreground" /> : <Eye className="w-3.5 h-3.5 text-primary" />}
               Post as
             </Label>
             <div className="flex gap-2">
@@ -762,8 +762,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 type="button"
                 onClick={() => setPostAsAnonymous(true)}
                 className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-all border ${postAsAnonymous
-                  ? 'bg-violet-50 border-violet-200 text-violet-700 shadow-sm'
-                  : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  ? 'bg-primary/10 dark:bg-primary/20 border-primary/40 text-primary shadow-sm'
+                  : 'bg-muted/30 dark:bg-muted/20 border-border text-muted-foreground hover:border-muted-foreground/50'
                   }`}
               >
                 <EyeOff className="w-3.5 h-3.5" />
@@ -773,8 +773,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 type="button"
                 onClick={() => setPostAsAnonymous(false)}
                 className={`flex-1 flex items-center justify-center gap-2 h-9 rounded-lg text-sm font-medium transition-all border ${!postAsAnonymous
-                  ? 'bg-violet-50 border-violet-200 text-violet-700 shadow-sm'
-                  : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  ? 'bg-primary/10 dark:bg-primary/20 border-primary/40 text-primary shadow-sm'
+                  : 'bg-muted/30 dark:bg-muted/20 border-border text-muted-foreground hover:border-muted-foreground/50'
                   }`}
               >
                 <Eye className="w-3.5 h-3.5" />
@@ -785,10 +785,10 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
           {/* ── Before Images ── */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-orange-400" />
-              Before Images <span className="text-red-400">*</span>
-              <span className="text-gray-300 normal-case text-[10px] ml-1">(min 1, max {MAX_IMAGES_PER_SECTION})</span>
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-orange-400 dark:text-orange-500" />
+              Before Images <span className="text-destructive">*</span>
+              <span className="text-muted-foreground normal-case text-[10px] ml-1">(min 1, max {MAX_IMAGES_PER_SECTION})</span>
             </Label>
 
             <div className="grid grid-cols-2 gap-2">
@@ -797,8 +797,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 role="button"
                 tabIndex={0}
                 className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${uploadDisabled
-                  ? 'border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed'
-                  : 'border-gray-200 bg-gradient-to-b from-white to-gray-50/50 hover:border-violet-300 hover:bg-violet-50/30 hover:shadow-sm'
+                  ? 'border-border bg-muted/30 opacity-50 cursor-not-allowed'
+                  : 'border-input bg-muted/20 dark:bg-muted/10 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm'
                   }`}
                 onClick={() => !uploadDisabled && fileInputRef.current?.click()}
                 onKeyDown={(e) => {
@@ -809,13 +809,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 }}
                 aria-label="Click to upload before images"
               >
-                <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <CloudUpload className="w-5 h-5 text-violet-500" />
+                <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <CloudUpload className="w-5 h-5 text-violet-500 dark:text-violet-400" />
                 </div>
-                <p className="text-xs font-semibold text-gray-600 text-center">
+                <p className="text-xs font-semibold text-foreground text-center">
                   {compressingImages ? 'Compressing…' : 'Upload'}
                 </p>
-                <p className="text-[10px] text-gray-400">{imageFiles.length}/{MAX_IMAGES_PER_SECTION}</p>
+                <p className="text-[10px] text-muted-foreground">{imageFiles.length}/{MAX_IMAGES_PER_SECTION}</p>
               </div>
 
               {/* Camera button */}
@@ -823,8 +823,8 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 role="button"
                 tabIndex={0}
                 className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${uploadDisabled
-                  ? 'border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed'
-                  : 'border-gray-200 bg-gradient-to-b from-white to-blue-50/30 hover:border-blue-300 hover:bg-blue-50/30 hover:shadow-sm'
+                  ? 'border-border bg-muted/30 opacity-50 cursor-not-allowed'
+                  : 'border-input bg-muted/20 dark:bg-muted/10 hover:border-blue-500/50 dark:hover:border-blue-400/50 hover:bg-blue-500/5 dark:hover:bg-blue-400/10 hover:shadow-sm'
                   }`}
                 onClick={handleCameraClick}
                 onKeyDown={(e) => {
@@ -835,13 +835,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 }}
                 aria-label="Click to take photos from camera"
               >
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <Camera className="w-5 h-5 text-blue-500" />
+                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Camera className="w-5 h-5 text-blue-500 dark:text-blue-400" />
                 </div>
-                <p className="text-xs font-semibold text-gray-600 text-center">
+                <p className="text-xs font-semibold text-foreground text-center">
                   {compressingImages ? 'Compressing…' : 'Camera'}
                 </p>
-                <p className="text-[10px] text-gray-400">{imageFiles.length}/{MAX_IMAGES_PER_SECTION}</p>
+                <p className="text-[10px] text-muted-foreground">{imageFiles.length}/{MAX_IMAGES_PER_SECTION}</p>
               </div>
             </div>
 
@@ -868,11 +868,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm aspect-square">
+                  <div key={index} className="relative group rounded-lg overflow-hidden border border-border shadow-sm aspect-square">
                     <img src={preview} alt={`Before ${index + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 dark:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 dark:hover:bg-red-500"
                       onClick={() => removeImage(index)}
                       aria-label={`Remove image ${index + 1}`}
                     >
@@ -889,18 +889,18 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
           {/* ── After Images ── */}
           <div className="space-y-2">
-            <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <ImageIcon className="w-3.5 h-3.5 text-emerald-400 dark:text-emerald-500" />
               After Images
-              <span className="text-gray-300 normal-case text-[10px] ml-1">(optional, max {MAX_IMAGES_PER_SECTION})</span>
+              <span className="text-muted-foreground normal-case text-[10px] ml-1">(optional, max {MAX_IMAGES_PER_SECTION})</span>
             </Label>
 
             <div
               role="button"
               tabIndex={0}
               className={`group flex items-center justify-center gap-3 p-3 rounded-xl border-2 border-dashed transition-all cursor-pointer ${uploadAfterDisabled
-                ? 'border-gray-100 bg-gray-50/50 opacity-50 cursor-not-allowed'
-                : 'border-gray-200 bg-gradient-to-b from-white to-emerald-50/20 hover:border-emerald-300 hover:bg-emerald-50/30 hover:shadow-sm'
+                ? 'border-border bg-muted/30 opacity-50 cursor-not-allowed'
+                : 'border-input bg-muted/20 dark:bg-muted/10 hover:border-emerald-500/50 dark:hover:border-emerald-400/50 hover:bg-emerald-500/5 dark:hover:bg-emerald-400/10 hover:shadow-sm'
                 }`}
               onClick={() => !uploadAfterDisabled && fileInputAfterRef.current?.click()}
               onKeyDown={(e) => {
@@ -911,14 +911,14 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               }}
               aria-label="Click to upload after images"
             >
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                <CloudUpload className="w-4 h-4 text-emerald-500" />
+              <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                <CloudUpload className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-600">
+                <p className="text-xs font-semibold text-foreground">
                   {compressingImages ? 'Compressing…' : 'Upload after-fix images'}
                 </p>
-                <p className="text-[10px] text-gray-400">{imageFilesAfter.length}/{MAX_IMAGES_PER_SECTION} images</p>
+                <p className="text-[10px] text-muted-foreground">{imagePreviewsAfter.length}/{MAX_IMAGES_PER_SECTION} images</p>
               </div>
             </div>
 
@@ -935,11 +935,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             {imagePreviewsAfter.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
                 {imagePreviewsAfter.map((preview, index) => (
-                  <div key={`after-${index}`} className="relative group rounded-lg overflow-hidden border border-gray-200 shadow-sm aspect-square">
+                  <div key={`after-${index}`} className="relative group rounded-lg overflow-hidden border border-border shadow-sm aspect-square">
                     <img src={preview} alt={`After ${index + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 dark:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 dark:hover:bg-red-500"
                       onClick={() => removeImageAfter(index)}
                       aria-label={`Remove after image ${index + 1}`}
                     >
@@ -961,14 +961,14 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 h-10 text-sm font-semibold rounded-xl border-gray-200 text-gray-600 hover:bg-gray-50"
+              className="flex-1 h-10 text-sm font-semibold rounded-xl"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 h-10 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-200/50 hover:shadow-violet-300/50 hover:from-violet-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-0"
+              className="flex-1 h-10 text-sm font-semibold rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 dark:from-violet-600 dark:to-purple-700 text-white shadow-lg shadow-violet-200/50 dark:shadow-violet-900/40 hover:shadow-violet-300/50 dark:hover:shadow-violet-700/30 hover:from-violet-600 hover:to-purple-700 dark:hover:from-violet-500 dark:hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed border-0"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

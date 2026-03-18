@@ -861,7 +861,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                         const maxScore = 180;
                         const progressPct = Math.min((vScore / maxScore) * 100, 100);
                         return (
-                          <Card>
+                          <Card className="overflow-visible">
                             <CardHeader className="pb-3">
                               <div className="flex items-center justify-between">
                                 <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -870,7 +870,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                                 </CardTitle>
                                 <div className="group relative">
                                   <Info className="size-4 text-muted-foreground cursor-help transition-colors group-hover:text-primary" />
-                                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-2 w-max max-w-[18rem] p-3 bg-popover text-popover-foreground border rounded-lg shadow-lg text-xs z-30">
+                                  <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-2 w-max max-w-[18rem] p-3 bg-popover text-popover-foreground border rounded-lg shadow-lg text-xs z-50">
                                     <p className="font-semibold mb-1">Verification Levels</p>
                                     <div className="space-y-0.5 text-muted-foreground">
                                       <p>🔵 Highly Verified (Score ≥ 121)</p>
@@ -977,7 +977,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                       </Card>
 
                       {/* ── Mark as Resolved ── */}
-                      <Card>
+                      <Card className="overflow-visible">
                         <CardHeader className="pb-3">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -986,7 +986,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                             </CardTitle>
                             <div className="group relative">
                               <Info className="size-4 text-muted-foreground cursor-help transition-colors group-hover:text-primary" />
-                              <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-2 w-max max-w-[16rem] p-3 bg-popover text-popover-foreground border rounded-lg shadow-lg text-xs z-30">
+                              <div className="invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all absolute right-0 bottom-full mb-2 w-max max-w-[16rem] p-3 bg-popover text-popover-foreground border rounded-lg shadow-lg text-xs z-50">
                                 <div className="space-y-0.5 text-muted-foreground">
                                   <p>✅ Resolved (Score &gt; 80)</p>
                                   <p>⏳ Not resolved (Score ≤ 80)</p>

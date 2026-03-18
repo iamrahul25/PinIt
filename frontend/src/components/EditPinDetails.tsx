@@ -18,7 +18,7 @@ const PROBLEM_TYPES = [
   { value: 'Trash Pile', label: 'Trash Pile' },
   { value: 'Pothole', label: 'Pothole' },
   { value: 'Broken Pipe', label: 'Broken Pipe' },
-  { value: 'Fuse Street Light', label: 'Street Light' },
+  { value: 'Fuse Street Light', label: 'Fuse Street Light' },
   { value: 'Other', label: 'Other' }
 ];
 

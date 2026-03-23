@@ -93,6 +93,15 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const [scheduledEvents, setScheduledEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const imageModalRef = useRef(null);
+  const imageViewerViewportRef = useRef(null);
+  const [imageViewerZoom, setImageViewerZoom] = useState(1);
+  const [imageViewerPan, setImageViewerPan] = useState({ x: 0, y: 0 });
+  const [imageViewerDragging, setImageViewerDragging] = useState(false);
+  const imageZoomRef = useRef(1);
+  const imagePanRef = useRef({ x: 0, y: 0 });
+  const imageViewerPinchRef = useRef(null);
+  const imageViewerLastTouchRef = useRef({ x: 0, y: 0 });
+  const imageViewerMouseDragRef = useRef(false);
   const [isEditing, setIsEditing] = useState(false);
   const [copiedLocation, setCopiedLocation] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState(new Set());
@@ -137,6 +146,58 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     if (selectedImageIndex != null && imageModalRef.current) {
       imageModalRef.current.focus();
     }
+  }, [selectedImageIndex]);
+
+  useEffect(() => {
+    imageZoomRef.current = imageViewerZoom;
+  }, [imageViewerZoom]);
+
+  useEffect(() => {
+    imagePanRef.current = imageViewerPan;
+  }, [imageViewerPan]);
+
+  useEffect(() => {
+    setImageViewerZoom(1);
+    setImageViewerPan({ x: 0, y: 0 });
+    imageViewerPinchRef.current = null;
+    imageViewerMouseDragRef.current = false;
+    setImageViewerDragging(false);
+  }, [selectedImageIndex]);
+
+  useEffect(() => {
+    if (imageViewerZoom === 1) {
+      setImageViewerPan({ x: 0, y: 0 });
+      imageViewerMouseDragRef.current = false;
+      setImageViewerDragging(false);
+    }
+  }, [imageViewerZoom]);
+
+  useEffect(() => {
+    const el = imageViewerViewportRef.current;
+    if (!el || selectedImageIndex == null) return;
+    const onWheel = (ev) => {
+      ev.preventDefault();
+      const zoomFactor = ev.deltaY > 0 ? 0.92 : 1.08;
+      setImageViewerZoom((prev) => Math.min(5, Math.max(1, prev * zoomFactor)));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [selectedImageIndex]);
+
+  useEffect(() => {
+    const el = imageViewerViewportRef.current;
+    if (!el || selectedImageIndex == null) return;
+    const onTouchMove = (ev) => {
+      if (ev.touches.length === 2) {
+        ev.preventDefault();
+        return;
+      }
+      if (ev.touches.length === 1 && imageViewerMouseDragRef.current && imageZoomRef.current > 1) {
+        ev.preventDefault();
+      }
+    };
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    return () => el.removeEventListener('touchmove', onTouchMove);
   }, [selectedImageIndex]);
 
   const getAuthConfig = async (extraHeaders = {}) => {
@@ -338,6 +399,77 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     e.stopPropagation();
     if (images.length <= 1) return;
     setSelectedImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const touchDistance = (a, b) => Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+
+  const handleImageViewerTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      imageViewerMouseDragRef.current = false;
+      setImageViewerDragging(false);
+      const d = touchDistance(e.touches[0], e.touches[1]);
+      imageViewerPinchRef.current = { initialDist: d, initialScale: imageZoomRef.current };
+      return;
+    }
+    if (e.touches.length === 1 && imageZoomRef.current > 1) {
+      imageViewerLastTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      imageViewerMouseDragRef.current = true;
+      setImageViewerDragging(true);
+    }
+  };
+
+  const handleImageViewerTouchMove = (e) => {
+    if (e.touches.length === 2 && imageViewerPinchRef.current) {
+      e.preventDefault();
+      const { initialDist, initialScale } = imageViewerPinchRef.current;
+      const d = touchDistance(e.touches[0], e.touches[1]);
+      if (initialDist < 1) return;
+      const next = Math.min(5, Math.max(1, initialScale * (d / initialDist)));
+      setImageViewerZoom(next);
+      return;
+    }
+    if (e.touches.length === 1 && imageViewerMouseDragRef.current && imageZoomRef.current > 1) {
+      e.preventDefault();
+      const t = e.touches[0];
+      const dx = t.clientX - imageViewerLastTouchRef.current.x;
+      const dy = t.clientY - imageViewerLastTouchRef.current.y;
+      imageViewerLastTouchRef.current = { x: t.clientX, y: t.clientY };
+      setImageViewerPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+    }
+  };
+
+  const handleImageViewerTouchEnd = (e) => {
+    if (e.touches.length < 2) imageViewerPinchRef.current = null;
+    if (e.touches.length === 0) {
+      imageViewerMouseDragRef.current = false;
+      setImageViewerDragging(false);
+    }
+  };
+
+  const handleImageViewerPointerDown = (e) => {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (imageZoomRef.current <= 1) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    imageViewerMouseDragRef.current = true;
+    setImageViewerDragging(true);
+    imageViewerLastTouchRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleImageViewerPointerMove = (e) => {
+    if (!imageViewerMouseDragRef.current || e.pointerType !== 'mouse') return;
+    const dx = e.clientX - imageViewerLastTouchRef.current.x;
+    const dy = e.clientY - imageViewerLastTouchRef.current.y;
+    imageViewerLastTouchRef.current = { x: e.clientX, y: e.clientY };
+    setImageViewerPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+  };
+
+  const handleImageViewerPointerUp = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch (_) {}
+    imageViewerMouseDragRef.current = false;
+    setImageViewerDragging(false);
   };
 
   const handleShare = async () => {
@@ -1279,7 +1411,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
       {/* ── Image Modal ── */}
       <div
         ref={imageModalRef}
-        className={`fixed inset-0 z-[2000] items-center justify-center p-6 bg-black/90 ${selectedImageIndex != null ? 'flex' : 'hidden'}`}
+        className={`fixed inset-0 z-[2000] bg-black/90 ${selectedImageIndex != null ? 'block' : 'hidden'}`}
         style={{ animation: 'pinFadeIn 0.2s' }}
         onClick={closeImageModal}
         onKeyDown={(e) => {
@@ -1292,34 +1424,64 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
         role="dialog"
         aria-label="Image viewer"
       >
-        <button className="absolute top-6 right-6 bg-white/20 backdrop-blur-sm text-white p-2 rounded-full hover:bg-white/30 transition-colors" onClick={closeImageModal}>
+        {/* Full-screen zoom/pan region (same bounds as this overlay) */}
+        <div
+          ref={imageViewerViewportRef}
+          className={`absolute inset-0 z-0 flex touch-none select-none items-center justify-center overflow-hidden ${imageViewerZoom > 1 ? (imageViewerDragging ? 'cursor-grabbing' : 'cursor-grab') : ''}`}
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={handleImageViewerTouchStart}
+          onTouchMove={handleImageViewerTouchMove}
+          onTouchEnd={handleImageViewerTouchEnd}
+          onTouchCancel={handleImageViewerTouchEnd}
+          onPointerDown={handleImageViewerPointerDown}
+          onPointerMove={handleImageViewerPointerMove}
+          onPointerUp={handleImageViewerPointerUp}
+          onPointerCancel={handleImageViewerPointerUp}
+          role="presentation"
+        >
+          <div
+            className="flex max-h-full max-w-full items-center justify-center will-change-transform"
+            style={{
+              transform: `translate(${imageViewerPan.x}px, ${imageViewerPan.y}px) scale(${imageViewerZoom})`,
+              transformOrigin: 'center center',
+            }}
+          >
+            {images.map((img, idx) => (
+              <img
+                key={`modal-${idx}`}
+                draggable={false}
+                className={`max-h-[100dvh] max-w-[100vw] object-contain rounded-xl shadow-2xl ${idx === selectedImageIndex ? 'block' : 'hidden'}`}
+                src={img}
+                alt={`Full view ${idx + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+        <button type="button" className="absolute top-6 right-6 z-20 bg-white/20 backdrop-blur-sm text-white p-2 rounded-full hover:bg-white/30 transition-colors" onClick={closeImageModal}>
           <X className="size-6" />
         </button>
         {images.length > 1 && (
           <>
-            <button type="button" className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors z-10" onClick={goToPrevImage} aria-label="Previous image">
+            <button type="button" className="absolute left-6 top-1/2 z-20 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors" onClick={goToPrevImage} aria-label="Previous image">
               <ChevronLeft className="size-8" />
             </button>
-            <button type="button" className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors z-10" onClick={goToNextImage} aria-label="Next image">
+            <button type="button" className="absolute right-6 top-1/2 z-20 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors" onClick={goToNextImage} aria-label="Next image">
               <ChevronRight className="size-8" />
             </button>
           </>
         )}
-        <div onClick={(e) => e.stopPropagation()}>
-          {images.map((img, idx) => (
-            <img
-              key={`modal-${idx}`}
-              className={`max-w-[90%] max-h-[90vh] rounded-xl shadow-2xl ${idx === selectedImageIndex ? 'block' : 'hidden'}`}
-              src={img}
-              alt={`Full view ${idx + 1}`}
-            />
-          ))}
-        </div>
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+        <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 max-w-[min(90vw,24rem)] -translate-x-1/2 rounded-full bg-black/50 px-3 py-1.5 text-center text-sm font-medium text-white">
           {selectedImageIndex != null && (
-            selectedImageIndex < beforeCount
-              ? `Before ${selectedImageIndex + 1} / ${beforeCount}`
-              : `After ${selectedImageIndex - beforeCount + 1} / ${afterCount}`
+            <>
+              <span className="block">
+                {selectedImageIndex < beforeCount
+                  ? `Before ${selectedImageIndex + 1} / ${beforeCount}`
+                  : `After ${selectedImageIndex - beforeCount + 1} / ${afterCount}`}
+              </span>
+              <span className="mt-0.5 block text-xs font-normal text-white/75">
+                Scroll to zoom · Pinch to zoom · Drag when zoomed
+              </span>
+            </>
           )}
         </div>
       </div>

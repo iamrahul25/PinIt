@@ -37,6 +37,22 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   LIGHT MAP UI  –  map toggled light while app may still be dark (html.dark)
+   Inputs inherit body color; without this, typed text stays light on white field.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.map-view-wrapper:not(.dark) .map-search-input {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  caret-color: #111827;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+.map-view-wrapper:not(.dark) .map-search-input::placeholder {
+  color: #6b7280 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    DARK THEME  –  syncs with About page via 'about-theme' localStorage
    Stylish dark map: CartoDB dark tiles (OSM) + Google dark styles + UI
    ═══════════════════════════════════════════════════════════════════════ */

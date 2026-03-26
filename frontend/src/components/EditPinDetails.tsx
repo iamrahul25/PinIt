@@ -3,7 +3,8 @@ import axios from 'axios';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
-import { getFullImageUrl } from '../utils/cloudinaryUrls';
+import { extractImageUploadMetaForForm } from '../utils/imageUploadMeta';
+import { getPinImageDisplayUrl, pinImageForApiBody, pinImageFromUploadResponse, type PinImageStored } from '../utils/pinImageEntry';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
@@ -71,8 +72,8 @@ export interface EditPinDetailsProps {
     contributor_name?: string;
     anonymous?: boolean;
     location?: { latitude?: number; longitude?: number; address?: string };
-    images?: string[];
-    imagesAfter?: string[];
+    images?: PinImageStored[];
+    imagesAfter?: PinImageStored[];
   };
   onCancel: () => void;
   onSaved: (updatedPin: unknown) => void;
@@ -95,16 +96,18 @@ const EditPinDetails = ({
 }: EditPinDetailsProps) => {
   const { getToken } = useAuth();
   const [editForm, setEditForm] = useState(() => initialEditFormFromPin(pin));
-  const [editImages, setEditImages] = useState<string[]>(
+  const [editImages, setEditImages] = useState<PinImageStored[]>(
     pin.images && Array.isArray(pin.images) ? [...pin.images] : []
   );
   const [newImageFiles, setNewImageFiles] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
-  const [editImagesAfter, setEditImagesAfter] = useState<string[]>(
+  const newImageOriginalsRef = useRef<File[]>([]);
+  const [editImagesAfter, setEditImagesAfter] = useState<PinImageStored[]>(
     pin.imagesAfter && Array.isArray(pin.imagesAfter) ? [...pin.imagesAfter] : []
   );
   const [newImageFilesAfter, setNewImageFilesAfter] = useState<File[]>([]);
   const [newImagePreviewsAfter, setNewImagePreviewsAfter] = useState<string[]>([]);
+  const newImageOriginalsAfterRef = useRef<File[]>([]);
   const [editError, setEditError] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
   const [compressingNewImages, setCompressingNewImages] = useState(false);
@@ -148,12 +151,14 @@ const EditPinDetails = ({
   const removeNewEditImage = (index: number) => {
     setNewImageFiles((prev) => prev.filter((_, i) => i !== index));
     setNewImagePreviews((prev) => prev.filter((_, i) => i !== index));
+    newImageOriginalsRef.current = newImageOriginalsRef.current.filter((_, i) => i !== index);
   };
   const removeEditImageAfter = (index: number) =>
     setEditImagesAfter((prev) => prev.filter((_, i) => i !== index));
   const removeNewEditImageAfter = (index: number) => {
     setNewImageFilesAfter((prev) => prev.filter((_, i) => i !== index));
     setNewImagePreviewsAfter((prev) => prev.filter((_, i) => i !== index));
+    newImageOriginalsAfterRef.current = newImageOriginalsAfterRef.current.filter((_, i) => i !== index);
   };
 
   const handleNewEditImages = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,6 +171,7 @@ const EditPinDetails = ({
     try {
       const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
       setNewImageFiles((prev) => [...prev, ...compressed]);
+      newImageOriginalsRef.current = [...newImageOriginalsRef.current, ...toAdd];
       const start = newImageFiles.length;
       const newPreviews = await Promise.all(
         compressed.map((file) => new Promise<string>((resolve) => {
@@ -192,6 +198,7 @@ const EditPinDetails = ({
     try {
       const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
       setNewImageFilesAfter((prev) => [...prev, ...compressed]);
+      newImageOriginalsAfterRef.current = [...newImageOriginalsAfterRef.current, ...toAdd];
       const start = newImageFilesAfter.length;
       const newPreviews = await Promise.all(
         compressed.map((file) => new Promise<string>((resolve) => {
@@ -208,10 +215,7 @@ const EditPinDetails = ({
     }
   }, [editImagesAfter.length, newImageFilesAfter.length]);
 
-  const getEditImageUrl = (url: string) => {
-    if (!url) return '';
-    return url.startsWith('http') ? getFullImageUrl(url) : `${API_BASE_URL}/api/images/${url}`;
-  };
+  const getEditImageUrl = (entry: PinImageStored) => getPinImageDisplayUrl(entry, 'full');
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,30 +242,38 @@ const EditPinDetails = ({
     setEditError('');
     try {
       const config = await getAuthConfig({ 'Content-Type': 'application/json' });
-      const newUrls: string[] = [];
-      for (const file of newImageFiles) {
+      const newUrls: PinImageStored[] = [];
+      for (let i = 0; i < newImageFiles.length; i++) {
+        const file = newImageFiles[i];
+        const original = newImageOriginalsRef.current[i] ?? file;
         const formData = new FormData();
         formData.append('image', file);
+        const exifMeta = await extractImageUploadMetaForForm(original);
+        if (exifMeta) formData.append('exifMeta', JSON.stringify(exifMeta));
         const uploadRes = await axios.post(
           `${API_BASE_URL}/api/images/upload`,
           formData,
           await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
         );
-        newUrls.push(uploadRes.data.url);
+        newUrls.push(pinImageFromUploadResponse(uploadRes.data));
       }
-      const newUrlsAfter: string[] = [];
-      for (const file of newImageFilesAfter) {
+      const newUrlsAfter: PinImageStored[] = [];
+      for (let i = 0; i < newImageFilesAfter.length; i++) {
+        const file = newImageFilesAfter[i];
+        const original = newImageOriginalsAfterRef.current[i] ?? file;
         const formData = new FormData();
         formData.append('image', file);
+        const exifMeta = await extractImageUploadMetaForForm(original);
+        if (exifMeta) formData.append('exifMeta', JSON.stringify(exifMeta));
         const uploadRes = await axios.post(
           `${API_BASE_URL}/api/images/upload`,
           formData,
           await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
         );
-        newUrlsAfter.push(uploadRes.data.url);
+        newUrlsAfter.push(pinImageFromUploadResponse(uploadRes.data));
       }
-      const allImages = [...editImages, ...newUrls];
-      const allImagesAfter = [...editImagesAfter, ...newUrlsAfter];
+      const allImages = [...editImages.map(pinImageForApiBody), ...newUrls.map(pinImageForApiBody)];
+      const allImagesAfter = [...editImagesAfter.map(pinImageForApiBody), ...newUrlsAfter.map(pinImageForApiBody)];
       const payload = {
         problemType: editForm.problemType,
         severity: parseInt(String(editForm.severity), 10),

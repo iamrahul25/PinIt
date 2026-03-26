@@ -5,6 +5,7 @@ const Comment = require('../models/Comment');
 const UserData = require('../models/UserData');
 const { deleteFromCloudinaryByUrls } = require('../utils/cloudinary');
 const { sanitizePinForResponse } = require('../utils/sanitizePin');
+const { normalizePinImageFromBody, normalizePinImagesArrayFromBody } = require('../utils/pinImageEntry');
 
 const MAX_IMAGES_PER_SECTION = 10;
 
@@ -217,9 +218,16 @@ router.post('/:id/images', async (req, res) => {
     if (!pin) {
       return res.status(404).json({ error: 'Pin not found' });
     }
-    const { type, url } = req.body || {};
-    if (!url || typeof url !== 'string' || !url.trim()) {
-      return res.status(400).json({ error: 'Image url is required.' });
+    const body = req.body || {};
+    const { type, url, imageEntry } = body;
+    let entry = null;
+    if (imageEntry && typeof imageEntry === 'object') {
+      entry = normalizePinImageFromBody(imageEntry);
+    } else if (url && typeof url === 'string' && url.trim()) {
+      entry = normalizePinImageFromBody({ src: url.trim() });
+    }
+    if (!entry) {
+      return res.status(400).json({ error: 'Image url or imageEntry with src is required.' });
     }
     if (type !== 'before' && type !== 'after') {
       return res.status(400).json({ error: 'type must be "before" or "after".' });
@@ -229,13 +237,13 @@ router.post('/:id/images', async (req, res) => {
       if (before.length >= MAX_IMAGES_PER_SECTION) {
         return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.` });
       }
-      pin.images = [...before, url.trim()];
+      pin.images = [...before, entry];
     } else {
       const after = pin.imagesAfter || [];
       if (after.length >= MAX_IMAGES_PER_SECTION) {
         return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.` });
       }
-      pin.imagesAfter = [...after, url.trim()];
+      pin.imagesAfter = [...after, entry];
     }
     pin.updatedAt = new Date();
     await pin.save();
@@ -271,14 +279,14 @@ router.post('/', async (req, res) => {
     if (!heading) {
       return res.status(400).json({ error: 'Problem Heading is required.' });
     }
-    const imageList = Array.isArray(images) ? images : [];
+    const imageList = normalizePinImagesArrayFromBody(Array.isArray(images) ? images : []);
     if (imageList.length === 0) {
       return res.status(400).json({ error: 'At least one before image is required.' });
     }
     if (imageList.length > MAX_IMAGES_PER_SECTION) {
       return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} before images allowed.` });
     }
-    const imageListAfter = Array.isArray(imagesAfter) ? imagesAfter : [];
+    const imageListAfter = normalizePinImagesArrayFromBody(Array.isArray(imagesAfter) ? imagesAfter : []);
     if (imageListAfter.length > MAX_IMAGES_PER_SECTION) {
       return res.status(400).json({ error: `Maximum ${MAX_IMAGES_PER_SECTION} after images allowed.` });
     }
@@ -334,6 +342,12 @@ router.put('/:id', async (req, res) => {
     const updates = {};
     for (const key of ALLOWED_UPDATE_FIELDS) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
+    if (Array.isArray(updates.images)) {
+      updates.images = normalizePinImagesArrayFromBody(updates.images);
+    }
+    if (Array.isArray(updates.imagesAfter)) {
+      updates.imagesAfter = normalizePinImagesArrayFromBody(updates.imagesAfter);
     }
     // When admin edits, preserve existing contributor_name if body sent empty (admin doesn't receive it due to sanitize)
     if (isAdmin && (updates.contributor_name === '' || (typeof updates.contributor_name === 'string' && !updates.contributor_name.trim()))) {

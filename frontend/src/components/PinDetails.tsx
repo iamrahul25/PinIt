@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
-import { getFullImageUrl } from '../utils/cloudinaryUrls';
+import { extractImageUploadMetaForForm } from '../utils/imageUploadMeta';
+import {
+  getPinImageDisplayUrl,
+  getPinImageMeta,
+  pinImageFromUploadResponse
+} from '../utils/pinImageEntry';
 import EditPinDetails from './EditPinDetails';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -80,8 +85,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const [commentActionLoading, setCommentActionLoading] = useState(null);
   const [voteStatus, setVoteStatus] = useState({ hasVoted: false, voteType: null, upvotes: pin.upvotes, downvotes: pin.downvotes });
   const [verifying, setVerifying] = useState(false);
-  const [imagesBefore, setImagesBefore] = useState([]);
-  const [imagesAfter, setImagesAfter] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addingImageType, setAddingImageType] = useState(null);
   const addBeforeInputRef = useRef(null);
@@ -113,7 +116,6 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     if (authLoading) return;
     fetchComments();
     fetchVoteStatus();
-    fetchImages();
   }, [authLoading, getToken, pin._id, userId, pin.images, pin.imagesAfter]);
 
   useEffect(() => {
@@ -239,19 +241,30 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     }
   };
 
-  const normalizeImageUrl = (entry) =>
-    entry.startsWith('http') ? getFullImageUrl(entry) : `${API_BASE_URL}/api/images/${entry}`;
+  const imagesBefore = useMemo(
+    () => (pin.images && Array.isArray(pin.images) ? pin.images : []).map((e) => getPinImageDisplayUrl(e, 'full')),
+    [pin.images]
+  );
+  const imagesAfter = useMemo(
+    () => (pin.imagesAfter && Array.isArray(pin.imagesAfter) ? pin.imagesAfter : []).map((e) => getPinImageDisplayUrl(e, 'full')),
+    [pin.imagesAfter]
+  );
+  const imageViewerEntries = useMemo(() => {
+    const before = (pin.images && Array.isArray(pin.images) ? pin.images : []).map((entry) => ({
+      displayUrl: getPinImageDisplayUrl(entry, 'full'),
+      meta: getPinImageMeta(entry)
+    }));
+    const after = (pin.imagesAfter && Array.isArray(pin.imagesAfter) ? pin.imagesAfter : []).map((entry) => ({
+      displayUrl: getPinImageDisplayUrl(entry, 'full'),
+      meta: getPinImageMeta(entry)
+    }));
+    return [...before, ...after];
+  }, [pin.images, pin.imagesAfter]);
 
-  const fetchImages = () => {
-    const before = (pin.images && Array.isArray(pin.images) ? pin.images : []).map(normalizeImageUrl);
-    const after = (pin.imagesAfter && Array.isArray(pin.imagesAfter) ? pin.imagesAfter : []).map(normalizeImageUrl);
-    setImagesBefore(before);
-    setImagesAfter(after);
-  };
-
-  const images = [...imagesBefore, ...imagesAfter];
+  const images = imageViewerEntries.map((e) => e.displayUrl);
   const beforeCount = imagesBefore.length;
   const afterCount = imagesAfter.length;
+  const selectedImageMeta = selectedImageIndex != null ? imageViewerEntries[selectedImageIndex]?.meta : null;
 
   const handleVerify = async () => {
     if (!userId) { alert('Please log in to verify pins.'); return; }
@@ -551,16 +564,21 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
       const compressed = await imageCompression(file as File, COMPRESSION_OPTIONS);
       const formData = new FormData();
       formData.append('image', compressed);
+      const exifMeta = await extractImageUploadMetaForForm(file as File);
+      if (exifMeta) formData.append('exifMeta', JSON.stringify(exifMeta));
       const config = await getAuthConfig({ 'Content-Type': 'multipart/form-data' });
       const uploadRes = await axios.post(`${API_BASE_URL}/api/images/upload`, formData, config);
       const url = uploadRes.data?.url;
       if (!url) throw new Error('No URL returned');
+      const imageEntry = pinImageFromUploadResponse(uploadRes.data);
       const payloadConfig = await getAuthConfig({ 'Content-Type': 'application/json' });
-      const response = await axios.post(`${API_BASE_URL}/api/pins/${pin._id}/images`, { type, url }, payloadConfig);
+      const response = await axios.post(
+        `${API_BASE_URL}/api/pins/${pin._id}/images`,
+        { type, imageEntry },
+        payloadConfig
+      );
       onPinUpdated?.(response.data);
       onUpdate?.();
-      setImagesBefore((response.data.images || []).map(normalizeImageUrl));
-      setImagesAfter((response.data.imagesAfter || []).map(normalizeImageUrl));
     } catch (err) {
       const msg = err.response?.data?.error || 'Failed to add image.';
       alert(msg);
@@ -631,6 +649,23 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
     if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
     return date.toLocaleDateString();
+  };
+
+  const formatImageMetaDateTime = (dateLike) => {
+    if (!dateLike) return null;
+    const d = new Date(dateLike);
+    if (Number.isNaN(d.getTime())) return null;
+    return d.toLocaleString();
+  };
+
+  const formatImageMetaGps = (gps) => {
+    if (!gps) return null;
+    const lat = Number(gps.latitude);
+    const lon = Number(gps.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      return `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+    }
+    return `${gps.latitude}, ${gps.longitude}`;
   };
 
   const getSeverityLabel = (s) => {
@@ -1470,7 +1505,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
             </button>
           </>
         )}
-        <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 max-w-[min(90vw,24rem)] -translate-x-1/2 rounded-full bg-black/50 px-3 py-1.5 text-center text-sm font-medium text-white">
+        <div className="pointer-events-none absolute bottom-6 left-1/2 z-20 max-w-[min(92vw,28rem)] -translate-x-1/2 rounded-2xl bg-black/50 px-3 py-2 text-center text-sm font-medium text-white">
           {selectedImageIndex != null && (
             <>
               <span className="block">
@@ -1481,6 +1516,25 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
               <span className="mt-0.5 block text-xs font-normal text-white/75">
                 Scroll to zoom · Pinch to zoom · Drag when zoomed
               </span>
+              {selectedImageMeta && (
+                <span className="mt-2 block border-t border-white/15 pt-2 text-left text-[11px] font-normal leading-snug text-white/80">
+                  {formatImageMetaDateTime(selectedImageMeta.imageCreatedAt) && (
+                    <span className="block">
+                      Photo taken: {formatImageMetaDateTime(selectedImageMeta.imageCreatedAt)}
+                    </span>
+                  )}
+                  {formatImageMetaDateTime(selectedImageMeta.uploadedAt) && (
+                    <span className="block">
+                      Uploaded: {formatImageMetaDateTime(selectedImageMeta.uploadedAt)}
+                    </span>
+                  )}
+                  {selectedImageMeta.gps && (
+                    <span className="block">
+                      Photo GPS: {formatImageMetaGps(selectedImageMeta.gps)}
+                    </span>
+                  )}
+                </span>
+              )}
             </>
           )}
         </div>

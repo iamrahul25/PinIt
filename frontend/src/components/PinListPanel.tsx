@@ -3,6 +3,7 @@ import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, F
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
+import { getPinImageSrc } from '../utils/pinImageEntry';
 import './PinListPanel.css';
 
 // Verification score helpers (same as PinDetails)
@@ -117,9 +118,10 @@ const PinListPanel = ({
   };
 
   const imgUrl = (pin, index = 0) => {
-    const img = pin.images?.[index];
-    if (!img) return null;
-    return img.startsWith('http') ? getThumbnailUrl(img) : `${API_BASE_URL}/api/images/${img}`;
+    const entry = pin.images?.[index];
+    const src = getPinImageSrc(entry);
+    if (!src) return null;
+    return src.startsWith('http') ? getThumbnailUrl(src) : `${API_BASE_URL}/api/images/${src}`;
   };
 
   return (

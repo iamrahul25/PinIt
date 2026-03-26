@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { FaMapPin, FaThumbsUp, FaComment, FaMapMarkerAlt, FaChevronRight, FaHandHoldingHeart, FaCalendarAlt, FaLightbulb, FaTrophy, FaInfoCircle } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getThumbnailUrl } from '../utils/cloudinaryUrls';
+import { getPinImageSrc } from '../utils/pinImageEntry';
 import Badges from '../components/Badges';
 import Toast from '../components/Toast';
 import './UserProfile.css';
@@ -223,7 +224,7 @@ export default function UserProfile() {
                 <div key={pin._id} className="activity-pin-card">
                   <div className="activity-pin-card-thumb">
                     {pin.images && pin.images.length > 0 ? (
-                      <img src={getThumbnailUrl(pin.images[0])} alt={pin.problemHeading || 'Pin image'} />
+                      <img src={getThumbnailUrl(getPinImageSrc(pin.images[0]))} alt={pin.problemHeading || 'Pin image'} />
                     ) : (
                       <div className="activity-pin-card-no-image"><FaMapPin /></div>
                     )}

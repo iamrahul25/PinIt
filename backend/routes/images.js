@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const Grid = require('gridfs-stream');
+const { extractExifFromBuffer, parseClientExifMetaField, mergeExifForUpload } = require('../utils/imageExif');
 
 // Configure Cloudinary (must be set before uploads)
 cloudinary.config({
@@ -54,6 +55,10 @@ router.post('/upload', upload.single('image'), async (req, res) => {
       return res.status(503).json({ error: 'Image upload not configured. Set CLOUDINARY_* in .env.' });
     }
 
+    const fromBuffer = await extractExifFromBuffer(req.file.buffer);
+    const clientMeta = parseClientExifMetaField(req.body?.exifMeta);
+    const { uploadedAt, imageCreatedAt, gps } = mergeExifForUpload(fromBuffer, clientMeta);
+
     const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
     const result = await cloudinary.uploader.upload(dataUri, {
       resource_type: 'image',
@@ -67,7 +72,10 @@ router.post('/upload', upload.single('image'), async (req, res) => {
 
     res.json({
       url: baseUrl,
-      fileId: result.public_id
+      fileId: result.public_id,
+      uploadedAt: uploadedAt.toISOString(),
+      imageCreatedAt: imageCreatedAt ? imageCreatedAt.toISOString() : null,
+      gps: gps || null
     });
   } catch (error) {
     console.error('Cloudinary upload error:', error);

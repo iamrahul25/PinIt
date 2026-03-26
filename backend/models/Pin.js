@@ -28,14 +28,15 @@ const pinSchema = new mongoose.Schema({
       default: ''
     }
   },
-  images: [{
-    type: String, // Cloudinary URLs — "before fix" (or legacy GridFS file IDs for backward compat)
+  // String = legacy URL/GridFS id; object = { src, imageCreatedAt?, uploadedAt?, gps? }
+  images: {
+    type: [mongoose.Schema.Types.Mixed],
     default: []
-  }],
-  imagesAfter: [{
-    type: String, // Cloudinary URLs — "after fixing"
+  },
+  imagesAfter: {
+    type: [mongoose.Schema.Types.Mixed],
     default: []
-  }],
+  },
   problemHeading: {
     type: String,
     default: ''

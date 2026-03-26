@@ -66,12 +66,25 @@ async function deleteFromCloudinaryByUrl(url) {
 }
 
 /**
+ * @param {string|{ src?: string }} entry - Legacy string URL or pin image object
+ * @returns {string|null}
+ */
+function imageUrlFromPinEntry(entry) {
+  if (entry == null) return null;
+  if (typeof entry === 'string') return entry.trim() || null;
+  if (typeof entry === 'object' && typeof entry.src === 'string') return entry.src.trim() || null;
+  return null;
+}
+
+/**
  * Delete multiple images from Cloudinary by URL. Skips non-Cloudinary URLs; logs errors.
- * @param {string[]} urls - Array of image URLs (Cloudinary or other)
+ * Accepts legacy string URLs or pin image objects `{ src }`.
+ * @param {Array<string|{ src?: string }>} entries
  * @returns {Promise<void>}
  */
-async function deleteFromCloudinaryByUrls(urls) {
-  if (!Array.isArray(urls) || urls.length === 0) return;
+async function deleteFromCloudinaryByUrls(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return;
+  const urls = entries.map(imageUrlFromPinEntry).filter(Boolean);
   const cloudinaryUrls = urls.filter(isCloudinaryUrl);
   await Promise.allSettled(cloudinaryUrls.map(deleteFromCloudinaryByUrl));
 }
@@ -80,5 +93,6 @@ module.exports = {
   isCloudinaryUrl,
   getPublicIdFromUrl,
   deleteFromCloudinaryByUrl,
-  deleteFromCloudinaryByUrls
+  deleteFromCloudinaryByUrls,
+  imageUrlFromPinEntry
 };

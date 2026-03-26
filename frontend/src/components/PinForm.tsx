@@ -4,6 +4,8 @@ import exifr from 'exifr';
 import { useAuth } from '../context/AuthContext';
 import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
+import { extractImageUploadMetaForForm } from '../utils/imageUploadMeta';
+import { pinImageFromUploadResponse } from '../utils/pinImageEntry';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import { reverseGeocode } from '../utils/geocode';
 import Toast from './Toast';
@@ -108,6 +110,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const typeDropdownRef = useRef(null);
   // Keep original "before" image files for EXIF reading (compression strips metadata)
   const originalBeforeFilesRef = useRef([]);
+  const originalAfterFilesRef = useRef([]);
 
   // Close type dropdown on outside click or Escape
   useEffect(() => {
@@ -147,7 +150,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   };
 
   const handleImageChange = useCallback(async (e) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     const remaining = MAX_IMAGES_PER_SECTION - imageFiles.length;
     const toAdd = files.slice(0, remaining);
     if (toAdd.length === 0) return;
@@ -184,7 +187,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   }, [imageFiles]);
 
   const handleImageAfterChange = useCallback(async (e) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     const remaining = MAX_IMAGES_PER_SECTION - imageFilesAfter.length;
     const toAdd = files.slice(0, remaining);
     if (toAdd.length === 0) return;
@@ -198,6 +201,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       );
       const newFiles = [...imageFilesAfter, ...compressed];
       setImageFilesAfter(newFiles);
+      originalAfterFilesRef.current = [...originalAfterFilesRef.current, ...toAdd];
 
       const newPreviews = new Array(newFiles.length);
       let loaded = 0;
@@ -231,6 +235,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const removeImageAfter = (index) => {
     const newFiles = imageFilesAfter.filter((_, i) => i !== index);
     const newPreviews = imagePreviewsAfter.filter((_, i) => i !== index);
+    originalAfterFilesRef.current = originalAfterFilesRef.current.filter((_, i) => i !== index);
     setImageFilesAfter(newFiles);
     setImagePreviewsAfter(newPreviews);
     setError('');
@@ -392,27 +397,35 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       };
 
       const imageUrls = [];
-      for (const file of imageFiles) {
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+        const original = originalBeforeFilesRef.current[i] ?? file;
         const multipart = new FormData();
         multipart.append('image', file);
+        const exifMeta = await extractImageUploadMetaForForm(original);
+        if (exifMeta) multipart.append('exifMeta', JSON.stringify(exifMeta));
         const uploadResponse = await axios.post(
           `${API_BASE_URL}/api/images/upload`,
           multipart,
           await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
         );
-        imageUrls.push(uploadResponse.data.url);
+        imageUrls.push(pinImageFromUploadResponse(uploadResponse.data));
       }
 
       const imageUrlsAfter = [];
-      for (const file of imageFilesAfter) {
+      for (let i = 0; i < imageFilesAfter.length; i++) {
+        const file = imageFilesAfter[i];
+        const original = originalAfterFilesRef.current[i] ?? file;
         const multipart = new FormData();
         multipart.append('image', file);
+        const exifMeta = await extractImageUploadMetaForForm(original);
+        if (exifMeta) multipart.append('exifMeta', JSON.stringify(exifMeta));
         const uploadResponse = await axios.post(
           `${API_BASE_URL}/api/images/upload`,
           multipart,
           await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
         );
-        imageUrlsAfter.push(uploadResponse.data.url);
+        imageUrlsAfter.push(pinImageFromUploadResponse(uploadResponse.data));
       }
 
       setSubmitPhase('submitting');
@@ -427,7 +440,7 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
       const pinData = {
         problemType: formData.problemType,
-        severity: parseInt(formData.severity, 10),
+        severity: parseInt(String(formData.severity), 10),
         problemHeading: (formData.problemHeading || '').trim(),
         location: submitLocation,
         images: imageUrls,

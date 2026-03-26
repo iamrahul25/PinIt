@@ -58,6 +58,7 @@ export default function UserProfile() {
   const [activityTab, setActivityTab] = useState('pins');
   const tabsContainerRef = useRef(null);
   const tabButtonRefs = useRef({});
+
   const [toast, setToast] = useState({ visible: false, message: '', type: 'info' });
   const showToast = useCallback((message, type = 'info') => {
     setToast({ visible: true, message, type });

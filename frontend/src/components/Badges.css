@@ -673,3 +673,189 @@
     font-size: 1.1rem;
   }
 }
+
+/* ==================== Dark mode (scoped via parent) ==================== */
+
+.user-profile-page.dark .badges-section {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-color: #334155;
+}
+
+.user-profile-page.dark .badges-title {
+  color: #f1f5f9;
+}
+
+.user-profile-page.dark .badges-count {
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .badges-earned-count {
+  color: #34d399;
+}
+
+.user-profile-page.dark .badges-total-count,
+.user-profile-page.dark .badges-count-label {
+  color: #64748b;
+}
+
+.user-profile-page.dark .tier-count {
+  background: #1e293b;
+  color: #64748b;
+}
+
+.user-profile-page.dark .tier-count.has-badges {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .tier-count.bronze.has-badges {
+  background: linear-gradient(135deg, #422006 0%, #431407 100%);
+  color: #fde68a;
+}
+
+.user-profile-page.dark .tier-count.silver.has-badges {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: #cbd5e1;
+}
+
+.user-profile-page.dark .tier-count.gold.has-badges {
+  background: linear-gradient(135deg, #422006 0%, #713f12 100%);
+  color: #fde047;
+}
+
+.user-profile-page.dark .tier-count.diamond.has-badges {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  color: #a5b4fc;
+}
+
+.user-profile-page.dark .badges-next-goal {
+  background: linear-gradient(135deg, #1e3a5f 0%, #1e40af22 100%);
+  border-color: #1e40af;
+}
+
+.user-profile-page.dark .next-goal-label {
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .next-goal-badge {
+  color: #93c5fd;
+}
+
+.user-profile-page.dark .next-goal-progress {
+  color: #60a5fa;
+}
+
+.user-profile-page.dark .badges-category-scroll-btn {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .badges-category-scroll-btn:hover {
+  background: #1e293b;
+  color: #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.user-profile-page.dark .category-filter-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .category-filter-btn:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.user-profile-page.dark .category-filter-btn.active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border-color: #1d4ed8;
+  color: white;
+}
+
+.user-profile-page.dark .category-count {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .badge-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.user-profile-page.dark .badge-card:hover {
+  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+.user-profile-page.dark .badge-card.earned {
+  border-color: #059669;
+  background: linear-gradient(135deg, #1e293b 0%, #052e16 100%);
+}
+
+.user-profile-page.dark .badge-card.earned:hover {
+  border-color: #34d399;
+  box-shadow: 0 8px 25px -5px rgba(52, 211, 153, 0.2);
+}
+
+.user-profile-page.dark .badge-card.locked {
+  background: #0f172a;
+}
+
+.user-profile-page.dark .badge-card.badge-tier-bronze.earned {
+  border-color: #b45309;
+  background: linear-gradient(135deg, #1e293b 0%, #431407 100%);
+}
+
+.user-profile-page.dark .badge-card.badge-tier-silver.earned {
+  border-color: #64748b;
+  background: linear-gradient(135deg, #1e293b 0%, #1e293b 100%);
+}
+
+.user-profile-page.dark .badge-card.badge-tier-gold.earned {
+  border-color: #ca8a04;
+  background: linear-gradient(135deg, #1e293b 0%, #422006 100%);
+}
+
+.user-profile-page.dark .badge-card.badge-tier-diamond.earned {
+  border-color: #4f46e5;
+  background: linear-gradient(135deg, #1e293b 0%, #1e1b4b 100%);
+}
+
+.user-profile-page.dark .badge-name {
+  color: #f1f5f9;
+}
+
+.user-profile-page.dark .badge-description {
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .badge-progress-bar {
+  background: #334155;
+}
+
+.user-profile-page.dark .badge-progress-text {
+  color: #64748b;
+}
+
+.user-profile-page.dark .badges-show-more-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.user-profile-page.dark .badges-show-more-btn:hover {
+  background: #334155;
+  border-color: #475569;
+  color: #f1f5f9;
+}
+
+.user-profile-page.dark .badges-empty,
+.user-profile-page.dark .badges-loading {
+  color: #64748b;
+}
+
+.user-profile-page.dark .badges-loader {
+  border-color: #334155;
+  border-top-color: #3b82f6;
+}

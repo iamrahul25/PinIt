@@ -86,7 +86,7 @@ router.get('/stats', async (req, res) => {
             Suggestion.countDocuments(),
             Pin.countDocuments(),
             Comment.countDocuments(),
-            Pin.countDocuments({ resolvedAt: { $ne: null } }),
+            Pin.countDocuments({ 'fixStatus.resolvedAt': { $ne: null } }),
             Suggestion.countDocuments({ status: 'done' }),
             Pin.distinct('contributor_id', { ...timeFilter, contributor_id: { $ne: '', $exists: true } }),
             Ngo.distinct('authorId', { ...timeFilter, authorId: { $ne: '', $exists: true } }),

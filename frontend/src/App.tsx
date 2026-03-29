@@ -15,6 +15,7 @@ import EventDetail from './pages/EventDetail';
 import NgoDetail from './pages/NgoDetail';
 import NgoEdit from './pages/NgoEdit';
 import Leaderboard from './pages/Leaderboard';
+import Analytics from './pages/Analytics';
 import About from './pages/About';
 import { reverseGeocode } from './utils/geocode';
 import { checkGraphicsAcceleration } from './utils/graphics';
@@ -34,6 +35,7 @@ function App() {
   const isNgoDetailPage = location.pathname.match(/^\/ngo\/[^/]+$/);
   const isNgoEditPage = location.pathname.startsWith('/ngos/') && location.pathname.endsWith('/edit');
   const isLeaderboardPage = location.pathname === '/leaderboard';
+  const isAnalyticsPage = location.pathname === '/analytics';
   const isAboutPage = location.pathname === '/about';
   const [pins, setPins] = useState([]);
   const [selectedPin, setSelectedPin] = useState(null);
@@ -554,6 +556,14 @@ function App() {
           <button
             type="button"
             className="header-nav-btn"
+            onClick={() => navigate('/analytics')}
+            title="Analytics"
+          >
+            Analytics
+          </button>
+          <button
+            type="button"
+            className="header-nav-btn"
             onClick={() => navigate('/about')}
             title="About"
           >
@@ -639,6 +649,9 @@ function App() {
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/leaderboard')}>
           Leaderboard
+        </button>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/analytics')}>
+          Analytics
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/about')}>
           About
@@ -733,6 +746,10 @@ function App() {
       ) : isLeaderboardPage ? (
         <div className="app-profile-container">
           <Leaderboard />
+        </div>
+      ) : isAnalyticsPage ? (
+        <div className="app-profile-container">
+          <Analytics />
         </div>
       ) : isAboutPage ? (
         <div className="app-profile-container">

@@ -37,6 +37,152 @@ router.get('/saved', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/pins/analytics
+ * Aggregated stats for the analytics dashboard: counts by problem type, resolution status,
+ * severity, recent activity, and a short list of latest issues.
+ */
+router.get('/analytics', async (req, res) => {
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [facetRow] = await Pin.aggregate([
+      {
+        $facet: {
+          totalPins: [{ $count: 'count' }],
+          byProblemType: [
+            { $group: { _id: '$problemType', count: { $sum: 1 } } },
+            { $sort: { count: -1 } }
+          ],
+          resolved: [
+            { $match: { 'fixStatus.resolvedAt': { $ne: null } } },
+            { $count: 'count' }
+          ],
+          inProgress: [
+            {
+              $match: {
+                $and: [
+                  { 'fixStatus.verifiedAt': { $ne: null } },
+                  {
+                    $or: [
+                      { 'fixStatus.resolvedAt': null },
+                      { 'fixStatus.resolvedAt': { $exists: false } }
+                    ]
+                  }
+                ]
+              }
+            },
+            { $count: 'count' }
+          ],
+          open: [
+            {
+              $match: {
+                $and: [
+                  {
+                    $or: [
+                      { 'fixStatus.resolvedAt': null },
+                      { 'fixStatus.resolvedAt': { $exists: false } }
+                    ]
+                  },
+                  {
+                    $or: [
+                      { fixStatus: { $exists: false } },
+                      { 'fixStatus.verifiedAt': null }
+                    ]
+                  }
+                ]
+              }
+            },
+            { $count: 'count' }
+          ],
+          pinsLast30Days: [
+            { $match: { createdAt: { $gte: thirtyDaysAgo } } },
+            { $count: 'count' }
+          ],
+          pinsLast7Days: [
+            { $match: { createdAt: { $gte: sevenDaysAgo } } },
+            { $count: 'count' }
+          ],
+          avgSeverity: [
+            { $group: { _id: null, avg: { $avg: '$severity' } } }
+          ],
+          totalUpvotes: [
+            { $group: { _id: null, total: { $sum: '$upvotes' } } }
+          ],
+          distinctReporters: [
+            { $match: { contributor_id: { $nin: ['', null] } } },
+            { $group: { _id: '$contributor_id' } },
+            { $count: 'count' }
+          ]
+        }
+      }
+    ]);
+
+    const f = facetRow || {};
+    const totalPins = f.totalPins?.[0]?.count ?? 0;
+    const resolvedCount = f.resolved?.[0]?.count ?? 0;
+    const inProgressCount = f.inProgress?.[0]?.count ?? 0;
+    const openCount = f.open?.[0]?.count ?? 0;
+    const pinsLast30Days = f.pinsLast30Days?.[0]?.count ?? 0;
+    const pinsLast7Days = f.pinsLast7Days?.[0]?.count ?? 0;
+    const avgSeverity = f.avgSeverity?.[0]?.avg != null
+      ? Math.round(f.avgSeverity[0].avg * 10) / 10
+      : 0;
+    const totalUpvotes = f.totalUpvotes?.[0]?.total ?? 0;
+    const distinctReporters = f.distinctReporters?.[0]?.count ?? 0;
+
+    const rawTypes = f.byProblemType || [];
+    const byProblemType = rawTypes.map((row) => ({
+      problemType: row._id || 'Other',
+      count: row.count,
+      percentage: totalPins > 0 ? Math.round((row.count / totalPins) * 1000) / 10 : 0
+    }));
+
+    const recentDocs = await Pin.find({})
+      .select('problemHeading problemType location fixStatus createdAt severity')
+      .sort({ createdAt: -1 })
+      .limit(20)
+      .lean();
+
+    function statusLabel(pin) {
+      const fs = pin.fixStatus || {};
+      if (fs.resolvedAt) return 'resolved';
+      if (fs.verifiedAt) return 'in_progress';
+      return 'open';
+    }
+
+    const recentPins = recentDocs.map((p) => ({
+      _id: p._id,
+      problemHeading: p.problemHeading || '',
+      problemType: p.problemType || 'Other',
+      address: (p.location && p.location.address) || '',
+      severity: p.severity ?? 5,
+      status: statusLabel(p),
+      createdAt: p.createdAt
+    }));
+
+    res.json({
+      totalPins,
+      resolvedCount,
+      inProgressCount,
+      openCount,
+      pinsLast30Days,
+      pinsLast7Days,
+      avgSeverity,
+      totalUpvotes,
+      distinctReporters,
+      resolutionRatePercent: totalPins > 0
+        ? Math.round((resolvedCount / totalPins) * 1000) / 10
+        : 0,
+      byProblemType,
+      recentPins
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Save a pin for a user (store in UserData only; Pin DB unchanged)
 router.post('/:id/save', async (req, res) => {
   try {

@@ -1,9 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser, FaThLarge, FaList, FaCheckCircle } from 'react-icons/fa';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser, FaThLarge, FaList, FaLocationArrow } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import { getPinImageSrc } from '../utils/pinImageEntry';
+import { distanceToPinKm, formatDistanceKm } from '../utils/geoDistance';
+import Toast from './Toast';
 import './PinListPanel.css';
 
 // Verification score helpers (same as PinDetails)
@@ -76,6 +78,55 @@ const PinListPanel = ({
   const [filterContributedOnly, setFilterContributedOnly] = useState(false);
   const [filterVerification, setFilterVerification] = useState(''); // '' = All, or unverified | partially-verified | verified | highly-verified
   const [viewSize, setViewSize] = useState('big'); // 'big' | 'small' — large cards are default
+  /** Current device GPS position (WGS84), when geolocation succeeds */
+  const [currentLocationGps, setCurrentLocationGps] = useState<{ lat: number; lng: number } | null>(null);
+  /** When set, list order is by distance from you (nearest first), not by Sort by / date */
+  const [orderByDistance, setOrderByDistance] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'warning' });
+
+  const showToast = useCallback((message, type = 'warning') => {
+    setToast({ visible: true, message, type });
+  }, []);
+
+  const hideToast = useCallback(() => {
+    setToast((t) => ({ ...t, visible: false }));
+  }, []);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      showToast('Location is not supported by this browser. Distance filtering is unavailable.', 'error');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCurrentLocationGps({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        });
+      },
+      (err) => {
+        let msg =
+          'Could not get your location. Enable location services to filter pins by distance.';
+        if (err.code === err.PERMISSION_DENIED) {
+          msg =
+            'Location permission denied. Allow location access in your browser settings to filter by distance.';
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          msg =
+            'Your position could not be determined. Check that GPS or location services are turned on.';
+        } else if (err.code === err.TIMEOUT) {
+          msg = 'Location request timed out. Try again or check that GPS is enabled.';
+        }
+        showToast(msg, 'warning');
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 60000 }
+    );
+  }, [showToast]);
+
+  useEffect(() => {
+    if (!currentLocationGps && orderByDistance) {
+      setOrderByDistance(false);
+    }
+  }, [currentLocationGps, orderByDistance]);
 
   const filteredPins = useMemo(() => {
     let list = pins;
@@ -93,9 +144,21 @@ const PinListPanel = ({
 
   const sortedPins = useMemo(() => {
     const list = [...filteredPins];
+    if (orderByDistance && currentLocationGps) {
+      const { lat, lng } = currentLocationGps;
+      list.sort((a, b) => {
+        const da = distanceToPinKm(lat, lng, a) ?? Infinity;
+        const db = distanceToPinKm(lat, lng, b) ?? Infinity;
+        return da - db;
+      });
+      return list;
+    }
     const mult = sortOrder === 'asc' ? 1 : -1;
     if (sortBy === 'createdAt') {
-      list.sort((a, b) => mult * (new Date(a.createdAt) - new Date(b.createdAt)));
+      list.sort(
+        (a, b) =>
+          mult * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      );
     } else if (sortBy === 'severity') {
       list.sort((a, b) => mult * ((a.severity ?? 0) - (b.severity ?? 0)));
     } else if (sortBy === 'upvotes') {
@@ -104,12 +167,12 @@ const PinListPanel = ({
       list.sort((a, b) => mult * ((a.comments?.length ?? 0) - (b.comments?.length ?? 0)));
     }
     return list;
-  }, [filteredPins, sortBy, sortOrder]);
+  }, [filteredPins, sortBy, sortOrder, currentLocationGps, orderByDistance]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
     if (diffInSeconds < 60) return 'Just now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
     if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -118,11 +181,24 @@ const PinListPanel = ({
   };
 
   const handleSortClick = (field) => {
+    setOrderByDistance(false);
     if (sortBy === field) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortBy(field);
     }
+  };
+
+  const handleOrderByDistanceChange = (e) => {
+    const checked = e.target.checked;
+    if (checked && !currentLocationGps) {
+      showToast(
+        'Turn on location or allow permission to order pins by distance from you.',
+        'warning'
+      );
+      return;
+    }
+    setOrderByDistance(checked);
   };
 
   const imgUrl = (pin, index = 0) => {
@@ -134,6 +210,13 @@ const PinListPanel = ({
 
   return (
     <>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onClose={hideToast}
+        position="bottom-right"
+      />
       {/* Toggle button on the left (reference: fixed left) */}
       <button
         type="button"
@@ -200,6 +283,30 @@ const PinListPanel = ({
                 <span>Contributed Pins</span>
               </label>
             )}
+            <label
+              className="pins-filter-check"
+              title={
+                currentLocationGps
+                  ? 'Order pins nearest to farthest from your location instead of using Sort by (e.g. date)'
+                  : 'Requires your location'
+              }
+            >
+              <input
+                type="checkbox"
+                checked={orderByDistance}
+                onChange={handleOrderByDistanceChange}
+                disabled={!currentLocationGps}
+              />
+              <span className="pins-filter-icon pins-filter-icon-distance" aria-hidden="true">
+                <FaLocationArrow />
+              </span>
+              <span>
+                By distance
+                {!currentLocationGps && (
+                  <span className="pins-filter-distance-gps-hint"> (GPS not detected)</span>
+                )}
+              </span>
+            </label>
           </section>
 
           <section className="pins-status-filters-section">
@@ -216,7 +323,7 @@ const PinListPanel = ({
                 ))}
               </select>
             </div>
-            </section>
+          </section>
 
           <section className="pins-type-section">
             <h3 className="pins-section-heading">Filter by type</h3>
@@ -252,34 +359,43 @@ const PinListPanel = ({
 
           <section className="pins-sort-section">
             <h3 className="pins-section-heading">Sort by</h3>
+            {orderByDistance && (
+              <p className="pins-sort-distance-note" role="status">
+                Ordering by distance — uncheck &quot;By distance&quot; above to use these sort options.
+              </p>
+            )}
             <div className="pins-sort-grid">
               <button
                 type="button"
-                className={`pins-sort-btn ${sortBy === 'createdAt' ? 'active' : ''}`}
+                className={`pins-sort-btn ${sortBy === 'createdAt' && !orderByDistance ? 'active' : ''}`}
                 onClick={() => handleSortClick('createdAt')}
+                disabled={orderByDistance}
               >
-                Date <span className="pins-sort-arrow">{sortBy === 'createdAt' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
+                Date <span className="pins-sort-arrow">{sortBy === 'createdAt' && !orderByDistance && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
               <button
                 type="button"
-                className={`pins-sort-btn ${sortBy === 'severity' ? 'active' : ''}`}
+                className={`pins-sort-btn ${sortBy === 'severity' && !orderByDistance ? 'active' : ''}`}
                 onClick={() => handleSortClick('severity')}
+                disabled={orderByDistance}
               >
-                Severity <span className="pins-sort-arrow">{sortBy === 'severity' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
+                Severity <span className="pins-sort-arrow">{sortBy === 'severity' && !orderByDistance && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
               <button
                 type="button"
-                className={`pins-sort-btn ${sortBy === 'upvotes' ? 'active' : ''}`}
+                className={`pins-sort-btn ${sortBy === 'upvotes' && !orderByDistance ? 'active' : ''}`}
                 onClick={() => handleSortClick('upvotes')}
+                disabled={orderByDistance}
               >
-                Likes <span className="pins-sort-arrow">{sortBy === 'upvotes' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
+                Likes <span className="pins-sort-arrow">{sortBy === 'upvotes' && !orderByDistance && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
               <button
                 type="button"
-                className={`pins-sort-btn ${sortBy === 'comments' ? 'active' : ''}`}
+                className={`pins-sort-btn ${sortBy === 'comments' && !orderByDistance ? 'active' : ''}`}
                 onClick={() => handleSortClick('comments')}
+                disabled={orderByDistance}
               >
-                Comments <span className="pins-sort-arrow">{sortBy === 'comments' && (sortOrder === 'desc' ? '↓' : '↑')}</span>
+                Comments <span className="pins-sort-arrow">{sortBy === 'comments' && !orderByDistance && (sortOrder === 'desc' ? '↓' : '↑')}</span>
               </button>
             </div>
           </section>
@@ -300,7 +416,12 @@ const PinListPanel = ({
               </div>
             ) : (
               <div className="pins-list">
-                {sortedPins.map((pin) => (
+                {sortedPins.map((pin) => {
+                  const distKm =
+                    currentLocationGps != null
+                      ? distanceToPinKm(currentLocationGps.lat, currentLocationGps.lng, pin)
+                      : null;
+                  return (
                   <div
                     key={pin._id}
                     className={`pin-card ${viewSize === 'big' ? 'pin-card-featured' : 'pin-card-compact'} ${(focusedPinId === pin._id || hoveredPinId === pin._id) ? 'focused' : ''}`}
@@ -357,6 +478,12 @@ const PinListPanel = ({
                             <div className="pin-card-location">
                               <FaMapMarkerAlt className="pin-card-location-icon" />
                               <span className="pin-card-address">{pin.location.address}</span>
+                            </div>
+                          )}
+                          {distKm != null && (
+                            <div className="pin-card-distance" title="Straight-line distance from your location">
+                              <FaLocationArrow className="pin-card-distance-icon" aria-hidden />
+                              <span>{formatDistanceKm(distKm)} from your location</span>
                             </div>
                           )}
                           <div className="pin-card-meta">
@@ -479,7 +606,8 @@ const PinListPanel = ({
                       </>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

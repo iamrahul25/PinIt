@@ -25,7 +25,7 @@ import {
   AlertTriangle, Flag, ShieldCheck, Clock, CalendarDays,
   CheckCircle2, MessageSquare, Send, Edit3, Trash2, Plus,
   ImagePlus, Info, ChevronDown, ChevronUp, Undo2, Map,
-  User, Users, Building2, ShieldAlert, Loader2, Eye
+  User, Users, Building2, ShieldAlert, Loader2, Eye, ZoomIn, ZoomOut
 } from 'lucide-react';
 import './PinDetails.css';
 
@@ -651,11 +651,20 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     return date.toLocaleDateString();
   };
 
-  const formatImageMetaDateTime = (dateLike) => {
+  /** DD/MM/YY for image info (no time) */
+  const formatImageMetaDateDDMMYY = (dateLike) => {
     if (!dateLike) return null;
     const d = new Date(dateLike);
     if (Number.isNaN(d.getTime())) return null;
-    return d.toLocaleString();
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  };
+
+  const handleImageViewerZoomIn = () => {
+    setImageViewerZoom((prev) => Math.min(5, prev * 1.15));
+  };
+
+  const handleImageViewerZoomOut = () => {
+    setImageViewerZoom((prev) => Math.max(1, prev / 1.15));
   };
 
   const formatImageMetaGps = (gps) => {
@@ -1495,6 +1504,31 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
         <button type="button" className="absolute top-6 right-6 z-20 bg-white/20 backdrop-blur-sm text-white p-2 rounded-full hover:bg-white/30 transition-colors" onClick={closeImageModal}>
           <X className="size-6" />
         </button>
+        {selectedImageIndex != null && (
+          <div
+            className="absolute z-30 flex flex-col gap-1.5 right-4 bottom-24 sm:right-6 sm:bottom-28 pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              aria-label="Zoom in"
+              disabled={imageViewerZoom >= 5}
+              className="flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white p-2 hover:bg-white/30 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleImageViewerZoomIn}
+            >
+              <ZoomIn className="size-4" strokeWidth={2} />
+            </button>
+            <button
+              type="button"
+              aria-label="Zoom out"
+              disabled={imageViewerZoom <= 1}
+              className="flex items-center justify-center rounded-full bg-white/20 backdrop-blur-sm text-white p-2 hover:bg-white/30 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleImageViewerZoomOut}
+            >
+              <ZoomOut className="size-4" strokeWidth={2} />
+            </button>
+          </div>
+        )}
         {images.length > 1 && (
           <>
             <button type="button" className="absolute left-6 top-1/2 z-20 -translate-y-1/2 bg-white/20 backdrop-blur-sm text-white p-3 rounded-full hover:bg-white/30 transition-colors" onClick={goToPrevImage} aria-label="Previous image">
@@ -1513,19 +1547,16 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                   ? `Before ${selectedImageIndex + 1} / ${beforeCount}`
                   : `After ${selectedImageIndex - beforeCount + 1} / ${afterCount}`}
               </span>
-              <span className="mt-0.5 block text-xs font-normal text-white/75">
-                Scroll to zoom · Pinch to zoom · Drag when zoomed
-              </span>
               {selectedImageMeta && (
                 <span className="mt-2 block border-t border-white/15 pt-2 text-left text-[11px] font-normal leading-snug text-white/80">
-                  {formatImageMetaDateTime(selectedImageMeta.imageCreatedAt) && (
+                  {formatImageMetaDateDDMMYY(selectedImageMeta.imageCreatedAt) && (
                     <span className="block">
-                      Photo taken: {formatImageMetaDateTime(selectedImageMeta.imageCreatedAt)}
+                      Photo taken: {formatImageMetaDateDDMMYY(selectedImageMeta.imageCreatedAt)}
                     </span>
                   )}
-                  {formatImageMetaDateTime(selectedImageMeta.uploadedAt) && (
+                  {formatImageMetaDateDDMMYY(selectedImageMeta.uploadedAt) && (
                     <span className="block">
-                      Uploaded: {formatImageMetaDateTime(selectedImageMeta.uploadedAt)}
+                      Uploaded: {formatImageMetaDateDDMMYY(selectedImageMeta.uploadedAt)}
                     </span>
                   )}
                   {selectedImageMeta.gps && (

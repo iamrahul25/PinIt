@@ -253,7 +253,7 @@ const GOOGLE_MAPS_DARK_STYLES = [
 ];
 
 // Zoom level / Reset zoom out (broad regional view)
-const STATE_LEVEL_ZOOM = 8;
+const STATE_LEVEL_ZOOM = 7;
 
 const MAP_THEME_KEY = 'map-theme';
 
@@ -369,7 +369,7 @@ const MapView = ({ pins, onMapClick, onPinClick, highlightedPinId, hoveredPinId,
 
   const handleLocationFound = (location) => {
     setCenter([location.lat, location.lng]);
-    setZoom(15);
+    setZoom(17);
     // Only set userLocation circle when accuracy is provided (from geolocation, not search)
     if (location.accuracy != null) {
       setUserLocation({ lat: location.lat, lng: location.lng, accuracy: location.accuracy });

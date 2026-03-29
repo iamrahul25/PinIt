@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { FaMapMarkerAlt, FaThumbsUp, FaComment, FaChevronRight, FaChevronLeft, FaShareAlt, FaBookmark, FaUser, FaThLarge, FaList, FaCheckCircle } from 'react-icons/fa';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
-import { getThumbnailUrl } from '../utils/cloudinaryUrls';
+import { getFullImageUrl } from '../utils/cloudinaryUrls';
 import { getPinImageSrc } from '../utils/pinImageEntry';
 import './PinListPanel.css';
 
@@ -121,7 +121,7 @@ const PinListPanel = ({
     const entry = pin.images?.[index];
     const src = getPinImageSrc(entry);
     if (!src) return null;
-    return src.startsWith('http') ? getThumbnailUrl(src) : `${API_BASE_URL}/api/images/${src}`;
+    return src.startsWith('http') ? getFullImageUrl(src) : `${API_BASE_URL}/api/images/${src}`;
   };
 
   return (

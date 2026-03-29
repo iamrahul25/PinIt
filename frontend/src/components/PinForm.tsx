@@ -940,11 +940,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             {imagePreviews.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
                 {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative group rounded-lg overflow-hidden border border-border shadow-sm aspect-square">
+                  <div key={index} className="relative rounded-lg overflow-hidden border border-border shadow-sm aspect-square">
                     <img src={preview} alt={`Before ${index + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 dark:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 dark:hover:bg-red-500"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 dark:bg-red-600 text-white flex items-center justify-center shadow-sm hover:bg-red-600 dark:hover:bg-red-500 transition-colors z-10"
                       onClick={() => removeImage(index)}
                       aria-label={`Remove image ${index + 1}`}
                     >
@@ -1008,11 +1008,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
             {imagePreviewsAfter.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
                 {imagePreviewsAfter.map((preview, index) => (
-                  <div key={`after-${index}`} className="relative group rounded-lg overflow-hidden border border-border shadow-sm aspect-square">
+                  <div key={`after-${index}`} className="relative rounded-lg overflow-hidden border border-border shadow-sm aspect-square">
                     <img src={preview} alt={`After ${index + 1}`} className="w-full h-full object-cover" />
                     <button
                       type="button"
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 dark:bg-red-600 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600 dark:hover:bg-red-500"
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500/90 dark:bg-red-600 text-white flex items-center justify-center shadow-sm hover:bg-red-600 dark:hover:bg-red-500 transition-colors z-10"
                       onClick={() => removeImageAfter(index)}
                       aria-label={`Remove after image ${index + 1}`}
                     >

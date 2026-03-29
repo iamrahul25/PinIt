@@ -28,8 +28,7 @@ import {
   Loader2,
   Send,
   Eye,
-  EyeOff,
-  FileWarning
+  EyeOff
 } from 'lucide-react';
 
 const LOCATION_SOURCE_PIN = 'pin';
@@ -105,7 +104,6 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
   const [gpsLocation, setGpsLocation] = useState(null); // { lat, lng, address } when from GPS
   const [gpsLocationLoading, setGpsLocationLoading] = useState(false);
   const fileInputRef = useRef(null);
-  const fileInputGpsRef = useRef(null); // */* accept — bypasses gallery on mobile, preserves EXIF GPS
   const cameraInputRef = useRef(null);
   const fileInputAfterRef = useRef(null);
   const typeDropdownRef = useRef(null);
@@ -861,19 +859,6 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               <span className="text-muted-foreground normal-case text-[10px] ml-1">(min 1, max {MAX_IMAGES_PER_SECTION})</span>
             </Label>
 
-            {/* Info banner: explain the GPS-preserving upload on mobile */}
-            {locationSource === LOCATION_SOURCE_IMAGE && (
-              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50 text-[11px] text-amber-800 dark:text-amber-300">
-                <FileWarning className="w-3.5 h-3.5 mt-0.5 shrink-0 text-amber-500 dark:text-amber-400" />
-                <span>
-                  <strong>Android / iOS tip:</strong> Use{' '}
-                  <strong>Upload (GPS)</strong> below — it opens the{' '}
-                  <em>Files app</em> instead of Gallery. Gallery strips GPS
-                  from photos; the Files app preserves it.
-                </span>
-              </div>
-            )}
-
             <div className="grid grid-cols-2 gap-2">
               {/* Upload button: uses GPS-preserving file input (accept all) when in Image GPS mode */}
               <div
@@ -881,35 +866,25 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
                 tabIndex={0}
                 className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-xl border-2 border-dashed transition-all cursor-pointer ${uploadDisabled
                   ? 'border-border bg-muted/30 opacity-50 cursor-not-allowed'
-                  : locationSource === LOCATION_SOURCE_IMAGE
-                    ? 'border-amber-400/70 dark:border-amber-500/50 bg-amber-50/50 dark:bg-amber-900/10 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:shadow-sm'
-                    : 'border-input bg-muted/20 dark:bg-muted/10 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm'
+                  : 'border-input bg-muted/20 dark:bg-muted/10 hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 hover:shadow-sm'
                   }`}
                 onClick={() => {
                   if (uploadDisabled) return;
-                  if (locationSource === LOCATION_SOURCE_IMAGE) {
-                    fileInputGpsRef.current?.click();
-                  } else {
-                    fileInputRef.current?.click();
-                  }
+                  fileInputRef.current?.click();
                 }}
                 onKeyDown={(e) => {
                   if ((e.key === 'Enter' || e.key === ' ') && !uploadDisabled) {
                     e.preventDefault();
-                    if (locationSource === LOCATION_SOURCE_IMAGE) {
-                      fileInputGpsRef.current?.click();
-                    } else {
-                      fileInputRef.current?.click();
-                    }
+                    fileInputRef.current?.click();
                   }
                 }}
-                aria-label={locationSource === LOCATION_SOURCE_IMAGE ? 'Click to upload before images from Files app (preserves GPS)' : 'Click to upload before images'}
+                aria-label="Click to upload before images"
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center group-hover:scale-110 transition-transform ${locationSource === LOCATION_SOURCE_IMAGE ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-violet-100 dark:bg-violet-900/40'}`}>
-                  <CloudUpload className={`w-5 h-5 ${locationSource === LOCATION_SOURCE_IMAGE ? 'text-amber-500 dark:text-amber-400' : 'text-violet-500 dark:text-violet-400'}`} />
+                <div className="w-10 h-10 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <CloudUpload className="w-5 h-5 text-violet-500 dark:text-violet-400" />
                 </div>
                 <p className="text-xs font-semibold text-foreground text-center">
-                  {compressingImages ? 'Compressing…' : locationSource === LOCATION_SOURCE_IMAGE ? 'Upload (GPS)' : 'Upload'}
+                  {compressingImages ? 'Compressing…' : 'Upload'}
                 </p>
                 <p className="text-[10px] text-muted-foreground">{imageFiles.length}/{MAX_IMAGES_PER_SECTION}</p>
               </div>
@@ -941,20 +916,9 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               </div>
             </div>
 
-            {/* Normal gallery input */}
+            {/* File browser input (accept all types) — keeps EXIF GPS on Android/iOS; gallery picker strips it */}
             <input
               ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
-              aria-hidden="true"
-            />
-            {/* GPS-preserving input: accept all files — on mobile this opens the Files app
-                instead of Gallery, so EXIF GPS coords are not stripped by the OS. */}
-            <input
-              ref={fileInputGpsRef}
               type="file"
               accept="*/*"
               multiple
@@ -1030,10 +994,11 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
               </div>
             </div>
 
+            {/* File browser input (accept all types) — keeps EXIF GPS on Android/iOS */}
             <input
               ref={fileInputAfterRef}
               type="file"
-              accept="image/*"
+              accept="*/*"
               multiple
               onChange={handleImageAfterChange}
               className="hidden"

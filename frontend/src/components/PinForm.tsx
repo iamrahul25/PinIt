@@ -2,9 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import exifr from 'exifr';
 import { useAuth } from '../context/AuthContext';
-import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
-import { extractImageUploadMetaForForm } from '../utils/imageUploadMeta';
+import { compressImagesWithPreset, readFileAsDataUrl } from '../utils/imageCompression';
+import { uploadImageFile } from '../utils/imageUploadApi';
 import { pinImageFromUploadResponse } from '../utils/pinImageEntry';
 import { getProblemTypeMarkerHtml, PROBLEM_TYPE_COLORS } from '../utils/problemTypeIcons';
 import { reverseGeocode } from '../utils/geocode';
@@ -34,16 +34,6 @@ import {
 const LOCATION_SOURCE_PIN = 'pin';
 const LOCATION_SOURCE_IMAGE = 'image';
 const LOCATION_SOURCE_GPS = 'gps';
-
-// Compress image in frontend before upload (reduces size sent to Cloudinary)
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.6,
-  maxWidthOrHeight: 1920,
-  useWebWorker: true,
-  fileType: undefined, // keep original type when possible
-  initialQuality: 0.75,
-  alwaysKeepResolution: false
-};
 
 const PROBLEM_TYPES = [
   { value: 'Trash Pile', label: 'Trash Pile' },
@@ -215,26 +205,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
     setCompressingImages(true);
     try {
-      const compressed = await Promise.all(
-        toAdd.map((file) => imageCompression(file, COMPRESSION_OPTIONS))
-      );
+      const compressed = await compressImagesWithPreset(toAdd, 'pin');
       const newFiles = [...imageFiles, ...compressed];
       setImageFiles(newFiles);
       originalBeforeFilesRef.current = [...originalBeforeFilesRef.current, ...toAdd];
 
-      const newPreviews = new Array(newFiles.length);
-      let loaded = 0;
-      newFiles.forEach((file, i) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newPreviews[i] = reader.result;
-          loaded += 1;
-          if (loaded === newFiles.length) {
-            setImagePreviews([...newPreviews]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      const newPreviews = await Promise.all(newFiles.map((file) => readFileAsDataUrl(file)));
+      setImagePreviews(newPreviews);
     } catch (err) {
       setError('Failed to process images. Please try again.');
     } finally {
@@ -252,26 +229,13 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
 
     setCompressingImages(true);
     try {
-      const compressed = await Promise.all(
-        toAdd.map((file) => imageCompression(file, COMPRESSION_OPTIONS))
-      );
+      const compressed = await compressImagesWithPreset(toAdd, 'pin');
       const newFiles = [...imageFilesAfter, ...compressed];
       setImageFilesAfter(newFiles);
       originalAfterFilesRef.current = [...originalAfterFilesRef.current, ...toAdd];
 
-      const newPreviews = new Array(newFiles.length);
-      let loaded = 0;
-      newFiles.forEach((file, i) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          newPreviews[i] = reader.result;
-          loaded += 1;
-          if (loaded === newFiles.length) {
-            setImagePreviewsAfter([...newPreviews]);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      const newPreviews = await Promise.all(newFiles.map((file) => readFileAsDataUrl(file)));
+      setImagePreviewsAfter(newPreviews);
     } catch (err) {
       setError('Failed to process after images. Please try again.');
     } finally {
@@ -455,32 +419,22 @@ const PinForm = ({ location, onClose, onSubmit, onError, user }) => {
       for (let i = 0; i < imageFiles.length; i++) {
         const file = imageFiles[i];
         const original = originalBeforeFilesRef.current[i] ?? file;
-        const multipart = new FormData();
-        multipart.append('image', file);
-        const exifMeta = await extractImageUploadMetaForForm(original);
-        if (exifMeta) multipart.append('exifMeta', JSON.stringify(exifMeta));
-        const uploadResponse = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          multipart,
-          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
-        );
-        imageUrls.push(pinImageFromUploadResponse(uploadResponse.data));
+        const uploadData = await uploadImageFile(file, {
+          getAuthHeaders: async (extra) => (await getAuthConfig(extra)).headers,
+          exifSourceFile: original
+        });
+        imageUrls.push(pinImageFromUploadResponse(uploadData));
       }
 
       const imageUrlsAfter = [];
       for (let i = 0; i < imageFilesAfter.length; i++) {
         const file = imageFilesAfter[i];
         const original = originalAfterFilesRef.current[i] ?? file;
-        const multipart = new FormData();
-        multipart.append('image', file);
-        const exifMeta = await extractImageUploadMetaForForm(original);
-        if (exifMeta) multipart.append('exifMeta', JSON.stringify(exifMeta));
-        const uploadResponse = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          multipart,
-          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
-        );
-        imageUrlsAfter.push(pinImageFromUploadResponse(uploadResponse.data));
+        const uploadData = await uploadImageFile(file, {
+          getAuthHeaders: async (extra) => (await getAuthConfig(extra)).headers,
+          exifSourceFile: original
+        });
+        imageUrlsAfter.push(pinImageFromUploadResponse(uploadData));
       }
 
       setSubmitPhase('submitting');

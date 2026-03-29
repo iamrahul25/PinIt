@@ -29,18 +29,18 @@ conn.once('open', () => {
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Eager transformations: full (1080px height) and thumbnail (120px height), width auto
+// Eager transformations: full (1080px height) and thumbnail (120px height), width auto — WebP for smaller delivery size
 const EAGER_FULL = {
   height: 1080,
   crop: 'limit',
   quality: 'auto:good',
-  fetch_format: 'auto'
+  format: 'webp'
 };
 const EAGER_THUMB = {
   height: 120,
   crop: 'limit',
   quality: 'auto:good',
-  fetch_format: 'auto'
+  format: 'webp'
 };
 const COMPRESS_EAGER = [EAGER_FULL, EAGER_THUMB];
 
@@ -63,6 +63,7 @@ router.post('/upload', upload.single('image'), async (req, res) => {
     const result = await cloudinary.uploader.upload(dataUri, {
       resource_type: 'image',
       folder: 'pinit',
+      format: 'webp',
       eager: COMPRESS_EAGER,
       eager_async: false
     });

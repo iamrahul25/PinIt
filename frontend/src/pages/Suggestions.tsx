@@ -1,22 +1,15 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import axios from 'axios';
-import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import Toast from '../components/Toast';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import { compressImagesWithPreset, readFileAsDataUrl } from '../utils/imageCompression';
+import { uploadImageFile } from '../utils/imageUploadApi';
 import './Suggestions.css';
 
 const SUGGESTIONS_QUERY_KEY = ['suggestions'];
 const STALE_TIME_MS = 5 * 60 * 1000;
-
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.5,
-  maxWidthOrHeight: 1200,
-  useWebWorker: true,
-  initialQuality: 0.8
-};
 
 const MAX_IMAGES = 3;
 
@@ -416,18 +409,12 @@ export default function Suggestions() {
    * Returns array of { src: dataURL, file: File }.
    */
   const compressToEntries = useCallback(async (files) => {
-    const compressed = await Promise.all(
-      files.map((f) => imageCompression(f, COMPRESSION_OPTIONS))
-    );
-    return await Promise.all(
-      compressed.map(
-        (file) =>
-          new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve({ src: reader.result, file });
-            reader.readAsDataURL(file);
-          })
-      )
+    const compressed = await compressImagesWithPreset(files, 'suggestion');
+    return Promise.all(
+      compressed.map(async (file) => ({
+        src: await readFileAsDataUrl(file),
+        file
+      }))
     );
   }, []);
 
@@ -458,16 +445,13 @@ export default function Suggestions() {
   };
 
   // ── Upload helper: upload a File, return its URL ─────────────────
-  const uploadFile = useCallback(async (file) => {
-    const multipart = new FormData();
-    multipart.append('image', file);
-    const res = await axios.post(
-      `${API_BASE_URL}/api/images/upload`,
-      multipart,
-      { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
-    );
-    return res.data?.url || null;
-  }, [getAuthHeaders]);
+  const uploadFile = useCallback(
+    async (file) => {
+      const data = await uploadImageFile(file, { getAuthHeaders });
+      return data?.url || null;
+    },
+    [getAuthHeaders]
+  );
 
   // ── "Post a suggestion" submit ───────────────────────────────────
   const handleSubmitSuggestion = async (e) => {

@@ -2,10 +2,10 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
-import { extractImageUploadMetaForForm } from '../utils/imageUploadMeta';
+import { compressImageWithPreset } from '../utils/imageCompression';
+import { uploadImageFile } from '../utils/imageUploadApi';
 import {
   getPinImageDisplayUrl,
   getPinImageMeta,
@@ -30,13 +30,6 @@ import {
 import './PinDetails.css';
 
 const MAX_IMAGES_PER_SECTION = 10;
-
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.6,
-  maxWidthOrHeight: 1920,
-  useWebWorker: true,
-  initialQuality: 0.75
-};
 
 const VERIFICATION_ROLE_SCORES = { user: 10, reviewer: 30, ngo: 50, admin: 60 };
 const VERIFICATION_ROLE_LABELS = { user: 'Users', reviewer: 'Reviewers', ngo: 'NGOs', admin: 'Admins' };
@@ -561,16 +554,14 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     setAddingImageType(type);
     try {
       const file = files[0];
-      const compressed = await imageCompression(file as File, COMPRESSION_OPTIONS);
-      const formData = new FormData();
-      formData.append('image', compressed);
-      const exifMeta = await extractImageUploadMetaForForm(file as File);
-      if (exifMeta) formData.append('exifMeta', JSON.stringify(exifMeta));
-      const config = await getAuthConfig({ 'Content-Type': 'multipart/form-data' });
-      const uploadRes = await axios.post(`${API_BASE_URL}/api/images/upload`, formData, config);
-      const url = uploadRes.data?.url;
+      const compressed = await compressImageWithPreset(file as File, 'pin');
+      const uploadData = await uploadImageFile(compressed, {
+        getAuthHeaders: async (extra) => (await getAuthConfig(extra)).headers,
+        exifSourceFile: file as File
+      });
+      const url = uploadData?.url;
       if (!url) throw new Error('No URL returned');
-      const imageEntry = pinImageFromUploadResponse(uploadRes.data);
+      const imageEntry = pinImageFromUploadResponse(uploadData);
       const payloadConfig = await getAuthConfig({ 'Content-Type': 'application/json' });
       const response = await axios.post(
         `${API_BASE_URL}/api/pins/${pin._id}/images`,

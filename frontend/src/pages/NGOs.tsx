@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import axios from 'axios';
-import imageCompression from 'browser-image-compression';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { FaInstagram, FaLinkedin, FaFacebookF, FaGlobe } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import { compressImageWithPreset, readFileAsDataUrl } from '../utils/imageCompression';
+import { uploadImageFile } from '../utils/imageUploadApi';
 import Toast from '../components/Toast';
 import './NGOs.css';
 
@@ -24,13 +24,6 @@ const WHAT_THEY_DO_OPTIONS = [
   'Education drive',
   'Other'
 ];
-
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.5,
-  maxWidthOrHeight: 800,
-  useWebWorker: true,
-  initialQuality: 0.8
-};
 
 function formatTimeAgo(dateStr) {
   const d = new Date(dateStr);
@@ -429,11 +422,9 @@ export default function NGOs() {
     }
     setError('');
     try {
-      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      const compressed = await compressImageWithPreset(file, 'ngoLogo');
       setLogoFile(compressed);
-      const reader = new FileReader();
-      reader.onloadend = () => setLogoPreview(reader.result);
-      reader.readAsDataURL(compressed);
+      setLogoPreview(await readFileAsDataUrl(compressed));
     } catch {
       setError('Failed to process image.');
     }
@@ -465,14 +456,8 @@ export default function NGOs() {
     try {
       let logoUrl = logoPreview; // Start with current preview URL (might be existing NGO logo)
       if (logoFile) {
-        const formData = new FormData();
-        formData.append('image', logoFile);
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          formData,
-          { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
-        );
-        logoUrl = uploadRes.data?.url || '';
+        const uploadData = await uploadImageFile(logoFile, { getAuthHeaders });
+        logoUrl = uploadData?.url || '';
       }
       if (!logoUrl) {
         throw new Error('NGO image/logo is required and upload failed.');

@@ -1,9 +1,9 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import axios from 'axios';
-import imageCompression from 'browser-image-compression';
 import { API_BASE_URL } from '../config';
 import { useAuth } from '../context/AuthContext';
-import { extractImageUploadMetaForForm } from '../utils/imageUploadMeta';
+import { compressImagesWithPreset, readFileAsDataUrl } from '../utils/imageCompression';
+import { uploadImageFile } from '../utils/imageUploadApi';
 import { getPinImageDisplayUrl, pinImageForApiBody, pinImageFromUploadResponse, type PinImageStored } from '../utils/pinImageEntry';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -22,13 +22,6 @@ const PROBLEM_TYPES = [
   { value: 'Fuse Street Light', label: 'Fuse Street Light' },
   { value: 'Other', label: 'Other' }
 ];
-
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.6,
-  maxWidthOrHeight: 1920,
-  useWebWorker: true,
-  initialQuality: 0.75
-};
 
 const MAX_IMAGES_PER_SECTION = 10;
 
@@ -169,17 +162,11 @@ const EditPinDetails = ({
     if (e.target) e.target.value = '';
     setCompressingNewImages(true);
     try {
-      const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
+      const compressed = await compressImagesWithPreset(toAdd, 'pin');
       setNewImageFiles((prev) => [...prev, ...compressed]);
       newImageOriginalsRef.current = [...newImageOriginalsRef.current, ...toAdd];
       const start = newImageFiles.length;
-      const newPreviews = await Promise.all(
-        compressed.map((file) => new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(String(reader.result));
-          reader.readAsDataURL(file);
-        }))
-      );
+      const newPreviews = await Promise.all(compressed.map((file) => readFileAsDataUrl(file)));
       setNewImagePreviews((prev) => [...prev.slice(0, start), ...newPreviews]);
     } catch {
       setEditError('Failed to process new images.');
@@ -196,17 +183,11 @@ const EditPinDetails = ({
     if (e.target) e.target.value = '';
     setCompressingNewImages(true);
     try {
-      const compressed = await Promise.all(toAdd.map((f) => imageCompression(f, COMPRESSION_OPTIONS)));
+      const compressed = await compressImagesWithPreset(toAdd, 'pin');
       setNewImageFilesAfter((prev) => [...prev, ...compressed]);
       newImageOriginalsAfterRef.current = [...newImageOriginalsAfterRef.current, ...toAdd];
       const start = newImageFilesAfter.length;
-      const newPreviews = await Promise.all(
-        compressed.map((file) => new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(String(reader.result));
-          reader.readAsDataURL(file);
-        }))
-      );
+      const newPreviews = await Promise.all(compressed.map((file) => readFileAsDataUrl(file)));
       setNewImagePreviewsAfter((prev) => [...prev.slice(0, start), ...newPreviews]);
     } catch {
       setEditError('Failed to process new after images.');
@@ -246,31 +227,21 @@ const EditPinDetails = ({
       for (let i = 0; i < newImageFiles.length; i++) {
         const file = newImageFiles[i];
         const original = newImageOriginalsRef.current[i] ?? file;
-        const formData = new FormData();
-        formData.append('image', file);
-        const exifMeta = await extractImageUploadMetaForForm(original);
-        if (exifMeta) formData.append('exifMeta', JSON.stringify(exifMeta));
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          formData,
-          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
-        );
-        newUrls.push(pinImageFromUploadResponse(uploadRes.data));
+        const uploadData = await uploadImageFile(file, {
+          getAuthHeaders: async (extra) => (await getAuthConfig(extra)).headers,
+          exifSourceFile: original
+        });
+        newUrls.push(pinImageFromUploadResponse(uploadData));
       }
       const newUrlsAfter: PinImageStored[] = [];
       for (let i = 0; i < newImageFilesAfter.length; i++) {
         const file = newImageFilesAfter[i];
         const original = newImageOriginalsAfterRef.current[i] ?? file;
-        const formData = new FormData();
-        formData.append('image', file);
-        const exifMeta = await extractImageUploadMetaForForm(original);
-        if (exifMeta) formData.append('exifMeta', JSON.stringify(exifMeta));
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          formData,
-          await getAuthConfig({ 'Content-Type': 'multipart/form-data' })
-        );
-        newUrlsAfter.push(pinImageFromUploadResponse(uploadRes.data));
+        const uploadData = await uploadImageFile(file, {
+          getAuthHeaders: async (extra) => (await getAuthConfig(extra)).headers,
+          exifSourceFile: original
+        });
+        newUrlsAfter.push(pinImageFromUploadResponse(uploadData));
       }
       const allImages = [...editImages.map(pinImageForApiBody), ...newUrls.map(pinImageForApiBody)];
       const allImagesAfter = [...editImagesAfter.map(pinImageForApiBody), ...newUrlsAfter.map(pinImageForApiBody)];

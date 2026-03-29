@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import axios from 'axios';
-import imageCompression from 'browser-image-compression';
 import { useNavigate, Link } from 'react-router-dom';
 import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
+import { compressImageWithPreset, readFileAsDataUrl } from '../utils/imageCompression';
+import { uploadImageFile } from '../utils/imageUploadApi';
 import { isEventPast } from '../utils/eventUtils';
 import Toast from '../components/Toast';
 import './Events.css';
@@ -16,13 +16,6 @@ const PAGE_SIZE = 10;
 
 
 const DRIVE_TYPES = ['Cleanup', 'Plantation', 'Painting', 'Awareness', 'Other'];
-
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 0.5,
-  maxWidthOrHeight: 1200,
-  useWebWorker: true,
-  initialQuality: 0.8
-};
 
 /** Extract pin ID from a Pin-it pin URL (e.g. https://example.com/pin/abc123 or /pin/abc123) */
 function extractPinIdFromLink(link) {
@@ -408,11 +401,9 @@ export default function Events() {
     }
     setError('');
     try {
-      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      const compressed = await compressImageWithPreset(file, 'eventBanner');
       setBannerFile(compressed);
-      const reader = new FileReader();
-      reader.onloadend = () => setBannerPreview(reader.result);
-      reader.readAsDataURL(compressed);
+      setBannerPreview(await readFileAsDataUrl(compressed));
     } catch {
       setError('Failed to process image.');
     }
@@ -448,14 +439,8 @@ export default function Events() {
     try {
       let bannerUrl = bannerPreview; // Start with current preview URL (might be existing event banner)
       if (bannerFile) {
-        const formData = new FormData();
-        formData.append('image', bannerFile);
-        const uploadRes = await axios.post(
-          `${API_BASE_URL}/api/images/upload`,
-          formData,
-          { headers: await getAuthHeaders({ 'Content-Type': 'multipart/form-data' }) }
-        );
-        bannerUrl = uploadRes.data?.url || '';
+        const uploadData = await uploadImageFile(bannerFile, { getAuthHeaders });
+        bannerUrl = uploadData?.url || '';
       }
       const pinId = extractPinIdFromLink(form.pinLink.trim()) || undefined;
 

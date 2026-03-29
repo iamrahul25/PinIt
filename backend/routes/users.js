@@ -175,6 +175,114 @@ router.get('/stats', async (req, res) => {
   }
 });
 
+const MS_DAY_JOIN = 86400000;
+
+function truncDayUTCJoin(d) {
+  const x = new Date(d);
+  return new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+}
+
+function addDaysUTCJoin(d, n) {
+  const x = new Date(d);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x;
+}
+
+function addMonthUTCJoin(d) {
+  const x = new Date(d);
+  x.setUTCMonth(x.getUTCMonth() + 1);
+  return x;
+}
+
+function monthStartUTCJoin(d) {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+}
+
+function buildDenseUserJoinSeries(start, end, unit, joinAgg) {
+  const m = new Map();
+  for (const r of joinAgg) {
+    m.set(new Date(r._id).getTime(), r.joined);
+  }
+  const series = [];
+  if (unit === 'day') {
+    let cur = truncDayUTCJoin(new Date(start));
+    const endDay = truncDayUTCJoin(new Date(end));
+    while (cur.getTime() <= endDay.getTime()) {
+      const t = cur.getTime();
+      series.push({
+        t: cur.toISOString(),
+        joined: m.get(t) || 0
+      });
+      cur = addDaysUTCJoin(cur, 1);
+    }
+  } else {
+    let cur = monthStartUTCJoin(new Date(start));
+    const endM = monthStartUTCJoin(new Date(end));
+    while (cur.getTime() <= endM.getTime()) {
+      const t = cur.getTime();
+      series.push({
+        t: cur.toISOString(),
+        joined: m.get(t) || 0
+      });
+      cur = addMonthUTCJoin(cur);
+    }
+  }
+  return series;
+}
+
+/**
+ * GET /api/users/analytics/joins?range=7d|30d|365d|all
+ * Time series: new user profiles (by UserData.createdAt) per bucket — same ranges as pin activity.
+ */
+router.get('/analytics/joins', async (req, res) => {
+  try {
+    const range = req.query.range;
+    const allowed = ['7d', '30d', '365d', 'all'];
+    if (!allowed.includes(range)) {
+      return res.status(400).json({ error: 'Invalid range. Use 7d, 30d, 365d, or all.' });
+    }
+
+    const end = new Date();
+    let start;
+    let unit;
+
+    if (range === '7d') {
+      unit = 'day';
+      start = new Date(end.getTime() - 7 * MS_DAY_JOIN);
+    } else if (range === '30d') {
+      unit = 'day';
+      start = new Date(end.getTime() - 30 * MS_DAY_JOIN);
+    } else if (range === '365d') {
+      unit = 'day';
+      start = new Date(end.getTime() - 365 * MS_DAY_JOIN);
+    } else {
+      unit = 'month';
+      const first = await UserData.findOne().sort({ createdAt: 1 }).select('createdAt').lean();
+      start = first?.createdAt ? new Date(first.createdAt) : new Date(end.getTime() - 365 * MS_DAY_JOIN);
+      start = monthStartUTCJoin(start);
+    }
+
+    const truncUnit = unit;
+
+    const joinAgg = await UserData.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: { $dateTrunc: { date: '$createdAt', unit: truncUnit, timezone: 'UTC' } },
+          joined: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const series = buildDenseUserJoinSeries(start, end, unit, joinAgg);
+
+    res.json({ range, unit, series });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
  * Get pins created by the current user.
  */

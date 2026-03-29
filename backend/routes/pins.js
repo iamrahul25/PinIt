@@ -140,7 +140,7 @@ router.get('/analytics', async (req, res) => {
     }));
 
     const recentDocs = await Pin.find({})
-      .select('problemHeading problemType location fixStatus createdAt severity')
+      .select('problemHeading problemType location fixStatus createdAt severity images upvotes')
       .sort({ createdAt: -1 })
       .limit(20)
       .lean();
@@ -158,8 +158,10 @@ router.get('/analytics', async (req, res) => {
       problemType: p.problemType || 'Other',
       address: (p.location && p.location.address) || '',
       severity: p.severity ?? 5,
+      upvotes: typeof p.upvotes === 'number' ? p.upvotes : 0,
       status: statusLabel(p),
-      createdAt: p.createdAt
+      createdAt: p.createdAt,
+      firstImage: Array.isArray(p.images) && p.images.length > 0 ? p.images[0] : null
     }));
 
     res.json({
@@ -178,6 +180,140 @@ router.get('/analytics', async (req, res) => {
       byProblemType,
       recentPins
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+const MS_DAY = 86400000;
+
+function truncDayUTC(d) {
+  const x = new Date(d);
+  return new Date(Date.UTC(x.getUTCFullYear(), x.getUTCMonth(), x.getUTCDate()));
+}
+
+function addDaysUTC(d, n) {
+  const x = new Date(d);
+  x.setUTCDate(x.getUTCDate() + n);
+  return x;
+}
+
+function addMonthUTC(d) {
+  const x = new Date(d);
+  x.setUTCMonth(x.getUTCMonth() + 1);
+  return x;
+}
+
+function monthStartUTC(d) {
+  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+}
+
+/**
+ * Align Mongo $dateTrunc bucket keys with a dense timeline for the chart.
+ */
+function buildDenseActivitySeries(start, end, unit, reportedAgg, resolvedAgg) {
+  const rep = new Map();
+  for (const r of reportedAgg) {
+    rep.set(new Date(r._id).getTime(), r.reported);
+  }
+  const res = new Map();
+  for (const r of resolvedAgg) {
+    res.set(new Date(r._id).getTime(), r.resolved);
+  }
+
+  const series = [];
+  if (unit === 'day') {
+    let cur = truncDayUTC(new Date(start));
+    const endDay = truncDayUTC(new Date(end));
+    while (cur.getTime() <= endDay.getTime()) {
+      const t = cur.getTime();
+      series.push({
+        t: cur.toISOString(),
+        reported: rep.get(t) || 0,
+        resolved: res.get(t) || 0
+      });
+      cur = addDaysUTC(cur, 1);
+    }
+  } else {
+    let cur = monthStartUTC(new Date(start));
+    const endM = monthStartUTC(new Date(end));
+    while (cur.getTime() <= endM.getTime()) {
+      const t = cur.getTime();
+      series.push({
+        t: cur.toISOString(),
+        reported: rep.get(t) || 0,
+        resolved: res.get(t) || 0
+      });
+      cur = addMonthUTC(cur);
+    }
+  }
+  return series;
+}
+
+/**
+ * GET /api/pins/analytics/activity?range=7d|30d|365d|all
+ * Time series: issues reported (by createdAt) vs resolved (by fixStatus.resolvedAt) per bucket.
+ */
+router.get('/analytics/activity', async (req, res) => {
+  try {
+    const range = req.query.range;
+    const allowed = ['7d', '30d', '365d', 'all'];
+    if (!allowed.includes(range)) {
+      return res.status(400).json({ error: 'Invalid range. Use 7d, 30d, 365d, or all.' });
+    }
+
+    const end = new Date();
+    let start;
+    let unit;
+
+    if (range === '7d') {
+      unit = 'day';
+      start = new Date(end.getTime() - 7 * MS_DAY);
+    } else if (range === '30d') {
+      unit = 'day';
+      start = new Date(end.getTime() - 30 * MS_DAY);
+    } else if (range === '365d') {
+      unit = 'day';
+      start = new Date(end.getTime() - 365 * MS_DAY);
+    } else {
+      unit = 'month';
+      const first = await Pin.findOne().sort({ createdAt: 1 }).select('createdAt').lean();
+      start = first?.createdAt ? new Date(first.createdAt) : new Date(end.getTime() - 365 * MS_DAY);
+      start = monthStartUTC(start);
+    }
+
+    const truncUnit = unit;
+
+    const [reportedAgg, resolvedAgg] = await Promise.all([
+      Pin.aggregate([
+        { $match: { createdAt: { $gte: start, $lte: end } } },
+        {
+          $group: {
+            _id: { $dateTrunc: { date: '$createdAt', unit: truncUnit, timezone: 'UTC' } },
+            reported: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Pin.aggregate([
+        {
+          $match: {
+            'fixStatus.resolvedAt': { $gte: start, $lte: end, $ne: null, $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateTrunc: { date: '$fixStatus.resolvedAt', unit: truncUnit, timezone: 'UTC' } },
+            resolved: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ])
+    ]);
+
+    const series = buildDenseActivitySeries(start, end, unit, reportedAgg, resolvedAgg);
+
+    res.json({ range, unit, series });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

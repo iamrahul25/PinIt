@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE_URL } from '../config';
 import { getProblemTypeMarkerHtml } from '../utils/problemTypeIcons';
@@ -68,6 +68,7 @@ const flattenDeepReplies = (parentId, parentText, repliesMap) => {
 
 const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onRequestRepositionPin, onCancelReposition, newLocationForEdit, onConsumeNewLocation, isRepositioningPin, user, onUpdate, onPinUpdated, shareUrl, isSaved, onSave, onUnsave }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading: authLoading, getToken } = useAuth();
   const userId = user?.id ?? null;
   const displayName = user?.fullName || user?.email || 'Anonymous';
@@ -98,6 +99,8 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
   const imageViewerPinchRef = useRef(null);
   const imageViewerLastTouchRef = useRef({ x: 0, y: 0 });
   const imageViewerMouseDragRef = useRef(false);
+  const commentsSectionRef = useRef(null);
+  const newCommentTextareaRef = useRef(null);
   const [isEditing, setIsEditing] = useState(false);
   const [copiedLocation, setCopiedLocation] = useState(null);
   const [expandedReplies, setExpandedReplies] = useState(new Set());
@@ -110,6 +113,22 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
     fetchComments();
     fetchVoteStatus();
   }, [authLoading, getToken, pin._id, userId, pin.images, pin.imagesAfter]);
+
+  useEffect(() => {
+    if (location.state?.focusComments !== true || isEditing) return;
+    const run = () => {
+      commentsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.setTimeout(() => {
+        newCommentTextareaRef.current?.focus({ preventScroll: true });
+        navigate(
+          { pathname: location.pathname, search: location.search, hash: location.hash },
+          { replace: true, state: {} }
+        );
+      }, 450);
+    };
+    const id = requestAnimationFrame(() => requestAnimationFrame(run));
+    return () => cancelAnimationFrame(id);
+  }, [pin._id, location.state, isEditing, navigate, location.pathname, location.search, location.hash]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -1316,7 +1335,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                       )}
 
                       {/* ── Comments ── */}
-                      <div className="pt-2">
+                      <div ref={commentsSectionRef} id="pin-details-comments-section" className="pt-2 scroll-mt-4">
                         <Separator className="mb-5" />
                         <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
                           <MessageSquare className="size-4" />
@@ -1396,6 +1415,7 @@ const PinDetails = ({ pin, pins = [], onSelectPin, onClose, onViewOnMap, onReque
                         </p>
                         <form onSubmit={handleCommentSubmit} className="space-y-3 pb-2">
                           <Textarea
+                            ref={newCommentTextareaRef}
                             placeholder="Add a comment..."
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}

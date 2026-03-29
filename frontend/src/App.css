@@ -68,7 +68,7 @@
   line-height: 1.2;
 }
 
-.app-header .app-user {
+.app-header .header-desktop-nav {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -184,38 +184,6 @@
   display: block;
 }
 
-/* Profile row: same size as Home / other mobile nav buttons */
-.header-mobile-menu-user-btn {
-  margin-bottom: 0.25rem;
-}
-
-.header-mobile-user-avatar {
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
-  min-height: 2rem;
-  border-radius: 50%;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.header-mobile-user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.header-mobile-user-avatar-placeholder {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #fff;
-}
-
 .header-mobile-nav-btn {
   display: flex;
   align-items: center;
@@ -266,42 +234,6 @@
 
 body.mobile-menu-open {
   overflow: hidden;
-}
-
-.app-user-name {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #fff;
-}
-
-.profile-avatar-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0;
-  cursor: pointer;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.profile-avatar-btn:hover {
-  opacity: 0.9;
-}
-
-.app-user-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.app-user-avatar-placeholder {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #fff;
 }
 
 .header-nav-btn {

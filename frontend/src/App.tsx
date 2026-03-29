@@ -46,6 +46,7 @@ function App() {
   const [repositionPinId, setRepositionPinId] = useState(null);
   const [newLocationForEdit, setNewLocationForEdit] = useState(null); // { pinId, lat, lng, address }
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [pinLikeSubmittingId, setPinLikeSubmittingId] = useState(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [savedPinIds, setSavedPinIds] = useState([]);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
@@ -291,9 +292,12 @@ function App() {
     setIsAddPinMode(false);
   };
 
-  // When user clicks "Full details" in panel: show full details popup (and focus map on that pin)
-  const handleShowDetails = (pin) => {
-    navigate(`/pin/${pin._id}`);
+  // When user clicks "Full details" in panel: show full details popup (and focus map on that pin).
+  // options.focusComments — open scrolled to comments (e.g. from pin list comment count).
+  const handleShowDetails = (pin, options = {}) => {
+    navigate(`/pin/${pin._id}`, {
+      state: options.focusComments ? { focusComments: true } : undefined,
+    });
     setSelectedPin(pin);
     setFocusedPinId(pin._id);
   };
@@ -362,6 +366,48 @@ function App() {
   const handleUnsavePin = (pin) => {
     setSavedPinIds((prev) => prev.filter((id) => id !== pin._id));
   };
+
+  const handleTogglePinLike = useCallback(
+    async (pin) => {
+      if (!user?.id) {
+        showToast('Please sign in to like issues.', 'info');
+        return;
+      }
+      const id = pin._id;
+      if (pinLikeSubmittingId != null && String(pinLikeSubmittingId) === String(id)) return;
+      setPinLikeSubmittingId(id);
+      try {
+        const res = await authFetch(`${API_BASE_URL}/api/votes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pinId: id, voteType: 'upvote' }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || 'Could not update like');
+        }
+        const data = await res.json();
+        setPins((prev) =>
+          prev.map((p) =>
+            String(p._id) === String(data._id)
+              ? { ...p, upvotes: data.upvotes, downvotes: data.downvotes, votes: data.votes }
+              : p
+          )
+        );
+        setSelectedPin((sel) =>
+          sel && String(sel._id) === String(data._id)
+            ? { ...sel, upvotes: data.upvotes, downvotes: data.downvotes, votes: data.votes }
+            : sel
+        );
+      } catch (e) {
+        console.error(e);
+        showToast(e.message || 'Could not update like', 'error');
+      } finally {
+        setPinLikeSubmittingId((cur) => (cur != null && String(cur) === String(id) ? null : cur));
+      }
+    },
+    [user?.id, authFetch, pinLikeSubmittingId]
+  );
 
   const handleSharePin = async (pin) => {
     const url = `${window.location.origin}/pin/${pin._id}`;
@@ -464,22 +510,14 @@ function App() {
           <span className="header-hamburger-bar" />
         </button>
 
-        <div className="app-user header-desktop-nav">
-          <span className="app-user-name">{user?.fullName || user?.email}</span>
+        <div className="header-desktop-nav">
           <button
             type="button"
-            className="profile-avatar-btn"
+            className="header-nav-btn"
             onClick={() => navigate('/profile')}
-            title="Your profile"
-            aria-label="Profile"
+            title="Profile"
           >
-            {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="" className="app-user-avatar" referrerPolicy="no-referrer" />
-            ) : (
-              <span className="app-user-avatar-placeholder">
-                {(user?.fullName || user?.email || '?').charAt(0).toUpperCase()}
-              </span>
-            )}
+            Profile
           </button>
           <button
             type="button"
@@ -511,7 +549,7 @@ function App() {
             onClick={() => navigate('/leaderboard')}
             title="Leaderboard"
           >
-            🏆 Leaderboard
+            Leaderboard
           </button>
           <button
             type="button"
@@ -519,7 +557,7 @@ function App() {
             onClick={() => navigate('/about')}
             title="About"
           >
-            ℹ️ About
+            About
           </button>
           <button
             type="button"
@@ -548,7 +586,7 @@ function App() {
                 <line x1="21" y1="12" x2="9" y2="12" />
               </svg>
             </span>
-            Sign out
+            Logout
           </button>
           <a
             href={DISCORD_INVITE_URL}
@@ -584,23 +622,8 @@ function App() {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <button
-          type="button"
-          className="header-mobile-nav-btn header-mobile-menu-user-btn"
-          onClick={() => handleNavTo('/profile')}
-          title="Your profile"
-          aria-label="Profile"
-        >
-          <span className="app-user-name">{user?.fullName || user?.email}</span>
-          <span className="header-mobile-user-avatar">
-            {user?.imageUrl ? (
-              <img src={user.imageUrl} alt="" referrerPolicy="no-referrer" />
-            ) : (
-              <span className="header-mobile-user-avatar-placeholder">
-                {(user?.fullName || user?.email || '?').charAt(0).toUpperCase()}
-              </span>
-            )}
-          </span>
+        <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/profile')}>
+          Profile
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/')}>
           Home
@@ -615,10 +638,10 @@ function App() {
           Events
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/leaderboard')}>
-          🏆 Leaderboard
+          Leaderboard
         </button>
         <button type="button" className="header-mobile-nav-btn" onClick={() => handleNavTo('/about')}>
-          ℹ️ About
+          About
         </button>
         <button
           type="button"
@@ -676,7 +699,7 @@ function App() {
               <line x1="21" y1="12" x2="9" y2="12" />
             </svg>
           </span>
-          Sign out
+          Logout
         </button>
       </nav>
       {isProfilePage ? (
@@ -787,6 +810,8 @@ function App() {
             onSharePin={handleSharePin}
             onSavePin={handleSavePin}
             onUnsavePin={handleUnsavePin}
+            onTogglePinLike={handleTogglePinLike}
+            likeSubmittingPinId={pinLikeSubmittingId}
             isOpen={isPanelOpen}
             onToggle={handleTogglePanel}
           />

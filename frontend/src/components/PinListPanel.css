@@ -739,8 +739,21 @@
   transition: color 0.2s;
 }
 
-.pin-card-featured .pin-card-meta-btn:hover {
+.pin-card-featured .pin-card-meta-btn:hover:not(:disabled) {
   color: var(--pins-primary);
+}
+
+.pin-card-featured .pin-card-meta-btn.pin-card-meta-btn--liked {
+  color: #2563eb;
+}
+
+.pin-card-featured .pin-card-meta-btn.pin-card-meta-btn--liked:hover:not(:disabled) {
+  color: #1d4ed8;
+}
+
+.pin-card-featured .pin-card-meta-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 .pin-card-featured .pin-card-time {
@@ -896,10 +909,42 @@
   color: #94a3b8;
 }
 
-.pin-card-compact-stats span {
+.pin-card-compact-stats .pin-card-compact-stat-comment {
   display: flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.pin-card-compact-stat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.pin-card-compact-stat-btn:hover:not(:disabled) {
+  color: var(--pins-primary);
+}
+
+.pin-card-compact-stat-btn.pin-card-compact-stat-btn--liked {
+  color: #2563eb;
+}
+
+.pin-card-compact-stat-btn.pin-card-compact-stat-btn--liked:hover:not(:disabled) {
+  color: #1d4ed8;
+}
+
+.pin-card-compact-stat-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }
 
 /* Small full details link in list view */
@@ -1207,8 +1252,16 @@
   color: #8890aa;
 }
 
-.dark .pin-card-featured .pin-card-meta-btn:hover {
+.dark .pin-card-featured .pin-card-meta-btn:hover:not(:disabled) {
   color: #a0a3fb;
+}
+
+.dark .pin-card-featured .pin-card-meta-btn.pin-card-meta-btn--liked {
+  color: #60a5fa;
+}
+
+.dark .pin-card-featured .pin-card-meta-btn.pin-card-meta-btn--liked:hover:not(:disabled) {
+  color: #93c5fd;
 }
 
 .dark .pin-card-featured .pin-card-time {
@@ -1312,6 +1365,18 @@
   color: #5a6080;
 }
 
+.dark .pin-card-compact-stat-btn:hover:not(:disabled) {
+  color: #a0a3fb;
+}
+
+.dark .pin-card-compact-stat-btn.pin-card-compact-stat-btn--liked {
+  color: #60a5fa;
+}
+
+.dark .pin-card-compact-stat-btn.pin-card-compact-stat-btn--liked:hover:not(:disabled) {
+  color: #93c5fd;
+}
+
 .dark .pin-card-compact-full-details {
   color: #a0a3fb;
   font-weight: 600;
@@ -1367,4 +1432,4 @@
   background: rgba(248, 113, 113, 0.1);
   color: #f08c8c;
 }
-
+

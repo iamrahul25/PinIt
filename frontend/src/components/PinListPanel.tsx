@@ -46,6 +46,12 @@ function getSeverityClass(severity) {
   return 'severity-high';
 }
 
+function pinHasUserUpvote(pin, userId) {
+  if (!userId || !Array.isArray(pin?.votes)) return false;
+  const v = pin.votes.find((x) => String(x.userId) === String(userId));
+  return v?.voteType === 'upvote';
+}
+
 const PinListPanel = ({
   pins,
   user,
@@ -58,6 +64,8 @@ const PinListPanel = ({
   onSharePin,
   onSavePin,
   onUnsavePin,
+  onTogglePinLike,
+  likeSubmittingPinId,
   isOpen,
   onToggle
 }) => {
@@ -353,10 +361,28 @@ const PinListPanel = ({
                           )}
                           <div className="pin-card-meta">
                             <div className="pin-card-actions-row">
-                              <button type="button" className="pin-card-meta-btn" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                className={`pin-card-meta-btn ${pinHasUserUpvote(pin, user?.id) ? 'pin-card-meta-btn--liked' : ''}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onTogglePinLike?.(pin);
+                                }}
+                                disabled={likeSubmittingPinId != null && String(likeSubmittingPinId) === String(pin._id)}
+                                aria-pressed={pinHasUserUpvote(pin, user?.id)}
+                                aria-label={pinHasUserUpvote(pin, user?.id) ? 'Unlike issue' : 'Like issue'}
+                              >
                                 <FaThumbsUp /> <span>{pin.upvotes ?? 0}</span>
                               </button>
-                              <button type="button" className="pin-card-meta-btn" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                className="pin-card-meta-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onShowDetails?.(pin, { focusComments: true });
+                                }}
+                                aria-label="View comments"
+                              >
                                 <FaComment /> <span>{pin.comments?.length ?? 0}</span>
                               </button>
                             </div>
@@ -414,8 +440,30 @@ const PinListPanel = ({
                             <FaMapMarkerAlt /> <span>{(pin.location?.address && pin.location.address.length > 25) ? pin.location.address.slice(0, 25) + '...' : (pin.location?.address || '—')}</span>
                           </div>
                           <div className="pin-card-compact-stats">
-                            <span><FaThumbsUp /> {pin.upvotes ?? 0}</span>
-                            <span><FaComment /> {pin.comments?.length ?? 0}</span>
+                            <button
+                              type="button"
+                              className={`pin-card-compact-stat-btn ${pinHasUserUpvote(pin, user?.id) ? 'pin-card-compact-stat-btn--liked' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onTogglePinLike?.(pin);
+                              }}
+                              disabled={likeSubmittingPinId != null && String(likeSubmittingPinId) === String(pin._id)}
+                              aria-pressed={pinHasUserUpvote(pin, user?.id)}
+                              aria-label={pinHasUserUpvote(pin, user?.id) ? 'Unlike issue' : 'Like issue'}
+                            >
+                              <FaThumbsUp /> {pin.upvotes ?? 0}
+                            </button>
+                            <button
+                              type="button"
+                              className="pin-card-compact-stat-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onShowDetails?.(pin, { focusComments: true });
+                              }}
+                              aria-label="View comments"
+                            >
+                              <FaComment /> {pin.comments?.length ?? 0}
+                            </button>
                           </div>
                           <button
                             type="button"
